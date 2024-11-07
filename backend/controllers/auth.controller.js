@@ -23,7 +23,6 @@ export const signup = async (req, res) => {
 			email,
 			password: hashedPassword,
 			name,
-			role,
 			verificationToken,
 			verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
 		});
@@ -239,4 +238,8 @@ export const checkAuth = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
         
     }
+};
+
+export const adminUser = async (req, res) => {
+	return res.status(200).json({ success: true, message: "Admin Logged in"});
 };
