@@ -3,17 +3,19 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import SignUpPage from "./pages/SignUpPage";
 import LoginPage from "./pages/LoginPage";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
-import CustomerDashboardPage from "./pages/front/CustomerDashboardPage";
+import CustomerDashboardPage from "./pages/customer/index";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import HomePage from "./pages/front/HomePage";
-import AdminDashboardPage from "./pages/back/AdminDashboardPage";
+import AdminDashboardPage from "./pages/admin/index";
+import UsersPage from "./pages/admin/UsersPage";
 
 import LoadingSpinner from "./components/LoadingSpinner";
 
 import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "./store/authStore";
 import { useEffect } from "react";
+import NotFoundPage from "./pages/NotFoundPage";
 
 // protect routes that require authentication
 const ProtectedRoute = ({ children, role }) => {
@@ -32,7 +34,7 @@ const ProtectedRoute = ({ children, role }) => {
 		return <Navigate to="/dashboard" replace />;
 	}
 	if (role === "customer" && user.role === "admin") {
-		return <Navigate to="/admin-dashboard" replace />;
+		return <Navigate to="/admin" replace />;
 	}
 	return children;
 };
@@ -61,9 +63,6 @@ function App() {
 		<>
 			<Routes>
 				<Route path="/" element={<HomePage />} />
-			</Routes>
-
-			<Routes>
 				{/* Customer Dashboard */}
 				<Route
 					path="/dashboard"
@@ -74,12 +73,19 @@ function App() {
 					}
 				/>
 
-				{/* Admin Dashboard */}
 				<Route
-					path="/admin-dashboard"
+					path="/admin"
 					element={
 						<ProtectedRoute role="admin">
 							<AdminDashboardPage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/admin/users"
+					element={
+						<ProtectedRoute role="admin">
+							<UsersPage />
 						</ProtectedRoute>
 					}
 				/>
@@ -115,6 +121,10 @@ function App() {
 							<ResetPasswordPage />
 						</RedirectAuthenticatedUser>
 					}
+				/>
+				<Route
+				    path="*"
+                    element={<NotFoundPage />}
 				/>
 			</Routes>
 			<Toaster />
