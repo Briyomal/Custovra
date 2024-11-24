@@ -1,5 +1,6 @@
 import CustomerLayoutPage from "../customer/LayoutPage"
 import { Home, Settings, Users } from "lucide-react";
+import { useEffect } from "react";
 
 const customerMenuItems = [
   { title: 'Home', url: '/customer/home', icon: Home },
@@ -7,6 +8,14 @@ const customerMenuItems = [
   { title: 'Profile', url: '/customer/profile', icon: Settings },
 ];
 const CustomerDashboardPage = () => {
+  useEffect(() => {
+    const sessionId = new URLSearchParams(window.location.search).get('session_id');
+    if (sessionId) {
+        console.log(`Payment successful. Session ID: ${sessionId}`);
+        // You can now fetch details from Stripe or your own backend
+    }
+}, []);
+
   return (
     <CustomerLayoutPage sidebarMenuItems={customerMenuItems}>
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">

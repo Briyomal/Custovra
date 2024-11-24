@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
 import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendResetSuccessEmail } from "../mailtrap/emails.js";
 import { User } from "../models/User.js";
+import {stripe} from "../utils/stripe.js";
 
 export const signup = async (req, res) => {
 	const { email, password, name } = req.body;
@@ -16,13 +17,21 @@ export const signup = async (req, res) => {
 			return res.status(400).json({ success: false, message: "User already exists" });
 		}
 
+		
 		const hashedPassword = await bcryptjs.hash(password, 10);
 		const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
+
+		const customer = await stripe.customers.create({
+			email
+		}, {
+			apiKey: process.env.STRIPE_SECRET_KEY,
+		})
 
 		const user = new User({
 			email,
 			password: hashedPassword,
 			name,
+			stripeCustomerId: customer.id,
 			verificationToken,
 			verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
 		});
@@ -48,7 +57,6 @@ export const signup = async (req, res) => {
 };
 
 export const verifyEmail = async (req, res) => {
-	//res.send("hello World!");
 	const { code } = req.body;
 	try {
 		const user = await User.findOne({
@@ -221,25 +229,34 @@ export const resetPassword = async (req, res) => {
 
 export const checkAuth = async (req, res) => {
     try {
-        const user = await User.findById(req.userId);
+        const user = await User.findById(req.userId).populate('subscription_plan');
         if (!user) {
             return res.status(400).json({ success: false, message: "User not found" });
+        }
+
+        // Check if subscription is active or expired
+        if (user.subscription_expiry && new Date() > new Date(user.subscription_expiry)) {
+            user.is_active = false;
+            await user.save();
         }
 
         res.status(200).json({
             success: true,
             user: {
-               ...user._doc,
-                password:  undefined,
+                ...user._doc,
+                password: undefined, // Exclude sensitive information
             },
         });
     } catch (error) {
-        console.log("Error in checkAuth", error);
+        console.error("Error in checkAuth", error);
         res.status(500).json({ success: false, message: error.message });
-        
     }
 };
 
 export const adminUser = async (req, res) => {
 	return res.status(200).json({ success: true, message: "Admin Logged in"});
+};
+
+export const cusUser = async (req, res) => {
+	return res.status(200).json({ success: true, message: "Customer Logged in"});
 };

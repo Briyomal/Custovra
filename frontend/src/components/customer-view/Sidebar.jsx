@@ -1,5 +1,5 @@
 //import { Calendar, Home, Inbox, Search, Settings, Command, Users  } from "lucide-react";
-import { Home, Settings, Users, Command  } from "lucide-react";
+import { Home, Settings, Command, FormInput  } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { NavUser } from "@/components/nav-user";
 import { useAuthStore } from "@/store/authStore";
@@ -8,7 +8,7 @@ import { useAuthStore } from "@/store/authStore";
 const items = [
     { title: 'Dashboard', icon: Home,},
     { title: 'Users Main', icon: Settings, },
-    { title: 'Users', url: '/admin/users', icon: Users },
+    { title: 'Form', url: '/dashboard/', icon: FormInput },
 ];
 
 export function CustomerSidebar() {

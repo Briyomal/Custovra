@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
+const Schema = mongoose.Schema;
 
-const userSchema = new mongoose.Schema(
+const userSchema = new Schema(
 	{
 		email: {
 			type: String,
@@ -19,6 +20,18 @@ const userSchema = new mongoose.Schema(
 			type: String,
             enum: ["customer", "admin"],
             default: "customer",
+		},
+
+        subscription_plan: {
+            type: String,
+		},
+		is_active: {
+			type: Boolean,
+			default: false,
+		},
+		stripeCustomerId: { 
+			type: String, 
+			required: true,
 		},
 		lastLogin: {
 			type: Date,

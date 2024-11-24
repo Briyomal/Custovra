@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation  } from "react-router-dom";
 
 import SignUpPage from "./pages/SignUpPage";
 import LoginPage from "./pages/LoginPage";
@@ -9,6 +9,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import HomePage from "./pages/front/HomePage";
 import AdminDashboardPage from "./pages/admin/index";
 import UsersPage from "./pages/admin/UsersPage";
+import SubscriptionPage from "./pages/customer/SubscriptionPage";
 
 import LoadingSpinner from "./components/LoadingSpinner";
 
@@ -17,27 +18,36 @@ import { useAuthStore } from "./store/authStore";
 import { useEffect } from "react";
 import NotFoundPage from "./pages/NotFoundPage";
 
+
 // protect routes that require authentication
 const ProtectedRoute = ({ children, role }) => {
-	const { isAuthenticated, user } = useAuthStore();
+    const { isAuthenticated, user } = useAuthStore();
+    const location = useLocation(); // Get the current location
 
-	if (!isAuthenticated) {
-		return <Navigate to="/login" replace />;
-	}
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
 
-	if (!user.isVerified) {
-		return <Navigate to="/verify-email" replace />;
-	}
-	// Check the user's role and redirect to the appropriate dashboard
-	// Redirect users based on role if accessing the wrong dashboard
-	if (role === "admin" && user.role !== "admin") {
-		return <Navigate to="/dashboard" replace />;
-	}
-	if (role === "customer" && user.role === "admin") {
-		return <Navigate to="/admin" replace />;
-	}
-	return children;
+    if (!user.isVerified) {
+        return <Navigate to="/verify-email" replace />;
+    }
+
+    // Redirect users based on role if accessing the wrong dashboard
+    if (role === "admin" && user.role !== "admin") {
+        return <Navigate to="/dashboard" replace />;
+    }
+    if (role === "customer" && user.role === "admin") {
+        return <Navigate to="/admin" replace />;
+    }
+
+    // Skip is_active check for the /subscription page to prevent redirect loops
+    if (user?.is_active === false && location.pathname !== "/subscription") {
+        return <Navigate to="/subscription" replace />;
+    }
+
+    return children;
 };
+
 
 // redirect authenticated users to the Dashboard
 const RedirectAuthenticatedUser = ({ children }) => {
@@ -69,6 +79,14 @@ function App() {
 					element={
 						<ProtectedRoute role="customer">
 							<CustomerDashboardPage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/subscription"
+					element={
+						<ProtectedRoute role="customer">
+							<SubscriptionPage />
 						</ProtectedRoute>
 					}
 				/>
