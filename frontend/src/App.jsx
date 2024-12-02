@@ -10,16 +10,17 @@ import HomePage from "./pages/front/HomePage";
 import AdminDashboardPage from "./pages/admin/index";
 import UsersPage from "./pages/admin/UsersPage";
 import SubscriptionPage from "./pages/customer/SubscriptionPage";
+import FormPage from "./pages/customer/FormPage";
 
 import LoadingSpinner from "./components/LoadingSpinner";
 
-import { Toaster } from "react-hot-toast";
+//import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "./store/authStore";
 import { useEffect } from "react";
 import NotFoundPage from "./pages/NotFoundPage";
+import FormCreatePage from "./pages/customer/FormCreatePage";
+import { Toaster } from "react-hot-toast";
 
-
-// protect routes that require authentication
 const ProtectedRoute = ({ children, role }) => {
     const { isAuthenticated, user } = useAuthStore();
     const location = useLocation(); // Get the current location
@@ -47,7 +48,6 @@ const ProtectedRoute = ({ children, role }) => {
 
     return children;
 };
-
 
 // redirect authenticated users to the Dashboard
 const RedirectAuthenticatedUser = ({ children }) => {
@@ -91,6 +91,25 @@ function App() {
 					}
 				/>
 
+				<Route
+					path="/forms"
+					element={
+						<ProtectedRoute role="customer">
+							<FormPage />
+						</ProtectedRoute>
+					}
+				/>
+
+				<Route
+					path="/forms/create-form/:formId"
+					element={
+						<ProtectedRoute role="customer">
+							<FormCreatePage />
+						</ProtectedRoute>
+					}
+				/>
+				
+				{/* Customer Dashboard End */}
 				<Route
 					path="/admin"
 					element={
@@ -145,7 +164,10 @@ function App() {
                     element={<NotFoundPage />}
 				/>
 			</Routes>
-			<Toaster />
+			<Toaster
+			  position="top-right"
+			  reverseOrder={false}
+			/>
 		</>
 	);
 }

@@ -10,9 +10,12 @@ import { Button } from "@/components/ui/button";
 import { CustomerSidebar } from "@/components/customer-view/Sidebar";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
+import { Badge } from "@/components/ui/badge";
+import { useAuthStore } from "@/store/authStore";
 
 function CustomerLayoutPage({ children }) {
-	//console.log("Menu items received:", sidebarMenuItems); // This line is for debugging
+	
+	const { user } = useAuthStore();
 
 	const { setTheme } = useTheme();
 	return (
@@ -37,9 +40,13 @@ function CustomerLayoutPage({ children }) {
 								</BreadcrumbList>
 							</Breadcrumb>
 						</div>
-
 						{/* Right-aligned dropdown */}
 						<div className="ml-auto">
+            				{user.payment ? (
+								<Badge className="mr-3 px-3 py-1 border-lime-300 dark:border-green-700 rounded-sm bg-gradient-to-r from-green-700 to-lime-500 text-white text-sm">{user.payment.plan}</Badge>
+            				) : (
+            				    <p></p>
+            				)}
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button variant="outline" size="icon">

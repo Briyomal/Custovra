@@ -5,8 +5,9 @@ import { useAuthStore } from "../store/authStore";
 import { useNavigate, useParams } from "react-router-dom";
 import Input from "../components/Input";
 import { Lock } from "lucide-react";
-import toast from "react-hot-toast";
+//import toast from "react-hot-toast";
 import FloatingBackground from "../components/FloatingBackground";
+import toast from "react-hot-toast";
 
 const ResetPasswordPage = () => {
 	const [password, setPassword] = useState("");
@@ -15,6 +16,7 @@ const ResetPasswordPage = () => {
 
 	const { token } = useParams();
 	const navigate = useNavigate();
+
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -27,6 +29,8 @@ const ResetPasswordPage = () => {
 			await resetPassword(token, password);
 
 			toast.success("Password reset successfully, redirecting to login page...");
+
+
 			setTimeout(() => {
 				navigate("/login");
 			}, 2000);

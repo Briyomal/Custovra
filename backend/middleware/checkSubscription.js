@@ -2,7 +2,7 @@ import { User } from '../models/User.js';
 
 const checkSubscription = async (req, res, next) => {
     try {
-        const userId = req.user.id; // Assume user ID is in req.user after authentication
+        const userId = req.userId;
         const user = await User.findById(userId);
 
         if (!user) {
@@ -21,9 +21,9 @@ const checkSubscription = async (req, res, next) => {
                     .json({ message: 'Subscription expired. Please renew to continue.' });
             }
         }
-
         next(); // Proceed if subscription is valid or user is on the subscription page
     } catch (error) {
+        console.error('Error checking subscription:', error);
         res.status(500).json({ error: error.message });
     }
 

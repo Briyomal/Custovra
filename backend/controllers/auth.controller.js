@@ -4,7 +4,9 @@ import crypto from "crypto";
 import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
 import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendResetSuccessEmail } from "../mailtrap/emails.js";
 import { User } from "../models/User.js";
+import { Payment } from "../models/Payment.js";
 import {stripe} from "../utils/stripe.js";
+import mongoose from "mongoose";
 
 export const signup = async (req, res) => {
 	const { email, password, name } = req.body;
@@ -99,6 +101,8 @@ export const login = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid credentials" });
         }
 
+		const payment = await Payment.findOne({ user_id: new mongoose.Types.ObjectId(user._id) });
+
         if (!user.isVerified) {
             const currentTime = Date.now();
             const twentyFourHours = 24 * 60 * 60 * 1000;
@@ -149,6 +153,7 @@ export const login = async (req, res) => {
             user: {
                 ...user._doc,
                 password: undefined,
+				payment,
             },
         });
     } catch (error) {
@@ -240,11 +245,14 @@ export const checkAuth = async (req, res) => {
             await user.save();
         }
 
+		const payment = await Payment.findOne({ user_id: new mongoose.Types.ObjectId(user._id) });
+		
         res.status(200).json({
             success: true,
             user: {
                 ...user._doc,
                 password: undefined, // Exclude sensitive information
+				payment,
             },
         });
     } catch (error) {

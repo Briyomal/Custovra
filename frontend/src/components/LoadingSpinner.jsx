@@ -1,14 +1,15 @@
-import { motion } from "framer-motion";
+//import { motion } from "framer-motion";
+import { Loader } from "lucide-react";
 
 const LoadingSpinner = () => {
 	return (
-		<div className='min-h-screen bg-gradient-to-br from-gray-50 via-violet-200 to-violet-100 flex items-center justify-center relative overflow-hidden'>
+		<div className='min-h-screen 
+			bg-gradient-to-br from-gray-50 via-violet-200 to-violet-100 
+			dark:bg-gradient-to-br dark:from-gray-950 dark:via-slate-900 dark:to-gray-950	
+			flex items-center justify-center relative overflow-hidden'
+			>
 			{/* Simple Loading Spinner */}
-			<motion.div
-				className='w-16 h-16 border-4 border-t-4 border-t-gray-900 border-gray-400 rounded-full'
-				animate={{ rotate: 360 }}
-				transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-			/>
+			<Loader className="w-16 h-16 animate-spin" />
 		</div>
 	);
 };

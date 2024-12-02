@@ -7,10 +7,12 @@ const formSchema = new Schema({
         ref: 'User',
         required: true,
     },
-    subscription_id: {
-        type: Schema.Types.ObjectId,
-        ref: 'Subscription',
+    form_name: {
+        type: String,
         required: true,
+    },
+    form_description: {
+        type: String,
     },
     form_type: {
         type: String,
@@ -30,7 +32,7 @@ const formSchema = new Schema({
     },
     is_active: {
         type: Boolean,
-        default: true,
+        default: false,
     },
     created_at: {
         type: Date,

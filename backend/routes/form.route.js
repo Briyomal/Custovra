@@ -1,6 +1,6 @@
 import express from 'express';
 import {
-    getAllForms,
+    getAllUserForms,
     getFormById,
     createForm,
     updateForm,
@@ -8,13 +8,14 @@ import {
 } from '../controllers/form.controller.js';
 
 import checkSubscription from '../middleware/checkSubscription.js';  // Importing the middleware function
+import { verifyToken } from '../middleware/verifyToken.js';
 
 const router = express.Router();
 
-router.get('/all-forms', getAllForms);
-router.get('/form:id', getFormById);
-router.post('/form-create', createForm, checkSubscription);
-router.put('/form-update:id', updateForm);
-router.delete('/form-delete:id', deleteForm);
+router.get('/', verifyToken, checkSubscription, getAllUserForms);
+router.get('/:id', verifyToken, checkSubscription, getFormById);
+router.post('/create-form', verifyToken, checkSubscription, createForm);
+router.put('/update-form:id', updateForm);
+router.delete('/delete-form:id', deleteForm);
 
 export default router;
