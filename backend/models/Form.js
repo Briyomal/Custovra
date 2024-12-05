@@ -1,6 +1,34 @@
 import mongoose from "mongoose";
 const Schema = mongoose.Schema;
 
+const defaultFieldSchema = new Schema({
+    field_name: {
+        type: String,
+        enum: ['name', 'email', 'phone', 'rating', 'comment'], // Default fields
+        required: true,
+    },
+    field_type: {
+        type: String,
+        enum: ['text', 'email', 'phone', 'rating', 'textarea'],
+        required: true,
+    },
+    is_required: {
+        type: Boolean,
+        default: false,
+    },
+    placeholder: {
+        type: String,
+    },
+    enabled: {
+        type: Boolean,
+        default: true,
+    },
+    position: {
+        type: Number, // Position of the field for drag-and-drop
+        required: true,
+    },
+});
+
 const formSchema = new Schema({
     user_id: {
         type: Schema.Types.ObjectId,
@@ -11,6 +39,12 @@ const formSchema = new Schema({
         type: String,
         required: true,
     },
+    form_note: {
+        type: String,
+    },
+    logo: {
+        type: String,
+    },
     form_description: {
         type: String,
     },
@@ -19,7 +53,10 @@ const formSchema = new Schema({
         enum: ['Review', 'Complaint'],
         required: true,
     },
-    fields: [{
+    // Default fields with position
+    default_fields: [defaultFieldSchema],
+    // Custom fields with position
+    custom_fields: [{
         type: Schema.Types.ObjectId,
         ref: 'FormField',
     }],

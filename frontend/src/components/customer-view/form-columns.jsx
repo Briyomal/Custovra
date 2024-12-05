@@ -19,9 +19,9 @@ export const columns = [
 		enableSorting: true, // Enable sorting for the name column
 	},
     {
-		id: "form_description",
-		header: "Description",
-		accessorKey: "form_description",
+		id: "form_note",
+		header: "Note",
+		accessorKey: "form_note",
 	},
 	{
 		id: "form_type",

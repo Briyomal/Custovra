@@ -16,9 +16,20 @@ const formFieldSchema = new Schema({
         enum: ['text', 'email', 'phone', 'rating', 'textarea'],
         required: true,
     },
+    placeholder: {
+        type: String,
+    },
     is_required: {
         type: Boolean,
         default: false,
+    },
+    enabled: {
+        type: Boolean,
+        default: true,
+    },
+    position: {
+        type: Number, // Position of the field for drag-and-drop
+        required: true,
     },
     created_at: {
         type: Date,

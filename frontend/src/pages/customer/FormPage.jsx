@@ -20,24 +20,27 @@ import DataTable from "@/components/customer-view/DataTable"
 import axios from "axios"
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { columns } from "@/components/customer-view/form-columns"
-import { FilePlus } from "lucide-react"
+import { FilePlus, Loader } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import toast from "react-hot-toast";
 
 
 const FormPage = () => {
     const [formName, setFormName] = useState("");
-    const [formDescription, setFormDescription] = useState("");
+    const [formNote, setFormNote] = useState("");
     const [formType, setFormType] = useState("Review");
     //const [fields, setFields] = useState([]);
-    const { createForm, loadingForm, error } = useFormStore();
+    const { createForm, error } = useFormStore();
+    const [isLoading, setIsLoading] = useState(false);
+
     const navigate = useNavigate();
      
     const handleSubmit = async () => {
+        setIsLoading(true);
         const formData = {
             user_id: "user-id-here", // Replace with actual user ID
             form_name: formName,
-            form_description: formDescription,
+            form_note: formNote,
             form_type: formType,
             //fields,
         };
@@ -57,8 +60,9 @@ const FormPage = () => {
             );
         } catch {
             toast.error("Error creating form");
+        } finally {
+            setIsLoading(false);
         }
-        
     };
 
 
@@ -106,7 +110,7 @@ const FormPage = () => {
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <Label htmlFor="form_name">
-                                Form Name
+                                Form Name 
                             </Label>
                             <Input 
 						        type='text'
@@ -115,15 +119,15 @@ const FormPage = () => {
 						        onChange={(e) => setFormName(e.target.value)}  
                             />
                             <Label htmlFor="form_description">
-                                Form Description
+                                Note
                             </Label>
                             <Textarea 
-                                placeholder='Type your form description here'
-                                value={formDescription}
-                                onChange={(e) => setFormDescription(e.target.value)}  
+                                placeholder='Personel note to identify the form'
+                                value={formNote}
+                                onChange={(e) => setFormNote(e.target.value)}  
                             />
                             <Label htmlFor="form_type">
-                                Form Type
+                                Type
                             </Label>
                             <Select
                                 value={formType}
@@ -137,13 +141,32 @@ const FormPage = () => {
                                       <SelectItem value="Complaint">Complaint</SelectItem>
                                 </SelectContent>
                             </Select>
+                            <div className="flex flex-col">
+                                {error && <p className="text-red-500">Error: {error}</p>}
+                            </div>
                         </div>
                         <DialogFooter>
+                            {/*
                             <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
-                                onClick={handleSubmit} disabled={loadingForm}>
-                                {loadingForm ? "Creating..." : "Create Form"}
+                                onClick={handleSubmit} 
+                                disabled={isLoading}
+                            >
+                                {isLoading ? <span className="flex flex-row"><Loader className=' animate-spin mx-auto mr-1' size={28} />Creating...</span>  : "Create Form"}
                             </Button>
-                            {error && <p>Error: {error}</p>}
+                            */}
+                            
+                            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
+                                onClick={handleSubmit} 
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader className="animate-spin mx-auto mr-1" size={28} /> Creating...
+                                    </>
+                                ) : (
+                                    "Create Form"
+                                )}
+                            </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

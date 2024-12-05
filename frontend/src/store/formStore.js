@@ -41,6 +41,67 @@ const useFormStore = create((set) => ({
         }
     },
 
+    updateForm: async (formId, formData) => {
+        set({ isLoading: true, error: null });
+        try {
+            // Log FormData for debugging
+            console.log("FormData keys:", [...formData.keys()]);
+            console.log("FormData values:", [...formData.entries()]);
+    
+            // Make the request with FormData
+            const response = await axios.put(`${API_URL}/update-form/${formId}`, formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+    
+            return response.data;
+        } catch (error) {
+            console.error("Error updating form:", error.response?.data || error.message);
+            return error.response?.data;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+    
+     /*  
+   
+    updateForm: async (formId, formData) => {
+		set({ isLoading: true, error: null });
+        console.log("logo:  ", formData.logo);
+        try {
+            if (!Array.isArray(formData.fields)) {
+                throw new Error("Fields data is missing or not an array.");
+            }
+    
+            const response = await axios.put(`${API_URL}/update-form/${formId}`, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                  },
+                form_name: formData.formName, // Convert camelCase back to snake_case for API
+                form_note: formData.formNote,
+                form_type: formData.formType,
+                fields: formData.fields ? formData.fields.map(field => ({
+                    label: field.label,
+                    type: field.type,
+                    is_required: field.isRequired,
+                    enabled: field.enabled,
+                    position: field.position,
+                    placeholder: field.placeholder,
+                })) : [],
+                logo: formData.logo,
+                form_description: formData.formDescription,
+                is_active: formData.isActive,
+            });
+            
+            return response.data;   
+        } catch (error) {
+            console.error("Error updating form:", error.response?.data || error.message);
+            return error.response?.data;
+        }
+    },
+  */
+    
     addFieldsToForm: async (formId, fields) => {
         set({ loadingForm: true, error: null });
         try {

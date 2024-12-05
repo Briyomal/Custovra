@@ -1,6 +1,12 @@
 // controllers/FormController.js
 import { Form } from '../models/Form.js';
 import { FormField } from '../models/FormField.js';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Get all forms
 export const getAllForms = async (req, res) => {
@@ -46,10 +52,7 @@ export const getFormById = async (req, res) => {
 export const createForm = async (req, res) => {
     try {
         const user_id = req.userId;
-        const { form_name, form_description, form_type, fields } = req.body;
-        console.log("User ID:", user_id);
-        console.log("Form Name:", form_name);
-        console.log("Form Type:", form_type);
+        const { form_name, form_note, form_type, fields } = req.body;
         // Validate required fields
         if (!user_id || !form_name || !form_type) {
             return res.status(400).json({ message: "Missing required fields." });
@@ -59,7 +62,7 @@ export const createForm = async (req, res) => {
         const form = new Form({
             user_id,
             form_name,
-            form_description,
+            form_note,
             form_type,
         });
 
@@ -104,14 +107,116 @@ export const createForm = async (req, res) => {
     }
 };
 
-// Update a form
+
 export const updateForm = async (req, res) => {
     try {
-        const updatedForm = await Form.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!updatedForm) return res.status(404).json({ message: 'Form not found' });
-        res.status(200).json(updatedForm);
+        const { id } = req.params; // Form ID from URL parameters
+        const { form_name, form_note, form_type, fields, form_description, is_active, logo } = req.body;
+
+        console.log("Received form data:", req.body);
+
+        // Validate required fields
+        if (!form_name || !form_type) {
+            return res.status(400).json({ message: "Missing required fields." });
+        }
+
+        // Find the form by its ID and ensure it belongs to the current user
+        const form = await Form.findOne({ _id: id, user_id: req.userId });
+        if (!form) {
+            return res.status(404).json({ message: "Form not found or unauthorized access." });
+        }
+
+        // Update basic form fields
+        form.form_name = form_name;
+        form.form_note = form_note;
+        form.form_type = form_type;
+        form.form_description = form_description || form.form_description;
+        form.is_active = is_active !== undefined ? is_active : form.is_active;
+
+        // Handle logo upload
+        if (req.file) {
+            const oldLogoPath = path.join(__dirname, '../../backend', form.logo);
+            console.log("Attempting to delete old logo at:", oldLogoPath);
+        
+            try {
+                if (fs.existsSync(oldLogoPath)) {
+                    fs.unlinkSync(oldLogoPath);
+                    console.log("Old logo deleted successfully.");
+                } else {
+                    console.log("Old logo does not exist at:", oldLogoPath);
+                }
+            } catch (error) {
+                console.error("Error deleting old logo:", error);
+            }
+        
+            form.logo = req.savedFilePath; // Update the form with the new logo
+        }
+
+        // Parse and handle fields
+        let parsedFields = [];
+        if (fields) {
+            try {
+                parsedFields = JSON.parse(fields);
+            } catch (error) {
+                return res.status(400).json({ message: "Invalid fields format. Must be a valid JSON string." });
+            }
+        }
+
+        if (parsedFields.length > 0) {
+            const defaultFields = [];
+            const customFields = [];
+
+            for (const field of parsedFields) {
+                if (["name", "email", "phone", "rating", "comment"].includes(field.label.toLowerCase())) {
+                    // Default field
+                    defaultFields.push({
+                        field_name: field.label.toLowerCase(),
+                        field_type: field.type,
+                        is_required: field.isRequired,
+                        enabled: field.enabled,
+                        position: field.position,
+                        placeholder: field.placeholder,
+                    });
+                } else {
+                    // Custom field
+                    if (!field.label || !field.type) {
+                        return res.status(400).json({ message: "Invalid custom field data." });
+                    }
+                    customFields.push({
+                        form_id: id,
+                        field_name: field.label,
+                        field_type: field.type,
+                        is_required: field.isRequired,
+                        enabled: field.enabled,
+                        position: field.position,
+                        placeholder: field.placeholder,
+                    });
+                }
+            }
+
+            // Update default fields
+            form.default_fields = defaultFields;
+
+            // Clear existing custom fields and recreate them
+            await FormField.deleteMany({ form_id: id });
+            const customFieldDocuments = await FormField.insertMany(customFields);
+
+            // Update references to custom fields
+            const customFieldIds = customFieldDocuments.map((field) => field._id);
+            form.fields = customFieldIds;
+            form.custom_fields = customFieldIds;
+        }
+
+        // Save the updated form
+        await form.save();
+
+        return res.status(200).json({
+            message: "Form updated successfully.",
+            form,
+        });
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error(error);
+        return res.status(500).json({ message: "An error occurred.", error });
     }
 };
 
