@@ -63,45 +63,38 @@ const useFormStore = create((set) => ({
             set({ isLoading: false });
         }
     },
-    
-     /*  
-   
-    updateForm: async (formId, formData) => {
-		set({ isLoading: true, error: null });
-        console.log("logo:  ", formData.logo);
+/*
+    deleteForm: async (formId) => {
+        set({ loadingForm: true, error: null });
         try {
-            if (!Array.isArray(formData.fields)) {
-                throw new Error("Fields data is missing or not an array.");
-            }
-    
-            const response = await axios.put(`${API_URL}/update-form/${formId}`, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                  },
-                form_name: formData.formName, // Convert camelCase back to snake_case for API
-                form_note: formData.formNote,
-                form_type: formData.formType,
-                fields: formData.fields ? formData.fields.map(field => ({
-                    label: field.label,
-                    type: field.type,
-                    is_required: field.isRequired,
-                    enabled: field.enabled,
-                    position: field.position,
-                    placeholder: field.placeholder,
-                })) : [],
-                logo: formData.logo,
-                form_description: formData.formDescription,
-                is_active: formData.isActive,
-            });
-            
-            return response.data;   
+            await axios.delete(`${API_URL}/${formId}`);
+            set({ loadingForm: false });
         } catch (error) {
-            console.error("Error updating form:", error.response?.data || error.message);
-            return error.response?.data;
+            console.error("Error deleting form:", error.response?.data || error.message);
+            set({ error: error.response?.data?.message || "Failed to delete form", loadingForm: false });
+            throw error;
         }
     },
-  */
+    */
+    deleteForm: async (formId, callback) => {
+        try {
+            const response = await axios.delete(`${API_URL}/${formId}`, {
+                withCredentials: true, // Ensure cookies are sent with the request
+            });
+            // Update the state to reflect that the form has been deleted
+            set((state) => ({
+                forms: state.forms.filter((form) => form._id !== formId),
+            }));
+            if (callback) callback(); // Call the callback function if provided
+            return response.data; // Return successful response data
+        } catch (error) {
+            console.error("Error deleting form", error);
+            throw error; // Throw error to handle it in the component
+        }
+    },
     
+    
+
     addFieldsToForm: async (formId, fields) => {
         set({ loadingForm: true, error: null });
         try {

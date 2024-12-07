@@ -20,9 +20,11 @@ import DataTable from "@/components/customer-view/DataTable"
 import axios from "axios"
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { columns } from "@/components/customer-view/form-columns"
-import { FilePlus, Loader } from "lucide-react"
+import { BadgeAlert, FilePlus, Loader, SquareDashedMousePointer, SquareEqual, Star, Zap } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import toast from "react-hot-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useAuthStore } from "@/store/authStore"
 
 
 const FormPage = () => {
@@ -32,13 +34,14 @@ const FormPage = () => {
     //const [fields, setFields] = useState([]);
     const { createForm, error } = useFormStore();
     const [isLoading, setIsLoading] = useState(false);
+    const { user } = useAuthStore();
 
     const navigate = useNavigate();
      
     const handleSubmit = async () => {
         setIsLoading(true);
         const formData = {
-            user_id: "user-id-here", // Replace with actual user ID
+            user_id: user._id, // Replace with actual user ID
             form_name: formName,
             form_note: formNote,
             form_type: formType,
@@ -66,14 +69,15 @@ const FormPage = () => {
     };
 
 
-    const [users, setUsers] = useState([]);
+    const [forms, setForms] = useState([]);
     const [loading, setLoading] = useState(true);
   
     useEffect(() => {
       const fetchForms = async () => {
         try {
           const response = await axios.get("http://localhost:5000/api/forms/");
-          setUsers(response.data);
+          console.log("Fetched forms:", response.data);
+          setForms(response.data);
           setLoading(false);
         } catch (error) {
           console.error("Error fetching users:", error);
@@ -83,9 +87,23 @@ const FormPage = () => {
   
       fetchForms();
     }, []);
+
   
-    const memoizedUsers = useMemo(() => users, [users]);
+    const memoizedForms = useMemo(() => forms, [forms]);
     const memoizedColumns = useMemo(() => columns, []);
+    const totalFormsCount = memoizedForms.length;
+    const totalPublishedCount = memoizedForms.filter((form) => form.is_active).length;
+    const totalDraftedCount = memoizedForms.filter((form) => !form.is_active).length;
+    const totalReviewCount = memoizedForms.filter((form) => form.form_type === "Review").length;
+    const totalComplaintCount = memoizedForms.filter((form) => form.form_type === "Complaint").length;
+
+  // Debug setForms here
+  const debugSetForms = (newData) => {
+    console.log("Previous Forms:", forms); // Log the previous state
+    console.log("Updating Forms with:", newData); // Log the new data
+    setForms(newData); // Set the state
+    console.log("Forms After Update:", newData); // Log the new state (immediately after update)
+  };
 
     if (loading) {
         return <LoadingSpinner/>;
@@ -170,13 +188,55 @@ const FormPage = () => {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div className="aspect-video rounded-xl bg-muted/50" />
-                    <div className="aspect-video rounded-xl bg-muted/50" />
-                    <div className="aspect-video rounded-xl bg-muted/50" />
+                <div className="grid auto-rows-min gap-4 grid-cols-3 xl:grid-cols-5">
+                    <Card className=" border-b-4 border-b-green-600">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-md font-regular">Total</CardTitle>
+                        <SquareEqual className="text-green-600" />
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-3xl font-bold">{loading ? "Loading..." : totalFormsCount}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className=" border-b-4 border-b-indigo-600">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-md font-regular">Published</CardTitle>
+                        <Zap className="text-indigo-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-3xl font-bold">{loading ? "Loading..." : totalPublishedCount}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className=" border-b-4 border-b-gray-600">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-md font-regular">Draft</CardTitle>
+                        <SquareDashedMousePointer className="text-gray-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-3xl font-bold">{loading ? "Loading..." : totalDraftedCount}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className=" border-b-4 border-b-amber-600">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-md font-regular">Review</CardTitle>
+                        <Star className="text-amber-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-3xl font-bold">{loading ? "Loading..." : totalReviewCount}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className=" border-b-4 border-b-red-600">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-md font-regular">Complaint</CardTitle>
+                        <BadgeAlert className="text-red-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-3xl font-bold">{loading ? "Loading..." : totalComplaintCount}</p>
+                      </CardContent>
+                    </Card>
                 </div>
                 
-                <DataTable data={memoizedUsers} columns={memoizedColumns} />
+                <DataTable data={memoizedForms} columns={memoizedColumns} setForms={debugSetForms} />
             </div>
         </CustomerLayoutPage>
     )

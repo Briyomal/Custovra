@@ -8,12 +8,18 @@ import { Loader, SaveAll, ScanSearch, SquareArrowOutUpRight } from "lucide-react
 import { Skeleton } from "@/components/ui/skeleton"
 import toast from "react-hot-toast";
 import useFormStore from "@/store/formStore"
+import FormPreview from "@/components/customer-view/FormPreview";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import FormPreviewSkelton from "@/components/customer-view/FormPreviewSkelton";
 
 const FormCreatePage = () => {
     const [formDetails, setFormDetails] = useState({}); // State for form details
     const { formId } = useParams();
     const [loading, setLoading] = useState(false);
     const [loadingForm, setLoadingForm] = useState(false);
+    const [previewLoading, setPreviewLoading] = useState(false);
+    const [previewDetails, setPreviewDetails] = useState(null); // For fetching preview details
+    
     const { updateForm } = useFormStore();
 
     // Fetch form details using the form ID
@@ -23,7 +29,6 @@ const FormCreatePage = () => {
                 setLoading(true);
 
                 const response = await axios.get(`http://localhost:5000/api/forms/${formId}`);
-
                 setFormDetails(response.data); // Set form details
             } catch (error) {
                 console.error("Error fetching form details:", error);
@@ -35,6 +40,20 @@ const FormCreatePage = () => {
         fetchFormDetails();
     }, [formId]);
 
+    // Fetch preview details on demand
+    const fetchPreviewDetails = async () => {
+        try {
+            setPreviewLoading(true);
+            const response = await axios.get(`http://localhost:5000/api/forms/${formId}`);
+            setPreviewDetails(response.data);
+        } catch (error) {
+            console.error("Error fetching preview details:", error);
+        } finally {
+            setPreviewLoading(false);
+        }
+    };
+    
+
     const handleFieldUpdate = (field, value) => {
         setFormDetails((prevDetails) => ({
             ...prevDetails,
@@ -44,67 +63,6 @@ const FormCreatePage = () => {
 
 
     const [selectedImage, setSelectedImage] = useState(null);
-    
-      /*
-    const handleFileSelect = (file) => {
-        setSelectedImage(file); // This should set the selected image in state
-        console.log("Selected Image:", file);
-      };
-    const handlePublish = async () => {
-        setLoadingForm(true);
-        try {
-
-            const fields = formDetails.default_fields.map((field) => ({
-                label: field.field_name,
-                type: field.field_type,
-                isRequired: field.is_required,
-                enabled: field.enabled,
-                position: field.position, // Positions will now reflect drag-and-drop changes
-                placeholder: field.placeholder || "",
-            }));
-
-            console.log("Mapped Fields:", fields);
-
-            await updateForm(formDetails._id, {
-                formName: formDetails.form_name, // Convert snake_case to camelCase
-                formNote: formDetails.form_note,
-                formType: formDetails.form_type,
-                fields, // Use the updated fields
-                logo: selectedImage,
-                formDescription: formDetails.form_description,
-                isActive: formDetails.is_active,
-            });
-
-            console.log(selectedImage);
-            toast.success('Form published successfully!', {
-                style: {
-                    borderRadius: "10px",
-                    background: "#222",
-                    color: "#fff",
-                    padding: "10px",
-                    textAlign: "center",
-                    marginBottom: "10px",
-                }
-
-            });
-
-        } catch (error) {
-            toast.error("Error publishing form", error, {
-                style: {
-                    borderRadius: "10px",
-                    background: "#222",
-                    color: "#fff",
-                    padding: "10px",
-                    textAlign: "center",
-                    marginBottom: "10px",
-                }
-            });
-            console.error("Error publishing form:", error);
-        } finally {
-            setLoadingForm(false);
-        }
-    };
-    */
  
     const handleFileSelect = (file) => {
         setSelectedImage(file); // This should set the selected image in state
@@ -116,7 +74,7 @@ const FormCreatePage = () => {
       const handlePublish = async () => {
         setLoadingForm(true);
         try {
-            const fields = formDetails.default_fields.map((field) => ({
+            let fields = formDetails.default_fields.map((field) => ({
                 label: field.field_name,
                 type: field.field_type,
                 isRequired: field.is_required,
@@ -124,6 +82,18 @@ const FormCreatePage = () => {
                 position: field.position,
                 placeholder: field.placeholder || "",
             }));
+
+                    // Check if mapped fields are empty, and add default fields as fallback
+        if (fields.length === 0) {
+            fields = [
+                { label: "Name", type: "text", isRequired: false, enabled: true, position: 1, placeholder: "John Doe" },
+                { label: "Email", type: "email", isRequired: true, enabled: true, position: 2, placeholder: "mail@example.com" },
+                { label: "Phone", type: "phone", isRequired: false, enabled: true, position: 3, placeholder: "+123456789" },
+                { label: "Rating", type: "rating", isRequired: false, enabled: true, position: 4, placeholder: "" },
+                { label: "Comment", type: "textarea", isRequired: false, enabled: true, position: 5, placeholder: "Write your review" },
+            ];
+            console.log("Fields were empty, default fields added:", fields);
+        }
     
             console.log("Mapped Fields:", fields);
     
@@ -135,6 +105,8 @@ const FormCreatePage = () => {
             formData.append("fields", JSON.stringify(fields)); // Convert fields array to a string
             formData.append("form_description", formDetails.form_description);
             formData.append("is_active", formDetails.is_active);
+
+            console.log("Form Data Handle Publish:", formData);
     
             // Append the image file only if it's selected
             if (selectedImage) {
@@ -171,7 +143,7 @@ const FormCreatePage = () => {
             setLoadingForm(false);
         }
     };
-
+console.log("Form Details:", formDetails);
     return (
         <CustomerLayoutPage>
             <div className="flex justify-between border-b-2 p-4 gap-3 items-center ">
@@ -191,7 +163,26 @@ const FormCreatePage = () => {
                 )}
 
                 <div className="flex gap-2 items-center">
-                    <Button variant="outline"><ScanSearch /> Preview</Button>
+                    
+                    <Dialog>
+                        <DialogTrigger asChild>
+
+                        <Button 
+                            variant="outline"
+                            onClick={fetchPreviewDetails}
+                        >
+                            <ScanSearch /> Preview</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            {previewLoading ? (
+                                <div className="h-80 flex items-center">
+                                    <FormPreviewSkelton />
+                                </div>
+                            ) : (
+                                <FormPreview formPreview={previewDetails} />
+                            )}
+                        </DialogContent>
+                    </Dialog>
                     <Button variant="secondary"><SaveAll /> Save</Button>
                     <Button
                         className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"

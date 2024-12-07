@@ -3,6 +3,15 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "../ui/badge";
 import { useNavigate } from "react-router-dom";
+import useFormStore from "@/store/formStore"
+import toast from "react-hot-toast";
+import {
+	AlertDialog,
+	AlertDialogContent,
+	AlertDialogFooter,
+	AlertDialogHeader,
+  } from "@/components/ui/alert-dialog"
+import { useState } from "react";
 
 export const columns = [
 	{
@@ -57,17 +66,40 @@ export const columns = [
         },
 	},
 	{
-		
 		id: "actions",
 		header: "Actions",
 		accessorKey: "actions",
-		Cell: ({ row }) => {
+		setForms: [],
+		Cell: ({ row, updateData }) => {
 			const navigate = useNavigate(); // Use inside the functional component
-	  
+
+			console.log("row List",row);
+			console.log("updateData",updateData);
+			// Handle form editing
 			const handleEditForm = () => {
-			  navigate(`/forms/create-form/${row.original._id}`); // Navigate to the dynamic route
+				navigate(`/forms/create-form/${row.original._id}`); // Navigate to the dynamic route
 			};
-	  
+
+			const { deleteForm } = useFormStore();
+
+			const [isDialogOpen, setIsDialogOpen] = useState(false);
+			// Get delete function from the store
+      // Confirm Delete Handler
+      const confirmDelete = async () => {
+        try {
+          setIsDialogOpen(false); // Close the dialog
+          await deleteForm(row.original._id); // Call the delete function
+
+          // Update local state to reflect deletion
+          updateData((prevData) => prevData.filter((item) => item._id !== row.original._id));
+          toast.success("Form deleted successfully!");
+        } catch (error) {
+          console.error("Error deleting form:", error);
+          toast.error("Failed to delete form.");
+        }
+      };
+
+
 			return (
 				<div>
 					<DropdownMenu>
@@ -80,14 +112,30 @@ export const columns = [
 						<DropdownMenuContent align="end">
 							<DropdownMenuLabel>Actions</DropdownMenuLabel>
 							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(row.original._id)}>Copy form id</DropdownMenuItem>
-
 							<DropdownMenuSeparator />
 							<DropdownMenuItem>View Form</DropdownMenuItem>
 							<DropdownMenuItem onClick={handleEditForm}>
         					    Edit Form
         					</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => setIsDialogOpen(true)}>Delete Form</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
+					<AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          			  <AlertDialogContent>
+          			    <AlertDialogHeader>
+          			      <h3>Confirm Deletion</h3>
+          			      <p>Are you sure you want to delete this form? This action cannot be undone.</p>
+          			    </AlertDialogHeader>
+          			    <AlertDialogFooter>
+          			      <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+          			        Cancel
+          			      </Button>
+          			      <Button variant="destructive" onClick={confirmDelete}>
+          			        Delete
+          			      </Button>
+          			    </AlertDialogFooter>
+          			  </AlertDialogContent>
+          			</AlertDialog>
 				</div>
 			);
 		},

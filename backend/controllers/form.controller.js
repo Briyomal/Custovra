@@ -40,8 +40,14 @@ export const getAllUserForms = async (req, res) => {
 // Get a form by ID
 export const getFormById = async (req, res) => {
     try {
-        const form = await Form.findById(req.params.id).populate('user_id');
-        if (!form) return res.status(404).json({ message: 'Form not found' });
+        // Populate only the `_id` field of the `user_id`
+        const form = await Form.findById(req.params.id)
+            .populate('user_id', '_id');
+
+        if (!form) {
+            return res.status(404).json({ message: 'Form not found' });
+        }
+
         res.status(200).json(form);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -50,8 +56,8 @@ export const getFormById = async (req, res) => {
 
 // Create a new form
 export const createForm = async (req, res) => {
-    try {
-        const user_id = req.userId;
+    try {;
+        const user_id = req.body.user_id || req.userId;
         const { form_name, form_note, form_type, fields } = req.body;
         // Validate required fields
         if (!user_id || !form_name || !form_type) {
@@ -127,26 +133,30 @@ export const updateForm = async (req, res) => {
         }
 
         // Update basic form fields
-        form.form_name = form_name;
+        form.form_name = form_name || form.form_name;
         form.form_note = form_note;
         form.form_type = form_type;
-        form.form_description = form_description || form.form_description;
+        form.form_description = form_description;
         form.is_active = is_active !== undefined ? is_active : form.is_active;
 
         // Handle logo upload
         if (req.file) {
-            const oldLogoPath = path.join(__dirname, '../../backend', form.logo);
-            console.log("Attempting to delete old logo at:", oldLogoPath);
-        
-            try {
-                if (fs.existsSync(oldLogoPath)) {
-                    fs.unlinkSync(oldLogoPath);
-                    console.log("Old logo deleted successfully.");
-                } else {
-                    console.log("Old logo does not exist at:", oldLogoPath);
+            if (form.logo) { // Check if a logo exists in the database
+                const oldLogoPath = path.join(__dirname, '../../backend', form.logo);
+                console.log("Attempting to delete old logo at:", oldLogoPath);
+            
+                try {
+                    if (fs.existsSync(oldLogoPath)) {
+                        fs.unlinkSync(oldLogoPath);
+                        console.log("Old logo deleted successfully.");
+                    } else {
+                        console.log("Old logo does not exist at:", oldLogoPath);
+                    }
+                } catch (error) {
+                    console.error("Error deleting old logo:", error);
                 }
-            } catch (error) {
-                console.error("Error deleting old logo:", error);
+            } else {
+                console.log("No old logo found in the database to delete.");
             }
         
             form.logo = req.savedFilePath; // Update the form with the new logo
@@ -223,10 +233,40 @@ export const updateForm = async (req, res) => {
 // Delete a form
 export const deleteForm = async (req, res) => {
     try {
-        const deletedForm = await Form.findByIdAndDelete(req.params.id);
-        if (!deletedForm) return res.status(404).json({ message: 'Form not found' });
-        res.status(200).json({ message: 'Form deleted successfully' });
+        const { id } = req.params; // Form ID from URL parameters
+
+        // Find the form by its ID and ensure it belongs to the current user
+        const form = await Form.findOne({ _id: id, user_id: req.userId });
+        if (!form) {
+            return res.status(404).json({ message: "Form not found or unauthorized access." });
+        }
+
+        // Delete the logo from file storage if it exists
+        if (form.logo) {
+            const logoPath = path.join(__dirname, '../../backend', form.logo);
+            try {
+                if (fs.existsSync(logoPath)) {
+                    fs.unlinkSync(logoPath);
+                    console.log("Logo deleted successfully.");
+                } else {
+                    console.log("Logo does not exist at:", logoPath);
+                }
+            } catch (error) {
+                console.error("Error deleting logo:", error);
+            }
+        }
+
+        // Delete related custom fields
+        await FormField.deleteMany({ form_id: id });
+        console.log("Related custom fields deleted successfully.");
+
+        // Delete the form itself
+        await Form.deleteOne({ _id: id });
+        console.log("Form deleted successfully.");
+
+        return res.status(200).json({ message: "Form and related data deleted successfully." });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("Error deleting form:", error);
+        return res.status(500).json({ message: "An error occurred.", error });
     }
 };

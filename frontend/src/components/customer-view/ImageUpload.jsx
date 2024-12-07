@@ -15,8 +15,6 @@ const ImageUpload = ({ existingImageUrl, onFileSelect }) => {
         }
     }, [existingImageUrl]);
 
-    console.log("existingImageUrl", existingImageUrl);
-
     const onDrop = (acceptedFiles) => {
         const file = acceptedFiles[0];
         if (file) {

@@ -58,21 +58,6 @@ router.get('/', verifyToken, checkSubscription, getAllUserForms);
 router.get('/:id', verifyToken, checkSubscription, getFormById);
 router.post('/create-form', verifyToken, checkSubscription, createForm);
 router.put('/update-form/:id', verifyToken, checkSubscription, upload.single('image'), updateForm);
-/*
-router.put('/update-form/:id', verifyToken, checkSubscription, (req, res, next) => {
-  console.log("Before Multer upload middleware");
-  next();
-}, upload.single('image'), (req, res) => {
-  console.log("After Multer upload middleware");
-  console.log("Uploaded file:", req.file); // Should log file details
-  console.log("Request body:", req.body); // Should log form data
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded." });
-  }
-  // Proceed with updating the form...
-  res.status(200).json({ message: "File uploaded successfully." });
-});
-*/
-router.delete('/delete-form:id', deleteForm);
+router.delete('/:id', verifyToken, checkSubscription, deleteForm);
 
 export default router;

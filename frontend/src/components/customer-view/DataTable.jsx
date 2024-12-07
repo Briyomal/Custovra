@@ -17,9 +17,13 @@ import {
 } from "@tanstack/react-table";
 import { useState } from "react";
 
-const DataTable = ({ data, columns }) => {
+const DataTable = ({ data, columns, setForms }) => {
 	const [sorting, setSorting] = useState([]);
 	const [columnFilters, setColumnFilters] = useState([]);
+
+	const updateData = (newData) => {
+        setForms(newData);
+    };
 
 	const table = useReactTable({
 		data,
@@ -35,6 +39,9 @@ const DataTable = ({ data, columns }) => {
 			columnFilters,
 		},
 	});
+
+	
+
 	return (
 		<div>
 			<div className="flex items-center py-4">
@@ -57,8 +64,10 @@ const DataTable = ({ data, columns }) => {
 					<TableBody>
 						{table.getRowModel().rows.map((row) => (
 							<TableRow key={row.id}>
-								{row.getVisibleCells().map((Cell) => (
-									<TableCell key={Cell.id}>{flexRender(Cell.column.columnDef.Cell || Cell.column.columnDef.cell, Cell.getContext())}</TableCell>
+								{row.getVisibleCells().map((cell) => (
+									<TableCell key={cell.id}>
+										{flexRender(cell.column.columnDef.Cell || cell.column.columnDef.cell, { ...cell.getContext(), updateData }  )}
+									</TableCell>
 								))}
 							</TableRow>
 						))}
