@@ -67,6 +67,9 @@ const formSchema = new Schema({
     qr_code: {
         type: String, // URL or base64 data for QR code
     },
+    form_link: {
+        type: String,
+    },
     is_active: {
         type: Boolean,
         default: false,

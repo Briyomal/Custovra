@@ -4,13 +4,15 @@ import { Button } from "@/components/ui/button";
 import axios from "axios";
 import CustomerLayoutPage from "./LayoutPage";
 import FormBuilder from "@/components/customer-view/FormBuilder";
-import { Loader, SaveAll, ScanSearch, SquareArrowOutUpRight } from "lucide-react";
+import { Loader, QrCode, ScanSearch, SquareArrowOutUpRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton"
 import toast from "react-hot-toast";
 import useFormStore from "@/store/formStore"
 import FormPreview from "@/components/customer-view/FormPreview";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import FormPreviewSkelton from "@/components/customer-view/FormPreviewSkelton";
+import FormQR from "@/components/customer-view/FormQR";
+import FormQRSkelton from "@/components/customer-view/FormQRSkelton";
 
 const FormCreatePage = () => {
     const [formDetails, setFormDetails] = useState({}); // State for form details
@@ -52,7 +54,6 @@ const FormCreatePage = () => {
             setPreviewLoading(false);
         }
     };
-    
 
     const handleFieldUpdate = (field, value) => {
         setFormDetails((prevDetails) => ({
@@ -61,15 +62,12 @@ const FormCreatePage = () => {
         }));
     };
 
-
     const [selectedImage, setSelectedImage] = useState(null);
  
     const handleFileSelect = (file) => {
         setSelectedImage(file); // This should set the selected image in state
         console.log("Selected Image:", file);
       };
-
-      
 
       const handlePublish = async () => {
         setLoadingForm(true);
@@ -143,6 +141,17 @@ const FormCreatePage = () => {
             setLoadingForm(false);
         }
     };
+
+    const handleShare = async () => {      try {
+        setPreviewLoading(true);
+        const response = await axios.get(`http://localhost:5000/api/forms/${formId}`);
+        setPreviewDetails(response.data);
+    } catch (error) {
+        console.error("Error fetching preview details:", error);
+    } finally {
+        setPreviewLoading(false);
+    }
+    }
 console.log("Form Details:", formDetails);
     return (
         <CustomerLayoutPage>
@@ -161,35 +170,46 @@ console.log("Form Details:", formDetails);
                         <p className="text-sm text-slate-600 dark:text-slate-400"> {formDetails.form_note}</p>
                     </div>
                 )}
-
                 <div className="flex gap-2 items-center">
-                    
                     <Dialog>
                         <DialogTrigger asChild>
-
                         <Button 
                             variant="outline"
                             onClick={fetchPreviewDetails}
                         >
                             <ScanSearch /> Preview</Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="sm:max-w-[500px] p-10">
                             {previewLoading ? (
-                                <div className="h-80 flex items-center">
                                     <FormPreviewSkelton />
-                                </div>
                             ) : (
                                 <FormPreview formPreview={previewDetails} />
                             )}
                         </DialogContent>
                     </Dialog>
-                    <Button variant="secondary"><SaveAll /> Save</Button>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button 
+                                variant="secondary"
+                                onClick={handleShare}
+                            >
+                                <QrCode />
+                                Share
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[500px] p-10">
+                            {previewLoading ? (
+                                    <FormQRSkelton />
+                            ) : (
+                                <FormQR formLink={previewDetails} />
+                            )}
+                        </DialogContent>
+                    </Dialog>
                     <Button
                         className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
                         onClick={handlePublish}
                         disabled={loadingForm}
                     >
-
                         {loadingForm ? (
                             <>
                                 <Loader className="animate-spin mx-auto mr-0.5" size={28} />Publishing...

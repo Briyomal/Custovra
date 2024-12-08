@@ -63,6 +63,20 @@ const useFormStore = create((set) => ({
             set({ isLoading: false });
         }
     },
+
+    viewForm: async (formId) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await axios.get(`${API_URL}/view/${formId}`);
+            console.log("Response data:", response.data);
+            return response.data;
+        } catch (error) {
+            console.error("Error viewing form:", error.response?.data || error.message);
+            return error.response?.data;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
 /*
     deleteForm: async (formId) => {
         set({ loadingForm: true, error: null });

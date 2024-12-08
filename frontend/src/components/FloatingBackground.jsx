@@ -1,16 +1,20 @@
 import FloatingShape from "./FloatingShape";
+import ThemeSwitch from "./ThemeSwitch";
 
 const FloatingBackground = ({children}) => {
 	return (
+		<>
+			<ThemeSwitch />
 			<div
-				className="min-h-screen bg-gradient-to-br
-            from-gray-50 via-violet-200 to-violet-100 flex items-center justify-center relative overflow-hidden"
+				className="min-h-screen bg-gray-100 dark:bg-slate-950 flex items-center justify-center relative overflow-hidden"
 			>
-				<FloatingShape color="bg-sky-600" size="w-64 h-64" top="-5%" left="10%" delay={0} />
-				<FloatingShape color="bg-amber-500" size="w-48 h-48" top="70%" left="80%" delay={5} />
-				<FloatingShape color="bg-rose-500" size="w-32 h-32" top="40%" left="10%" delay={2} />
+				<FloatingShape color="bg-purple-600" size="w-96 h-96" top="-5%" left="10%" delay={0} />
+				<FloatingShape color="bg-violet-500" size="w-48 h-48" top="70%" left="80%" delay={5} />
+				<FloatingShape color="bg-blue-800" size="w-60 h-60" top="40%" left="10%" delay={2} />
+				
                 {children}
 			</div>
+			</>
 	);
 };
 

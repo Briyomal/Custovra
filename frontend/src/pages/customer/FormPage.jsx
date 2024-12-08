@@ -59,7 +59,7 @@ const FormPage = () => {
                 {
                     icon: '👏',
                     duration: 5000,
-                }
+                },
             );
         } catch {
             toast.error("Error creating form");
@@ -98,11 +98,8 @@ const FormPage = () => {
     const totalComplaintCount = memoizedForms.filter((form) => form.form_type === "Complaint").length;
 
   // Debug setForms here
-  const debugSetForms = (newData) => {
-    console.log("Previous Forms:", forms); // Log the previous state
-    console.log("Updating Forms with:", newData); // Log the new data
+  const updateSetForms = (newData) => {
     setForms(newData); // Set the state
-    console.log("Forms After Update:", newData); // Log the new state (immediately after update)
   };
 
     if (loading) {
@@ -110,7 +107,6 @@ const FormPage = () => {
       }
     
     return (
-
         <CustomerLayoutPage>
             <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
                 <Dialog>
@@ -131,10 +127,10 @@ const FormPage = () => {
                                 Form Name 
                             </Label>
                             <Input 
-						        type='text'
-						        placeholder='Type your form name here'
-						        value={formName}
-						        onChange={(e) => setFormName(e.target.value)}  
+						                  type='text'
+						                  placeholder='Type your form name here'
+						                  value={formName}
+						                  onChange={(e) => setFormName(e.target.value)}  
                             />
                             <Label htmlFor="form_description">
                                 Note
@@ -164,15 +160,6 @@ const FormPage = () => {
                             </div>
                         </div>
                         <DialogFooter>
-                            {/*
-                            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
-                                onClick={handleSubmit} 
-                                disabled={isLoading}
-                            >
-                                {isLoading ? <span className="flex flex-row"><Loader className=' animate-spin mx-auto mr-1' size={28} />Creating...</span>  : "Create Form"}
-                            </Button>
-                            */}
-                            
                             <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
                                 onClick={handleSubmit} 
                                 disabled={isLoading}
@@ -236,7 +223,7 @@ const FormPage = () => {
                     </Card>
                 </div>
                 
-                <DataTable data={memoizedForms} columns={memoizedColumns} setForms={debugSetForms} />
+                <DataTable data={memoizedForms} columns={memoizedColumns} setForms={updateSetForms} />
             </div>
         </CustomerLayoutPage>
     )

@@ -70,12 +70,14 @@ const EmailVerificationPage = () => {
 				initial={{ opacity: 0, y: -50 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.5 }}
-				className='bg-gray-50 bg-opacity-20 backdrop-filter backdrop-blur-xl rounded-2xl shadow-2xl p-8 w-full max-w-md'
+				className='max-w-md w-full bg-white bg-opacity-60 backdrop-filter backdrop-blur-2xl rounded-2xl shadow-xl overflow-hidden
+				dark:bg-slate-800 dark:bg-opacity-40 dark:backdrop-filter dark:backdrop-blur-xl'
 			>
-				<h2 className='text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text'>
+				<h2 className='text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text
+					dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-blue-500 dark:to-indigo-400'>
 					Verify Your Email
 				</h2>
-				<p className='text-center text-gray-500 mb-6'>Enter the 6-digit code sent to your email address.</p>
+				<p className='text-center text-gray-500 dark:text-gray-400 mb-6'>Enter the 6-digit code sent to your email address.</p>
 
 				<form onSubmit={handleSubmit} className='space-y-6'>
 					<div className='flex justify-between'>

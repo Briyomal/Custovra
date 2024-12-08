@@ -20,6 +20,7 @@ import { useEffect } from "react";
 import NotFoundPage from "./pages/NotFoundPage";
 import FormCreatePage from "./pages/customer/FormCreatePage";
 import { Toaster } from "react-hot-toast";
+import FormViewPage from "./pages/front/FormViewPage";
 
 const ProtectedRoute = ({ children, role }) => {
     const { isAuthenticated, user } = useAuthStore();
@@ -160,6 +161,10 @@ function App() {
 					}
 				/>
 				<Route
+					path="/forms/view/:formId"
+					element={<FormViewPage />}
+				/>
+				<Route
 				    path="*"
                     element={<NotFoundPage />}
 				/>
@@ -167,6 +172,17 @@ function App() {
 			<Toaster
 			  position="top-right"
 			  reverseOrder={false}
+			  toastOptions={{
+				className: '',
+				style: {
+                    borderRadius: "10px",
+                    background: "#222",
+                    color: "#fff",
+                    padding: "10px",
+                    textAlign: "center",
+                    marginBottom: "10px",
+				},
+			  }}
 			/>
 		</>
 	);

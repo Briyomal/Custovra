@@ -32,10 +32,12 @@ const SignUpPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className='max-w-md w-full bg-gray-50 bg-opacity-20 backdrop-filter backdrop-blur-xl rounded-2xl shadow-xl overflow-hidden'
+            className='max-w-md w-full bg-white bg-opacity-60 backdrop-filter backdrop-blur-2xl rounded-2xl shadow-xl overflow-hidden
+				dark:bg-slate-800 dark:bg-opacity-40 dark:backdrop-filter dark:backdrop-blur-xl'
         >
             <div className='p-8'>
-                <h2 className='text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text'>
+                <h2 className='text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text
+					dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-blue-500 dark:to-indigo-400'>
                     Create Account
                 </h2>
 
@@ -75,7 +77,7 @@ const SignUpPage = () => {
                     </motion.button>
                 </form>
             </div>
-            <div className='px-8 py-4 bg-blue-800 bg-opacity-80 flex justify-center'>
+            <div className='px-8 py-4 bg-blue-800 opacity-80 dark:bg-slate-700 dark:bg-opacity-90 flex justify-center'>
                 <p className='text-sm text-gray-50'>
                     Already have an account?{" "}
                     <Link to={"/login"} className='text-blue-200 hover:underline'>

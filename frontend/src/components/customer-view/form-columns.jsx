@@ -1,4 +1,4 @@
-import { MoreHorizontal, ArrowUpDown } from "lucide-react";
+import { MoreHorizontal, ArrowUpDown, Edit, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "../ui/badge";
@@ -113,11 +113,18 @@ export const columns = [
 							<DropdownMenuLabel>Actions</DropdownMenuLabel>
 							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(row.original._id)}>Copy form id</DropdownMenuItem>
 							<DropdownMenuSeparator />
-							<DropdownMenuItem>View Form</DropdownMenuItem>
+							<DropdownMenuItem>
+								<Eye className="h-4 w-4" />
+								View Form
+							</DropdownMenuItem>
 							<DropdownMenuItem onClick={handleEditForm}>
+								<Edit className="h-4 w-4" />
         					    Edit Form
         					</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => setIsDialogOpen(true)}>Delete Form</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
+								<Trash2 className="h-4 w-4" />
+								Delete Form
+							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
 					<AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

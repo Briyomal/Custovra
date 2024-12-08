@@ -131,6 +131,8 @@ export const updateForm = async (req, res) => {
         if (!form) {
             return res.status(404).json({ message: "Form not found or unauthorized access." });
         }
+        
+        const formLink = `/view/${id}`;
 
         // Update basic form fields
         form.form_name = form_name || form.form_name;
@@ -138,6 +140,7 @@ export const updateForm = async (req, res) => {
         form.form_type = form_type;
         form.form_description = form_description;
         form.is_active = is_active !== undefined ? is_active : form.is_active;
+        form.form_link = formLink || form.form_link;    
 
         // Handle logo upload
         if (req.file) {
@@ -268,5 +271,18 @@ export const deleteForm = async (req, res) => {
     } catch (error) {
         console.error("Error deleting form:", error);
         return res.status(500).json({ message: "An error occurred.", error });
+    }
+};
+
+export const viewForm = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const form = await Form.findById(id);
+        if (!form) {
+            return res.status(404).json({ message: 'Form not found' }); 
+        }
+        res.status(200).json(form);
+    } catch (error) {
+        res.status(500).json({ error: error.message }); 
     }
 };
