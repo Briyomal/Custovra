@@ -40,8 +40,6 @@ const DataTable = ({ data, columns, setForms }) => {
 		},
 	});
 
-	
-
 	return (
 		<div>
 			<div className="flex items-center py-4">

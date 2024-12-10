@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import useFormStore from "@/store/formStore" 
+import useFormStore from "@/store/formStore";
 import {
     Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
-  } from "@/components/ui/card"
+} from "@/components/ui/card";
 import FloatingBackground from "@/components/FloatingBackground";
 import { motion } from "framer-motion";
 import { Label } from "@/components/ui/label";
@@ -16,7 +15,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Ban } from "lucide-react";
-//import { StarIcon } from "lucide-react";
+import StarRating from "@/components/customer-view/StarRating";
+import FormPreviewSkelton from "@/components/customer-view/FormPreviewSkelton";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 const FormViewPage = () => {
     const { viewForm } = useFormStore();
@@ -24,6 +25,7 @@ const FormViewPage = () => {
     const [loading, setLoading] = useState(false);
     const [formDetails, setFormDetails] = useState(null);
     const [error, setError] = useState(null);
+    const [formErrors, setFormErrors] = useState({});
 
     useEffect(() => {
         const fetchFormDetails = async () => {
@@ -48,100 +50,192 @@ const FormViewPage = () => {
             fetchFormDetails();
         }
     }, [formId, viewForm]);
+
+    console.log("Form Details:", formDetails);
+
+    const validateField = (name, value, field) => {
+        if (field.is_required) {
+            // Ensure `value` is processed appropriately for each field type
+            const fieldValue = typeof value === "string" ? value.trim() : value;
+    
+            if (fieldValue === null || fieldValue === undefined || fieldValue === "") {
+                return `${field.field_name} is required.`;
+            }
+    
+            // Additional validations based on field name and type
+            if (field.field_type === "rating" && (typeof fieldValue !== "number" || fieldValue < 1 || fieldValue > 5)) {
+                return "Please provide a valid rating between 1 and 5.";
+            }
+    
+            if (field.field_name === "name" && fieldValue.length < 3) {
+                return "Name must be at least 3 characters long.";
+            }
+    
+            if (field.field_type === "email" && !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(fieldValue)) {
+                return "Please enter a valid email address.";
+            }
+    
+            if (field.field_name === "phone" && !/^\+?[1-9]\d{1,14}$/.test(fieldValue)) {
+                return "Please enter a valid phone number.";
+            }
+    
+            if (field.field_type === "textarea" && fieldValue.length < 10) {
+                return "Comment must be at least 10 characters long.";
+            }
+        }
+    
+        return null;
+    };
     
 
-    console.log("Form details:", formDetails);
-    //const { default_fields = [] } = formDetails.default_fields || {}; 
+    const handleChange = (e, field) => {
+
+    console.log("Field Value:", e.target.value);
+    console.log("Field Details:", field);
+        const { name, value } = e.target;
+    
+        // Validate the field and update the errors object
+        const error = validateField(name, value, field);
+        setFormErrors((prev) => {
+            const newErrors = { ...prev };
+            if (error) {
+                newErrors[name] = error;
+            } else {
+                delete newErrors[name];
+            }
+            return newErrors;
+        });
+    
+        // Update the value in the form details
+        setFormDetails((prevDetails) => ({
+            ...prevDetails,
+            default_fields: prevDetails.default_fields.map((f) =>
+                f.field_name === name ? { ...f, value } : f
+            ),
+        }));
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+    
+        console.log("Form State on Submit:", formDetails);
+    
+        const formData = new FormData(e.target);
+        let validationErrors = {};
+    
+        // Validate and ensure all required fields are included
+        formDetails.default_fields.forEach((field) => {
+            const value = field.field_type === "rating" ? field.value : formData.get(field.field_name)?.trim();
+    
+            if (field.is_required) {
+                const error = validateField(field.field_name, value, field);
+                if (error) {
+                    validationErrors[field.field_name] = error;
+                }
+            }
+    
+            // Manually append the rating value to formData
+            if (field.field_type === "rating") {
+                formData.set(field.field_name, field.value);
+            }
+        });
+    
+        // If there are validation errors, update state and stop submission
+        if (Object.keys(validationErrors).length > 0) {
+            setFormErrors(validationErrors);
+            console.log("Validation Errors:", validationErrors);
+            return;
+        }
+    
+        // Log all form data, including the rating
+        console.log(
+            "Form submitted with data:",
+            Object.fromEntries(formData.entries())
+        );
+    
+        // Perform the actual form submission logic here
+    };
+    
 
     if (loading) {
-        return <p>Loading form details...</p>;
-    }
-
-    if (error) {
-        return <p>Error: {error}</p>;
-    }
-
-    if (!formDetails) {
-        return <p>No form details found.</p>;
-    }
+        return <LoadingSpinner/>;
+      }
+    
+    if (error) return <p>Error: {error}</p>;
+    if (!formDetails) return <p>No form details found.</p>;
 
     return (
-        <>
         <FloatingBackground>
-            <motion.div 
-			initial={{ opacity: 0, y: 20 }}
-			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.5 }}  
-            className="max-w-lg w-full"
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="max-w-lg w-full"
             >
                 {!formDetails?.is_active ? (
                     <Card className="text-center p-4">
                         <CardHeader>
-                        <Ban size={48} className="mx-auto mb-2 text-red-500" />
+                            <Ban size={48} className="mx-auto mb-2 text-red-500" />
                             <CardTitle>Form Unavailable</CardTitle>
                         </CardHeader>
-                        <CardDescription className="pb-3">This form is currently inactive. Please check back later or contact the form owner for more details.</CardDescription>
+                        <CardDescription className="pb-3">
+                            This form is currently inactive. Please check back later or contact the form owner for more details.
+                        </CardDescription>
                     </Card>
                 ) : (
                     <Card className="text-center p-4">
+                        {loading ? (
+                            <FormPreviewSkelton />
+                        ):(
+                            <>
                         <CardHeader>
-                            <CardTitle>{formDetails.form_name}</CardTitle>
+                            <CardTitle>{formDetails?.form_name}</CardTitle>
                             {formDetails.logo && (
                                 <img
                                     src={`http://localhost:5000${formDetails.logo}`}
                                     alt="Uploaded"
-                                    className="mt-1 w-48 h-auto rounded-md text-center mx-auto"
+                                    className="mt-1 w-48 h-auto rounded-md mx-auto"
                                 />
                             )}
-                            
-                            {formDetails.form_description?.trim() && (
-                                <CardDescription>{formDetails.form_description}</CardDescription>
+                            {formDetails?.form_description && (
+                                <CardDescription>{formDetails?.form_description}</CardDescription>
                             )}
                         </CardHeader>
                         <CardContent>
-                            <form className="grid gap-6 py-4 text-left">
+                            <form onSubmit={handleSubmit} className="grid gap-6 py-4 text-left">
                                 {formDetails.default_fields
-                                    .filter((field) => field.enabled) // Filter only enabled fields
+                                    .filter((field) => field.enabled)
                                     .map((field, index) => (
                                         <div key={field._id || index} className="flex flex-col space-y-2">
-                                            <Label className="capitalize font-medium text-gray-700">
+                                            <Label className="capitalize">
                                                 {field.field_name || `Field ${index + 1}`}
-                                                {field.is_required && (
-                                                    <span className="text-red-500 ml-1">*</span>
-                                                )}
+                                                {field.is_required && <span className="text-red-500 ml-1">*</span>}
                                             </Label>
-                                            
                                             {field.field_type === "textarea" ? (
                                                 <Textarea
                                                     name={field.field_name}
                                                     placeholder={field.placeholder || ""}
-                                                    defaultValue={field.value || ""}
                                                     required={field.is_required}
+                                                    onChange={(e) => handleChange(e, field)}
                                                 />
                                             ) : field.field_type === "rating" ? (
-                                                <div className="flex space-x-1">
-                                                    {Array.from({ length: 5 }).map((_, starIndex) => (
-                                                        <svg
-                                                            key={starIndex}
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            className={`w-5 h-5 ${
-                                                                starIndex < field.value ? "text-yellow-400" : "text-gray-400"
-                                                            }`}
-                                                            fill="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                                                        </svg>
-                                                    ))}
-                                                </div>
+                                                <StarRating
+                                                    rating={field.value || 0} // Pass the current value of the rating field
+                                                    onChange={(value) =>
+                                                        handleChange({ target: { name: field.field_name, value } }, field)
+                                                    }
+                                                />
                                             ) : (
                                                 <Input
                                                     name={field.field_name}
-                                                    type={field.field_type || "text"} // Default to "text" if type is not specified
+                                                    type={field.field_type || "text"}
                                                     placeholder={field.placeholder || ""}
-                                                    defaultValue={field.value || ""}
                                                     required={field.is_required}
+                                                    onChange={(e) => handleChange(e, field)}
                                                 />
+                                            )}
+                                            {formErrors[field.field_name] && (
+                                                <p className="text-sm text-red-500">{formErrors[field.field_name]}</p>
                                             )}
                                         </div>
                                     ))}
@@ -152,16 +246,11 @@ const FormViewPage = () => {
                                     Submit
                                 </Button>
                             </form>
-                        </CardContent>
-                        <CardFooter>
-                        </CardFooter>
+                        </CardContent> </>)}
                     </Card>
-
                 )}
             </motion.div>
-
         </FloatingBackground>
-        </>
     );
 };
 

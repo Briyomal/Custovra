@@ -77,19 +77,7 @@ const useFormStore = create((set) => ({
             set({ isLoading: false });
         }
     },
-/*
-    deleteForm: async (formId) => {
-        set({ loadingForm: true, error: null });
-        try {
-            await axios.delete(`${API_URL}/${formId}`);
-            set({ loadingForm: false });
-        } catch (error) {
-            console.error("Error deleting form:", error.response?.data || error.message);
-            set({ error: error.response?.data?.message || "Failed to delete form", loadingForm: false });
-            throw error;
-        }
-    },
-    */
+
     deleteForm: async (formId, callback) => {
         try {
             const response = await axios.delete(`${API_URL}/${formId}`, {
@@ -106,8 +94,6 @@ const useFormStore = create((set) => ({
             throw error; // Throw error to handle it in the component
         }
     },
-    
-    
 
     addFieldsToForm: async (formId, fields) => {
         set({ loadingForm: true, error: null });

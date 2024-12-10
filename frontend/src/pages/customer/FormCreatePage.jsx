@@ -4,23 +4,24 @@ import { Button } from "@/components/ui/button";
 import axios from "axios";
 import CustomerLayoutPage from "./LayoutPage";
 import FormBuilder from "@/components/customer-view/FormBuilder";
-import { Loader, QrCode, ScanSearch, SquareArrowOutUpRight } from "lucide-react";
+import { Loader, QrCode, Save, ScanSearch, SquareArrowOutUpRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton"
 import toast from "react-hot-toast";
 import useFormStore from "@/store/formStore"
 import FormPreview from "@/components/customer-view/FormPreview";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import FormPreviewSkelton from "@/components/customer-view/FormPreviewSkelton";
-import FormQR from "@/components/customer-view/FormQR";
-import FormQRSkelton from "@/components/customer-view/FormQRSkelton";
+import ShareDialog from "@/components/customer-view/ShareDialog";
 
-const FormCreatePage = () => {
+
+const FormCreatePage = ( ) => {
     const [formDetails, setFormDetails] = useState({}); // State for form details
     const { formId } = useParams();
     const [loading, setLoading] = useState(false);
     const [loadingForm, setLoadingForm] = useState(false);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [previewDetails, setPreviewDetails] = useState(null); // For fetching preview details
+    const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
     
     const { updateForm } = useFormStore();
 
@@ -70,6 +71,7 @@ const FormCreatePage = () => {
       };
 
       const handlePublish = async () => {
+        console.log("Form Details When Submitting:", formDetails);
         setLoadingForm(true);
         try {
             let fields = formDetails.default_fields.map((field) => ({
@@ -101,7 +103,7 @@ const FormCreatePage = () => {
             formData.append("form_note", formDetails.form_note);
             formData.append("form_type", formDetails.form_type);
             formData.append("fields", JSON.stringify(fields)); // Convert fields array to a string
-            formData.append("form_description", formDetails.form_description);
+            formData.append("form_description", formDetails.form_description || "");
             formData.append("is_active", formDetails.is_active);
 
             console.log("Form Data Handle Publish:", formData);
@@ -114,34 +116,16 @@ const FormCreatePage = () => {
             // Call the update function
             await updateForm(formDetails._id, formData);
     
-            toast.success("Form published successfully!", {
-                style: {
-                    borderRadius: "10px",
-                    background: "#222",
-                    color: "#fff",
-                    padding: "10px",
-                    textAlign: "center",
-                    marginBottom: "10px",
-                },
-            });
+            toast.success("Form saved successfully!");
     
         } catch (error) {
-            toast.error("Error publishing form", {
-                style: {
-                    borderRadius: "10px",
-                    background: "#222",
-                    color: "#fff",
-                    padding: "10px",
-                    textAlign: "center",
-                    marginBottom: "10px",
-                },
-            });
+            toast.error("Error publishing form");
             console.error("Error publishing form:", error);
         } finally {
             setLoadingForm(false);
         }
     };
-
+/*
     const handleShare = async () => {      try {
         setPreviewLoading(true);
         const response = await axios.get(`http://localhost:5000/api/forms/${formId}`);
@@ -152,7 +136,7 @@ const FormCreatePage = () => {
         setPreviewLoading(false);
     }
     }
-console.log("Form Details:", formDetails);
+    */
     return (
         <CustomerLayoutPage>
             <div className="flex justify-between border-b-2 p-4 gap-3 items-center ">
@@ -187,40 +171,56 @@ console.log("Form Details:", formDetails);
                             )}
                         </DialogContent>
                     </Dialog>
+                    
+                    
                     <Dialog>
                         <DialogTrigger asChild>
-                            <Button 
-                                variant="secondary"
-                                onClick={handleShare}
+                            <Button variant="secondary"
+                                onClick={() => setIsShareDialogOpen(true)}
                             >
                                 <QrCode />
                                 Share
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px] p-10">
-                            {previewLoading ? (
-                                    <FormQRSkelton />
-                            ) : (
-                                <FormQR formLink={previewDetails} />
-                            )}
-                        </DialogContent>
+                        <ShareDialog formId={formId} isOpen={isShareDialogOpen} setIsOpen={setIsShareDialogOpen} />
                     </Dialog>
+                    
+                    {formDetails.is_active ? (
+                        
                     <Button
-                        className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
+                    onClick={handlePublish}
+                    disabled={loadingForm}
+                >
+                    {loadingForm ? (
+                        <>
+                            <Loader className="animate-spin mx-auto mr-0.5" size={28} />Publishing...
+                        </>
+                    ) : (
+                        <>
+                            <SquareArrowOutUpRight />
+                            Publish
+                        </>
+                    )}
+                </Button>
+                    ) : (
+                    <Button
+                        className="bg-gradient-to-r dark:from-slate-900 dark:to-indigo-950 text-white dark:hover:from-slate-800 dark:hover:to-indigo-800"
                         onClick={handlePublish}
                         disabled={loadingForm}
                     >
                         {loadingForm ? (
                             <>
-                                <Loader className="animate-spin mx-auto mr-0.5" size={28} />Publishing...
+                                <Loader className="animate-spin mx-auto mr-0.5" size={28} />Saving...
                             </>
                         ) : (
                             <>
-                                <SquareArrowOutUpRight />
-                                Publish
+                                <Save />
+                                Save
                             </>
                         )}
                     </Button>
+                    )}
                 </div>
             </div>
             <div className="flex w-full flex-grow items-center justify-center relative overflow-y-auto h-[80vh]">

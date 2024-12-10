@@ -94,8 +94,6 @@ const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect }) => {
         }
     };
 
-
-
     const handleFieldUpdate = (id, updatedField) => {
         setFields((prevFields) =>
             prevFields.map((field) => (field.id === id ? { ...field, ...updatedField } : field))

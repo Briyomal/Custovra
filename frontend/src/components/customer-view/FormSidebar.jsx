@@ -8,6 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator"
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+  } from "@/components/ui/tooltip"
+import { CircleHelp } from "lucide-react";
 
 
 const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect  }) => {
@@ -17,6 +24,8 @@ const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect  }) => {
     const [formDescription, setFormDescription] = useState("");
     const [formName, setFormName] = useState("");
     const [formNote, setFormNote] = useState("");
+
+    console.log("Form Details:", formDetails);
 
     useEffect(() => {
         if (formDetails && formDetails.is_active !== undefined) {
@@ -94,11 +103,28 @@ const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect  }) => {
 
             {/* Form Status */}
             <div className="flex flex-row justify-between items-center mt-4">
-                <p className="text-md font-medium">Form Status</p>
-                <Switch
                 
-                    className="data-[state=checked]:bg-green-500  data-[state=unchecked]:bg-gray-800" 
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                        <p className="text-md font-medium flex items-center">
+                            Status <span className="ml-1"><CircleHelp width={16} color="#6b7280"  /></span>
+                        </p>
+                    </TooltipTrigger>
+                    
+                    <TooltipContent>
+                      <p className="w-32">
+                        {isActive
+                          ? "This form is active and accessible."
+                          : "This form is inactive and cannot be accessed by users."}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <Switch
+                    className="data-[state=checked]:bg-green-500  data-[state=unchecked]:bg-red-500" 
                     checked={isActive}
+                    
                     onCheckedChange={handleSwitchChange}
                 />
             </div>
@@ -113,7 +139,7 @@ const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect  }) => {
                 <Label>Description</Label>
                 <Textarea 
                     className="mt-2" 
-                    value={formDescription}
+                    value={formDescription || ""}
                     onChange={handleDescriptionChange}  
                     placeholder="Write short description of the form" 
                 />

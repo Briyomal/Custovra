@@ -1,4 +1,4 @@
-import { MoreHorizontal, ArrowUpDown, Edit, Trash2, Eye } from "lucide-react";
+import { MoreHorizontal, ArrowUpDown, Edit, Trash2, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "../ui/badge";
@@ -12,6 +12,7 @@ import {
 	AlertDialogHeader,
   } from "@/components/ui/alert-dialog"
 import { useState } from "react";
+import ShareDialog from "./ShareDialog";
 
 export const columns = [
 	{
@@ -83,6 +84,7 @@ export const columns = [
 			const { deleteForm } = useFormStore();
 
 			const [isDialogOpen, setIsDialogOpen] = useState(false);
+			const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 			// Get delete function from the store
       // Confirm Delete Handler
       const confirmDelete = async () => {
@@ -111,22 +113,23 @@ export const columns = [
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
 							<DropdownMenuLabel>Actions</DropdownMenuLabel>
-							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(row.original._id)}>Copy form id</DropdownMenuItem>
+							<DropdownMenuItem className="hidden" onClick={() => navigator.clipboard.writeText(row.original._id)}>Copy form id</DropdownMenuItem>
+                    		<DropdownMenuItem className="cursor-pointer" onClick={() => setIsShareDialogOpen(true)}>
+								<QrCode className="h-4 w-4" />
+                    		    Share Form
+                    		</DropdownMenuItem>
 							<DropdownMenuSeparator />
-							<DropdownMenuItem>
-								<Eye className="h-4 w-4" />
-								View Form
-							</DropdownMenuItem>
-							<DropdownMenuItem onClick={handleEditForm}>
+							<DropdownMenuItem className="cursor-pointer" onClick={handleEditForm}>
 								<Edit className="h-4 w-4" />
         					    Edit Form
         					</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
+							<DropdownMenuItem className="cursor-pointer text-red-500 dark:text-red-500 dark:hover:text-white hover:bg-red-500 dark:hover:bg-red-700" onClick={() => setIsDialogOpen(true)} >
 								<Trash2 className="h-4 w-4" />
 								Delete Form
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
+					<ShareDialog formId={row.original._id} isOpen={isShareDialogOpen} setIsOpen={setIsShareDialogOpen} />
 					<AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           			  <AlertDialogContent>
           			    <AlertDialogHeader>
@@ -138,6 +141,7 @@ export const columns = [
           			        Cancel
           			      </Button>
           			      <Button variant="destructive" onClick={confirmDelete}>
+							<Trash2 />
           			        Delete
           			      </Button>
           			    </AlertDialogFooter>

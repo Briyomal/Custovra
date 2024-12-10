@@ -1,0 +1,41 @@
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import FormQR from "@/components/customer-view/FormQR";
+import FormQRSkelton from "@/components/customer-view/FormQRSkelton";
+import { useState, useEffect } from "react";
+import axios from "axios";
+
+const ShareDialog = ({ formId, isOpen, setIsOpen }) => {
+    const [previewLoading, setPreviewLoading] = useState(false);
+    const [previewDetails, setPreviewDetails] = useState(null);
+
+    useEffect(() => {
+        if (isOpen && formId) {
+            const fetchPreviewDetails = async () => {
+                try {
+                    setPreviewLoading(true);
+                    const response = await axios.get(`http://localhost:5000/api/forms/${formId}`);
+                    setPreviewDetails(response.data);
+                } catch (error) {
+                    console.error("Error fetching preview details:", error);
+                } finally {
+                    setPreviewLoading(false);
+                }
+            };
+            fetchPreviewDetails();
+        }
+    }, [isOpen, formId]);
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogContent className="sm:max-w-[500px] p-10">
+                {previewLoading ? (
+                    <FormQRSkelton />
+                ) : (
+                    <FormQR formLink={previewDetails} />
+                )}
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+export default ShareDialog;

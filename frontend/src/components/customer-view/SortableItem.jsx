@@ -25,7 +25,12 @@ const SortableItem = ({ field, onFieldUpdate  }) => {
     };
 
     const handleEnabledChange = (value) => {
-        onFieldUpdate(field.id, { enabled: value });
+        const updates = { enabled: value };
+        if (!value) {
+            // Ensure is_required is unchecked when the field is disabled
+            updates.is_required = false;
+        }
+        onFieldUpdate(field.id, updates);
     };
 
     // Ensure that the rendering properly checks if field exists
