@@ -6,6 +6,7 @@ import {
     updateForm,
     deleteForm,
     viewForm,
+    getFormsByUserId,
 } from '../controllers/form.controller.js';
 
 import checkSubscription from '../middleware/checkSubscription.js';  // Importing the middleware function
@@ -67,5 +68,7 @@ router.put('/update-form/:id', verifyToken, checkSubscription, logoUpload.single
 router.delete('/:id', verifyToken, checkSubscription, deleteForm);
 router.get('/view/:id', viewForm);
 
+
+router.get('/all/:id', verifyToken, checkSubscription, getFormsByUserId);
 
 export default router;

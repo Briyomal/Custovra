@@ -41,7 +41,7 @@ const FormPage = () => {
     const handleSubmit = async () => {
         setIsLoading(true);
         const formData = {
-            user_id: user._id, // Replace with actual user ID
+            user_id: user?._id, // Replace with actual user ID
             form_name: formName,
             form_note: formNote,
             form_type: formType,

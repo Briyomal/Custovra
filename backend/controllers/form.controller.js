@@ -45,7 +45,7 @@ export const getFormById = async (req, res) => {
             .populate('user_id', '_id');
 
         if (!form) {
-            return res.status(404).json({ message: 'Form not found' });
+            return res.status(404).json({ message: 'Form not found for user ID', userId: req.params.id });
         }
 
         res.status(200).json(form);
@@ -53,6 +53,23 @@ export const getFormById = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+export const getFormsByUserId = async (req, res) => {
+    try {
+        console.log(req.params); // Log to verify the structure of req.params
+        const userId = req.params.id; // Extract the `id` field from req.params
+        const forms = await Form.find({ user_id: userId }); // Query using userId
+
+        if (!forms.length) {
+            return res.status(404).json({ message: 'No forms found for user', userId });
+        }
+
+        res.status(200).json(forms);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 
 // Create a new form
 export const createForm = async (req, res) => {

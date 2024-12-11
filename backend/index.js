@@ -14,6 +14,7 @@ import formRoutes from "./routes/form.route.js";
 import formFieldRoutes from "./routes/formField.route.js";
 import employeeRoutes from "./routes/employee.route.js";
 import responseRoutes from "./routes/response.route.js";
+import submissionRoutes from "./routes/submission.route.js";
 import reportRoutes from "./routes/report.route.js";
 import { handleStripeWebhook  } from './controllers/payment.controller.js';
 
@@ -52,6 +53,7 @@ app.use('/api/forms', formRoutes);
 app.use('/api/form-fields', formFieldRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/responses', responseRoutes);
+app.use('/api/submissions', submissionRoutes);
 app.use('/api/reports', reportRoutes);
 app.use("/api/payments", paymentRoutes);
 

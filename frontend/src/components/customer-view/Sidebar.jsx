@@ -1,5 +1,5 @@
 //import { Calendar, Home, Inbox, Search, Settings, Command, Users  } from "lucide-react";
-import { Home, Command, FormInput, ChevronRight  } from "lucide-react";
+import { Home, Command, ChevronRight, MessageSquareText, ListPlus, ChartNoAxesCombined  } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, SidebarHeader, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar";
 import { NavUser } from "@/components/nav-user";
 import { useAuthStore } from "@/store/authStore";
@@ -8,7 +8,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/colla
 
 const items = [
     { title: 'Dashboard', url: '/dashboard/', icon: Home,},
-    { title: 'Forms', url: '/forms/', icon: FormInput,},
+    { title: 'Forms', url: '/forms/', icon: ListPlus,},
+    { title: 'Submissions', url: '/submissions/', icon: MessageSquareText,},
+    { title: 'Reports', url: '/reports/', icon: ChartNoAxesCombined,},
 	/*
 	{
 		title: "Form",
@@ -69,7 +71,7 @@ export function CustomerSidebar() {
 								>
 								<SidebarMenuItem>
 									<CollapsibleTrigger asChild>
-									<SidebarMenuButton tooltip={item.title}>
+									<SidebarMenuButton tooltip={item.title} >
 										{item.icon && <item.icon />}
 										<span>{item.title}</span>
 										<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />

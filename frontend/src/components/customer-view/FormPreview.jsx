@@ -13,7 +13,6 @@ import { Star } from "lucide-react"
 
 const FormPreview = (formPreview) => {
     const { default_fields = [] } = formPreview.formPreview || {}; 
-    console.log("Form Preview Details New:", formPreview.formPreview);
     return (
         <>
         {!default_fields.length ? (

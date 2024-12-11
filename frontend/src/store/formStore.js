@@ -16,8 +16,23 @@ const useFormStore = create((set) => ({
     fetchForms: async (userId) => {
         set({ loading: true, error: null });
         try {
+            console.log("Fetching forms for userId:", userId);
             const response = await axios.get(`${API_URL}/${userId}`);
-            set({ forms: response.data.forms, loading: false });
+            console.log("Response received:", response);
+            set({ forms: response.data.forms || response.data || [], loading: false });
+        } catch (error) {
+            console.error("Error fetching forms:", error.response?.data || error.message);
+            set({ error: error.response?.data?.message || "Failed to fetch forms", loading: false });
+        }
+    },
+
+    fetchFormsNew: async (userId) => {
+        set({ loading: true, error: null });
+        try {
+            console.log("Fetching forms for userId:", userId);
+            const response = await axios.get(`${API_URL}/all/${userId}`);
+            console.log("Response received:", response);
+            set({ forms: response.data.forms || response.data || [], loading: false });
         } catch (error) {
             console.error("Error fetching forms:", error.response?.data || error.message);
             set({ error: error.response?.data?.message || "Failed to fetch forms", loading: false });

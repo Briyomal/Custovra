@@ -14,10 +14,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Ban } from "lucide-react";
+import { Ban, Check } from "lucide-react";
 import StarRating from "@/components/customer-view/StarRating";
 import FormPreviewSkelton from "@/components/customer-view/FormPreviewSkelton";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import useSubmissionStore from "@/store/submissionStore";
+import toast from "react-hot-toast";
 
 const FormViewPage = () => {
     const { viewForm } = useFormStore();
@@ -26,6 +28,7 @@ const FormViewPage = () => {
     const [formDetails, setFormDetails] = useState(null);
     const [error, setError] = useState(null);
     const [formErrors, setFormErrors] = useState({});
+    const [submitSuccess, setSubmitSuccess] = useState(false);
 
     useEffect(() => {
         const fetchFormDetails = async () => {
@@ -75,8 +78,8 @@ const FormViewPage = () => {
                 return "Please enter a valid email address.";
             }
     
-            if (field.field_name === "phone" && !/^\+?[1-9]\d{1,14}$/.test(fieldValue)) {
-                return "Please enter a valid phone number.";
+            if (field.field_name === "phone" && !/^\+?[1-9]\d{9,14}$/.test(fieldValue)) {
+                return "Please enter a valid phone number with at least 10 digits";
             }
     
             if (field.field_type === "textarea" && fieldValue.length < 10) {
@@ -100,6 +103,7 @@ const FormViewPage = () => {
             const newErrors = { ...prev };
             if (error) {
                 newErrors[name] = error;
+                console.log("Validation Error:", error);
             } else {
                 delete newErrors[name];
             }
@@ -115,6 +119,7 @@ const FormViewPage = () => {
         }));
     };
 
+    /*
     const handleSubmit = (e) => {
         e.preventDefault();
     
@@ -154,8 +159,62 @@ const FormViewPage = () => {
         );
     
         // Perform the actual form submission logic here
+
     };
+    */
+    const handleSubmit = async (e) => {
+        e.preventDefault();
     
+        console.log("Form State on Submit:", formDetails);
+    
+        const { submitForm, error } = useSubmissionStore.getState();
+        const formData = new FormData(e.target);
+        let validationErrors = {};
+    
+        // Validate and ensure all required fields are included
+        formDetails.default_fields.forEach((field) => {
+            const value = field.field_type === "rating" ? field.value : formData.get(field.field_name)?.trim();
+    
+            if (field.is_required) {
+                const error = validateField(field.field_name, value, field);
+                if (error) {
+                    validationErrors[field.field_name] = error;
+                }
+            }
+    
+            // Manually append the rating value to formData
+            if (field.field_type === "rating") {
+                formData.set(field.field_name, field.value);
+            }
+        });
+    
+        // If there are validation errors, update state and stop submission
+        if (Object.keys(validationErrors).length > 0) {
+            setFormErrors(validationErrors);
+            console.log("Validation Errors:", validationErrors);
+            return;
+        }
+    
+        // Prepare form details for submission
+        const submissionDetails = {
+            form_id: formDetails._id,
+            user_id: formDetails.user_id,
+            submissions: Object.fromEntries(formData.entries()),
+        };
+    
+        console.log("Form submitted with data:", submissionDetails);
+    
+        // Submit the form
+        await submitForm(submissionDetails);
+    
+        if (error) {
+            toast.error("Form submission failed.");
+            console.log("Submission Error:", error);
+        } else {
+            toast.success("Form submitted successfully!");
+            setSubmitSuccess(true);
+        }
+    };
 
     if (loading) {
         return <LoadingSpinner/>;
@@ -183,71 +242,86 @@ const FormViewPage = () => {
                         </CardDescription>
                     </Card>
                 ) : (
-                    <Card className="text-center p-4">
-                        {loading ? (
-                            <FormPreviewSkelton />
-                        ):(
-                            <>
-                        <CardHeader>
-                            <CardTitle>{formDetails?.form_name}</CardTitle>
-                            {formDetails.logo && (
-                                <img
-                                    src={`http://localhost:5000${formDetails.logo}`}
-                                    alt="Uploaded"
-                                    className="mt-1 w-48 h-auto rounded-md mx-auto"
-                                />
-                            )}
-                            {formDetails?.form_description && (
-                                <CardDescription>{formDetails?.form_description}</CardDescription>
-                            )}
-                        </CardHeader>
-                        <CardContent>
-                            <form onSubmit={handleSubmit} className="grid gap-6 py-4 text-left">
-                                {formDetails.default_fields
-                                    .filter((field) => field.enabled)
-                                    .map((field, index) => (
-                                        <div key={field._id || index} className="flex flex-col space-y-2">
-                                            <Label className="capitalize">
-                                                {field.field_name || `Field ${index + 1}`}
-                                                {field.is_required && <span className="text-red-500 ml-1">*</span>}
-                                            </Label>
-                                            {field.field_type === "textarea" ? (
-                                                <Textarea
-                                                    name={field.field_name}
-                                                    placeholder={field.placeholder || ""}
-                                                    required={field.is_required}
-                                                    onChange={(e) => handleChange(e, field)}
-                                                />
-                                            ) : field.field_type === "rating" ? (
-                                                <StarRating
-                                                    rating={field.value || 0} // Pass the current value of the rating field
-                                                    onChange={(value) =>
-                                                        handleChange({ target: { name: field.field_name, value } }, field)
-                                                    }
-                                                />
-                                            ) : (
-                                                <Input
-                                                    name={field.field_name}
-                                                    type={field.field_type || "text"}
-                                                    placeholder={field.placeholder || ""}
-                                                    required={field.is_required}
-                                                    onChange={(e) => handleChange(e, field)}
-                                                />
-                                            )}
-                                            {formErrors[field.field_name] && (
-                                                <p className="text-sm text-red-500">{formErrors[field.field_name]}</p>
-                                            )}
-                                        </div>
-                                    ))}
-                                <Button
-                                    type="submit"
-                                    className="text-md w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:from-blue-700 hover:to-indigo-800"
-                                >
-                                    Submit
-                                </Button>
-                            </form>
-                        </CardContent> </>)}
-                    </Card>
+                    <>
+                    {submitSuccess ? (
+                        <Card className="text-center p-4">
+                            <CardHeader>
+                                <Check  size={48} className="mx-auto mb-2 text-green-500" />
+                                <CardTitle>Form Submission Successful</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p>Thank you for your submission!</p>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card className="text-center p-4">
+                            {loading ? (
+                                <FormPreviewSkelton />
+                            ):(
+                                <>
+                            <CardHeader>
+                                <CardTitle>{formDetails?.form_name}</CardTitle>
+                                {formDetails.logo && (
+                                    <img
+                                        src={`http://localhost:5000${formDetails.logo}`}
+                                        alt="Uploaded"
+                                        className="mt-1 w-48 h-auto rounded-md mx-auto"
+                                    />
+                                )}
+                                {formDetails?.form_description && (
+                                    <CardDescription>{formDetails?.form_description}</CardDescription>
+                                )}
+                            </CardHeader>
+                            <CardContent>
+                                <form onSubmit={handleSubmit} className="grid gap-6 py-4 text-left">
+                                    {formDetails.default_fields
+                                        .filter((field) => field.enabled)
+                                        .map((field, index) => (
+                                            <div key={field._id || index} className="flex flex-col space-y-2">
+                                                <Label className="capitalize">
+                                                    {field.field_name || `Field ${index + 1}`}
+                                                    {field.is_required && <span className="text-red-500 ml-1">*</span>}
+                                                </Label>
+                                                {field.field_type === "textarea" ? (
+                                                    <Textarea
+                                                        name={field.field_name}
+                                                        placeholder={field.placeholder || ""}
+                                                        required={field.is_required}
+                                                        onChange={(e) => handleChange(e, field)}
+                                                    />
+                                                ) : field.field_type === "rating" ? (
+                                                    <StarRating
+                                                        rating={field.value || 0} // Pass the current value of the rating field
+                                                        onChange={(value) =>
+                                                            handleChange({ target: { name: field.field_name, value } }, field)
+                                                        }
+                                                    />
+                                                ) : (
+                                                    <Input
+                                                        name={field.field_name}
+                                                        type={field.field_type || "text"}
+                                                        placeholder={field.placeholder || ""}
+                                                        required={field.is_required}
+                                                        onChange={(e) => handleChange(e, field)}
+                                                    />
+                                                )}
+                                                {formErrors[field.field_name] && (
+                                                    <p className="text-sm text-red-500">{formErrors[field.field_name]}</p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    <Button
+                                        type="submit"
+                                        className="text-md w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:from-blue-700 hover:to-indigo-800"
+                                    >
+                                        Submit
+                                    </Button>
+                                </form>
+                            </CardContent> </>)}
+                        </Card>
+                    )}
+                    
+                    </>
                 )}
             </motion.div>
         </FloatingBackground>
