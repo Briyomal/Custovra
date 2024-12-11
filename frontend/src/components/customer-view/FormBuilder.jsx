@@ -11,8 +11,9 @@ const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [fields, setFields] = useState([]);
 
+
     useEffect(() => {
-        if (formDetails?.default_fields && formDetails.default_fields.length > 0) {
+        if (formDetails?.default_fields) {
             // Map formDetails to the format needed for rendering and sort by position
             const mappedFields = formDetails.default_fields
                 .map((field, index) => ({
@@ -25,23 +26,10 @@ const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect }) => {
                     placeholder: field.placeholder || "",
                 }))
                 .sort((a, b) => a.position - b.position); // Sort by position (ascending)
-
+    
             setFields(mappedFields);
-            setTimeout(() => setIsLoading(false), 800);
-        } else {
-            // Default fields if no data available
-            const defaultFields = [
-                { id: "1", label: "Name", type: "text", is_required: false, enabled: true, position: 1, placeholder: "John Doe" },
-                { id: "2", label: "Email", type: "email", is_required: true, enabled: true, position: 2, placeholder: "mail@example.com" },
-                { id: "3", label: "Phone", type: "phone", is_required: false, enabled: true, position: 3, placeholder: "+123456789" },
-                { id: "4", label: "Rating", type: "rating", is_required: false, enabled: true, position: 4, placeholder: "" },
-                { id: "5", label: "Comment", type: "textarea", is_required: false, enabled: true, position: 5, placeholder: "Write your review" },
-            ];
-
-            // Default fields are already sorted, so no additional sort needed here
-            setFields(defaultFields);
-            setTimeout(() => setIsLoading(false), 800);
         }
+        setTimeout(() => setIsLoading(false), 800);
     }, [formDetails]);
 
     // Configure sensors with pointer activation constraints

@@ -30,16 +30,29 @@ const FormCreatePage = ( ) => {
         const fetchFormDetails = async () => {
             try {
                 setLoading(true);
-
+    
                 const response = await axios.get(`http://localhost:5000/api/forms/${formId}`);
-                setFormDetails(response.data); // Set form details
+                const fetchedDetails = response.data;
+    
+                // Check if default_fields is empty or undefined, and assign default values
+                if (!Array.isArray(fetchedDetails.default_fields) || fetchedDetails.default_fields.length === 0) {
+                    fetchedDetails.default_fields = [
+                        { field_name: "Name", field_type: "text", is_required: false, enabled: true, position: 1, placeholder: "John Doe" },
+                        { field_name: "Email", field_type: "email", is_required: true, enabled: true, position: 2, placeholder: "mail@example.com" },
+                        { field_name: "Phone", field_type: "phone", is_required: false, enabled: true, position: 3, placeholder: "+123456789" },
+                        { field_name: "Rating", field_type: "rating", is_required: false, enabled: true, position: 4, placeholder: "" },
+                        { field_name: "Comment", field_type: "textarea", is_required: false, enabled: true, position: 5, placeholder: "Write your review" },
+                    ];
+                }
+    
+                setFormDetails(fetchedDetails); // Set updated form details
             } catch (error) {
                 console.error("Error fetching form details:", error);
             } finally {
                 setLoading(false);
             }
         };
-
+    
         fetchFormDetails();
     }, [formId]);
 
@@ -71,7 +84,6 @@ const FormCreatePage = ( ) => {
       };
 
       const handlePublish = async () => {
-        console.log("Form Details When Submitting:", formDetails);
         setLoadingForm(true);
         try {
             let fields = formDetails.default_fields.map((field) => ({
@@ -92,7 +104,6 @@ const FormCreatePage = ( ) => {
                 { label: "Rating", type: "rating", isRequired: false, enabled: true, position: 4, placeholder: "" },
                 { label: "Comment", type: "textarea", isRequired: false, enabled: true, position: 5, placeholder: "Write your review" },
             ];
-            console.log("Fields were empty, default fields added:", fields);
         }
     
             console.log("Mapped Fields:", fields);
@@ -125,6 +136,7 @@ const FormCreatePage = ( ) => {
             setLoadingForm(false);
         }
     };
+
 /*
     const handleShare = async () => {      try {
         setPreviewLoading(true);

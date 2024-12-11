@@ -20,12 +20,10 @@ import { CircleHelp } from "lucide-react";
 const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect  }) => {
     // Fallback for when formDetails is null or undefined
     const isLoading = !formDetails || Object.keys(formDetails).length === 0;
-    const [isActive, setIsActive] = useState();
+    const [isActive, setIsActive] = useState("");
     const [formDescription, setFormDescription] = useState("");
     const [formName, setFormName] = useState("");
     const [formNote, setFormNote] = useState("");
-
-    console.log("Form Details:", formDetails);
 
     useEffect(() => {
         if (formDetails && formDetails.is_active !== undefined) {
