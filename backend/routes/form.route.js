@@ -70,5 +70,6 @@ router.get('/view/:id', viewForm);
 
 
 router.get('/all/:id', verifyToken, checkSubscription, getFormsByUserId);
+router.get('/user/:id', verifyToken, checkSubscription, getFormsByUserId);
 
 export default router;

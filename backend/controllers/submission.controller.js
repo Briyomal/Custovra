@@ -23,46 +23,12 @@ export const getSubmissionByUserId = async (req, res) => {
         res.status(500).json({ message: "Server error. Unable to fetch submissions." });
     }
 };
-/*
 
-export const getSubmissionByUserId = async (req, res) => {
-    const { id: userId } = req.params;
-
-    try {
-        // Log userId and check if submissions exist for the user
-        console.log('User ID:', userId);
-
-        const submissions = await Submission.aggregate([
-            { $match: { user_id: userId } },
-            { $lookup: {
-                from: "forms",
-                localField: "form_id",
-                foreignField: "_id",
-                as: "formDetails"
-            }},
-            { $unwind: "$formDetails" }
-        ]);
-
-        // Log the result of the aggregation
-        console.log('Submissions after aggregation:', submissions);
-
-        if (submissions.length === 0) {
-            console.log('No submissions found for this user.');
-        }
-
-        res.status(200).json(submissions);
-    } catch (error) {
-        console.error("Error fetching submissions by user ID:", error);
-        res.status(500).json({ message: "Server error. Unable to fetch submissions." });
-    }
-};
-
-
-*/
 
 // Get all responses for a form
-export const getSubmissionsForForm = async (req, res) => {
+export const getSubmissionsByFormId = async (req, res) => {
     try {
+        console.log(req.params);
         const submissions = await Submission.find({ form_id: req.params.formId });
         res.status(200).json(submissions);
     } catch (error) {

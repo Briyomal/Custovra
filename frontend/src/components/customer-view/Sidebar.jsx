@@ -1,9 +1,10 @@
 //import { Calendar, Home, Inbox, Search, Settings, Command, Users  } from "lucide-react";
-import { Home, Command, ChevronRight, MessageSquareText, ListPlus, ChartNoAxesCombined  } from "lucide-react";
+import { Home, ChevronRight, MessageSquareText, ListPlus, ChartNoAxesCombined  } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, SidebarHeader, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar";
 import { NavUser } from "@/components/nav-user";
 import { useAuthStore } from "@/store/authStore";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
+import sidebarLogo from "../../assets/logo.png";
 // Menu items.
 
 const items = [
@@ -36,27 +37,21 @@ const items = [
 
 export function CustomerSidebar() {
 	const { user } = useAuthStore();
+	
 
 	return (
-		<Sidebar collapsible="icon">
-			<SidebarHeader>
+		<Sidebar collapsible="icon" >
+			<SidebarHeader className="py-4">
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<SidebarMenuButton size="lg" asChild>
+						<SidebarMenuButton size="xl" asChild className="hover:bg-gray-200 active:bg-gray-200 dark:hover:bg-gray-900 ">
 							<a href="#">
-								<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-									<Command className="size-4" />
-								</div>
-								<div className="grid flex-1 text-left text-sm leading-tight">
-									<span className="truncate font-semibold">Acme Inc</span>
-									<span className="truncate text-xs">Enterprise</span>
-								</div>
+								<img src={sidebarLogo} alt="Logo" className="w-32" />
 							</a>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>
 			</SidebarHeader>
-
 			<SidebarContent>
 				<SidebarGroup>
 					<SidebarGroupContent>
@@ -80,8 +75,8 @@ export function CustomerSidebar() {
 									<CollapsibleContent>
 									<SidebarMenuSub>
 										{item.items.map((subItem) => (
-										<SidebarMenuSubItem key={subItem.title}>
-											<SidebarMenuSubButton asChild>
+										<SidebarMenuSubItem key={subItem.title} >
+											<SidebarMenuSubButton asChild >
 											<a href={subItem.url}>
 												<span>{subItem.title}</span>
 											</a>

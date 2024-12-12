@@ -15,15 +15,40 @@ import {
 	useReactTable,
 	getFilteredRowModel,
 } from "@tanstack/react-table";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 const DataTable = ({ data, columns }) => {
-	const [sorting, setSorting] = useState([]);
+	const [sorting, setSorting] = useState([
+		{ id: "createdAt", desc: true },
+	]);
 	const [columnFilters, setColumnFilters] = useState([]);
+
+	console.log("Data:", data);
+
+	// Filter out columns based on the presence of submissions.email 
+	const filteredColumns = useMemo(() => {
+		const hasEmail = data.some((row) => row.submissions?.email);
+		const hasPhone = data.some((row) => row.submissions?.phone);
+		const hasName = data.some((row) => row.submissions?.name);
+		return columns.filter((column) => {
+		  if (column.accessorKey === "submissions.email") {
+			return hasEmail;
+		  }
+		  if (column.accessorKey === "submissions.phone") {
+			return hasPhone;
+		  }
+		  if (column.accessorKey === "submissions.name") {
+			return hasName;
+		  }
+		  return true; // Keep other columns
+		});
+	  }, [data, columns]);
+	  
+
 
 	const table = useReactTable({
 		data,
-		columns,
+		columns: filteredColumns,
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
 		onSortingChange: setSorting,

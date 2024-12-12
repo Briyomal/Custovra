@@ -29,6 +29,27 @@ const useSubmissionStore = create((set) => ({
         }
     },
 
+        
+    fetchSubmissionsByForm: async (formId) => {
+      try {
+        console.log("Fetching submissions for formId:", formId);
+        set({ isLoading: true, error: null });
+        const response = await axios.get(`${API_URL}/form/${formId}`);
+        set({ 
+          submissions: response.data,
+          isLoading: false 
+        });
+        return response.data;
+      } catch (error) {
+        set({ 
+          error: error.message, 
+          isLoading: false 
+        });
+        throw error;
+      }
+    },
+      
+
     // Submit a form
     submitForm: async (formDetails) => {
         set({ isLoading: true, error: null });

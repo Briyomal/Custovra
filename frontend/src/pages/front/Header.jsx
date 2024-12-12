@@ -1,4 +1,4 @@
-import logo from "../../assets/logo-01.png";
+import logo from "../../assets/logo.png";
 //import userIcon from "../../assets/user-icon.png";
 import { UserRound, LayoutDashboard, UserPlus, LogIn, LogOut } from "lucide-react";
 //import { Menu, MenuButton, MenuItem, MenuItems, } from "@headlessui/react";

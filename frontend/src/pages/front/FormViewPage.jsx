@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Ban, Check } from "lucide-react";
+import { Ban, Check, Loader } from "lucide-react";
 import StarRating from "@/components/customer-view/StarRating";
 import FormPreviewSkelton from "@/components/customer-view/FormPreviewSkelton";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -29,6 +29,7 @@ const FormViewPage = () => {
     const [error, setError] = useState(null);
     const [formErrors, setFormErrors] = useState({});
     const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [submitLoading, setSubmitLoading] = useState(false);
 
     useEffect(() => {
         const fetchFormDetails = async () => {
@@ -164,57 +165,67 @@ const FormViewPage = () => {
     */
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        setSubmitLoading(true);
     
-        console.log("Form State on Submit:", formDetails);
+        try {
+            console.log("Form State on Submit:", formDetails);
     
-        const { submitForm, error } = useSubmissionStore.getState();
-        const formData = new FormData(e.target);
-        let validationErrors = {};
+            const { submitForm, error } = useSubmissionStore.getState();
+            const formData = new FormData(e.target);
+            let validationErrors = {};
     
-        // Validate and ensure all required fields are included
-        formDetails.default_fields.forEach((field) => {
-            const value = field.field_type === "rating" ? field.value : formData.get(field.field_name)?.trim();
+            // Validate and ensure all required fields are included
+            formDetails.default_fields.forEach((field) => {
+                const value = field.field_type === "rating" ? field.value : formData.get(field.field_name)?.trim();
     
-            if (field.is_required) {
-                const error = validateField(field.field_name, value, field);
-                if (error) {
-                    validationErrors[field.field_name] = error;
+                if (field.is_required) {
+                    const error = validateField(field.field_name, value, field);
+                    if (error) {
+                        validationErrors[field.field_name] = error;
+                    }
                 }
+    
+                // Manually append the rating value to formData
+                if (field.field_type === "rating") {
+                    formData.set(field.field_name, field.value);
+                }
+            });
+    
+            // If there are validation errors, update state and stop submission
+            if (Object.keys(validationErrors).length > 0) {
+                setFormErrors(validationErrors);
+                console.log("Validation Errors:", validationErrors);
+                return;
             }
     
-            // Manually append the rating value to formData
-            if (field.field_type === "rating") {
-                formData.set(field.field_name, field.value);
-            }
-        });
+            // Prepare form details for submission
+            const submissionDetails = {
+                form_id: formDetails._id,
+                user_id: formDetails.user_id,
+                submissions: Object.fromEntries(formData.entries()),
+            };
     
-        // If there are validation errors, update state and stop submission
-        if (Object.keys(validationErrors).length > 0) {
-            setFormErrors(validationErrors);
-            console.log("Validation Errors:", validationErrors);
-            return;
-        }
+            console.log("Form submitted with data:", submissionDetails);
     
-        // Prepare form details for submission
-        const submissionDetails = {
-            form_id: formDetails._id,
-            user_id: formDetails.user_id,
-            submissions: Object.fromEntries(formData.entries()),
-        };
+            // Submit the form
+            await submitForm(submissionDetails);
     
-        console.log("Form submitted with data:", submissionDetails);
-    
-        // Submit the form
-        await submitForm(submissionDetails);
-    
-        if (error) {
-            toast.error("Form submission failed.");
-            console.log("Submission Error:", error);
-        } else {
-            toast.success("Form submitted successfully!");
-            setSubmitSuccess(true);
+            if (error) {
+                toast.error("Form submission failed.");
+                console.log("Submission Error:", error);
+            } else {
+                toast.success("Form submitted successfully!");
+                setSubmitSuccess(true);
+            } 
+        } catch (err) {
+            console.error("Unexpected Error during submission:", err);
+            toast.error("An unexpected error occurred during submission.");
+        } finally {
+            setSubmitLoading(false); // Ensure the loading state is reset regardless of success or failure
         }
     };
+    
 
     if (loading) {
         return <LoadingSpinner/>;
@@ -313,8 +324,17 @@ const FormViewPage = () => {
                                     <Button
                                         type="submit"
                                         className="text-md w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:from-blue-700 hover:to-indigo-800"
+                                        disabled={submitLoading}
                                     >
-                                        Submit
+                                        {submitLoading ? (
+                                            <>
+                                                <Loader className="animate-spin mr-1" size={28} /> Submitting...
+                                            </>
+                                        ) : (
+                                            <>
+                                            Submit
+                                            </>
+                                        )}
                                     </Button>
                                 </form>
                             </CardContent> </>)}

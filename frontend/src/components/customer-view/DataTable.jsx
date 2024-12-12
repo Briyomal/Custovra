@@ -15,15 +15,19 @@ import {
 	useReactTable,
 	getFilteredRowModel,
 } from "@tanstack/react-table";
-import { useState } from "react";
+import {  useState } from "react";
 
 const DataTable = ({ data, columns, setForms }) => {
-	const [sorting, setSorting] = useState([]);
+	const [sorting, setSorting] = useState([
+		{ id: "created_at", desc: true },
+	]);
 	const [columnFilters, setColumnFilters] = useState([]);
+
 
 	const updateData = (newData) => {
         setForms(newData);
     };
+
 
 	const table = useReactTable({
 		data,
