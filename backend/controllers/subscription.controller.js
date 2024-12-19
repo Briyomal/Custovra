@@ -43,6 +43,7 @@ export const getAllSubscriptions = async (req, res) => {
 export const createCheckoutSession = async (req, res) => {
     try {
         const { priceId, planName } = req.body;  // Price ID passed from frontend
+        console.log("planName: ", req.body);
        
 
         if (!priceId) {
@@ -132,6 +133,8 @@ export const deleteSubscription = async (req, res) => {
 
 export const selectPlan = async (req, res) => {
     const { userId, subscriptionId, paymentDetails } = req.body;
+
+    console.log("req in select Plan", req)
 
     try {
         // Fetch the selected subscription

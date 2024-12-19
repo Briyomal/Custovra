@@ -9,6 +9,11 @@ export const handleStripeWebhook = async (req, res) => {
     const sig = req.headers['stripe-signature'];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET; // Your Stripe Webhook secret
 
+    if (!endpointSecret) {
+        console.error('Stripe webhook secret is not configured in environment variables');
+        return res.status(500).send('Webhook secret not configured');
+    }
+
     let event;
 
     try {
@@ -24,8 +29,12 @@ export const handleStripeWebhook = async (req, res) => {
     // Process the event
     switch (event.type) {
         case 'checkout.session.completed':
-            const session = event.data.object;
-            await handleSubscriptionCompleted(session);
+            try {
+                const session = event.data.object;
+                await handleSubscriptionCompleted(session);
+            } catch (err) {
+                console.error('Error handling checkout.session.completed:', err);
+            }
             break;
 
         case 'invoice.payment_succeeded':
@@ -36,6 +45,7 @@ export const handleStripeWebhook = async (req, res) => {
 
         default:
             console.log(`Unhandled event type: ${event.type}`);
+            console.log(event);
     }
 
     res.status(200).send('Event received');

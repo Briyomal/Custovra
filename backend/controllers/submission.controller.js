@@ -9,8 +9,6 @@ export const getAllSubmissions = async (req, res) => {
     }
 };
 
-
-
 // Fetch all submissions for a given user
 export const getSubmissionByUserId = async (req, res) => {
     const { id: userId } = req.params;
@@ -23,7 +21,6 @@ export const getSubmissionByUserId = async (req, res) => {
         res.status(500).json({ message: "Server error. Unable to fetch submissions." });
     }
 };
-
 
 // Get all responses for a form
 export const getSubmissionsByFormId = async (req, res) => {
@@ -56,5 +53,22 @@ export const createSubmission = async (req, res) => {
     } catch (error) {
         console.error("Error saving submission:", error);
         res.status(500).json({ message: "Server error. Unable to save submission." });
+    }
+};
+
+export const deleteSubmission = async (req, res) => {
+    const { id } = req.params;
+    console.log(id);
+
+    try {
+        const deletedSubmission = await Submission.findByIdAndDelete(id);
+        if (!deletedSubmission) {    
+            return res.status(404).json({ message: "Submission not found." });
+        }
+
+        res.status(200).json({ message: "Submission deleted successfully." });
+    } catch (error) {
+        console.error("Error deleting submission:", error);
+        res.status(500).json({ message: "Server error. Unable to delete submission." });
     }
 };

@@ -65,6 +65,10 @@ const SubmissionListPage = () => {
 	const memoizedColumns = useMemo(() => columns, []);
 	const totalSubmissionsCount = memoizedSubmissions.length;
 
+	const updateSetSubmissions = (newData) => {
+        setLocalSubmissions(newData); // Set the state
+    };
+
 	if (!isAuthenticated) {
 		return (
 			<CustomerLayoutPage>
@@ -106,7 +110,7 @@ const SubmissionListPage = () => {
 				) :
 
 					(
-						<DataTable data={memoizedSubmissions} columns={memoizedColumns} />
+						<DataTable data={memoizedSubmissions} columns={memoizedColumns} setLocalSubmissions={updateSetSubmissions} />
 					)}
 
 			</div>

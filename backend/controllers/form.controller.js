@@ -130,7 +130,6 @@ export const createForm = async (req, res) => {
     }
 };
 
-
 export const updateForm = async (req, res) => {
     try {
         const { id } = req.params; // Form ID from URL parameters

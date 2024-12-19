@@ -40,7 +40,7 @@ const SubscriptionPage = () => {
         }
         fetchPlans();
     }, []);
-
+ 
         // Handle subscription button click
         const handleSubscribe = async (priceId, planName) => {
             try {

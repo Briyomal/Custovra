@@ -17,34 +17,32 @@ import {
 } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 
-const DataTable = ({ data, columns }) => {
-	const [sorting, setSorting] = useState([
-		{ id: "createdAt", desc: true },
-	]);
+const DataTable = ({ data, columns, setLocalSubmissions }) => {
+	const [sorting, setSorting] = useState([{ id: "createdAt", desc: true }]);
 	const [columnFilters, setColumnFilters] = useState([]);
 
-	console.log("Data:", data);
+	const updateData = (newData) => {
+		setLocalSubmissions(newData);
+	};
 
-	// Filter out columns based on the presence of submissions.email 
+	// Filter out columns based on the presence of submissions.email
 	const filteredColumns = useMemo(() => {
 		const hasEmail = data.some((row) => row.submissions?.email);
 		const hasPhone = data.some((row) => row.submissions?.phone);
 		const hasName = data.some((row) => row.submissions?.name);
 		return columns.filter((column) => {
-		  if (column.accessorKey === "submissions.email") {
-			return hasEmail;
-		  }
-		  if (column.accessorKey === "submissions.phone") {
-			return hasPhone;
-		  }
-		  if (column.accessorKey === "submissions.name") {
-			return hasName;
-		  }
-		  return true; // Keep other columns
+			if (column.accessorKey === "submissions.email") {
+				return hasEmail;
+			}
+			if (column.accessorKey === "submissions.phone") {
+				return hasPhone;
+			}
+			if (column.accessorKey === "submissions.name") {
+				return hasName;
+			}
+			return true; // Keep other columns
 		});
-	  }, [data, columns]);
-	  
-
+	}, [data, columns]);
 
 	const table = useReactTable({
 		data,
@@ -62,12 +60,38 @@ const DataTable = ({ data, columns }) => {
 	});
 	return (
 		<div>
-			<div className="flex items-center py-4">
-				<Input placeholder="Filter emails..." 
-                value={table.getColumn("email")?.getFilterValue() ?? ""} 
-                onChange={(event) => table.getColumn("email")?.setFilterValue(event.target.value)} 
-                className="max-w-sm" />
-			</div>
+<div className="flex items-center py-4">
+  {data.some((row) => row.submissions?.email) ? (
+    <Input
+      placeholder="Filter emails..."
+      value={table.getColumn("email")?.getFilterValue() ?? ""}
+      onChange={(event) =>
+        table.getColumn("email")?.setFilterValue(event.target.value)
+      }
+      className="max-w-sm"
+    />
+  ) : data.some((row) => row.submissions?.phone) ? (
+    <Input
+      placeholder="Filter phones..."
+      value={table.getColumn("phone")?.getFilterValue() ?? ""}
+      onChange={(event) =>
+        table.getColumn("phone")?.setFilterValue(event.target.value)
+      }
+      className="max-w-sm"
+    />
+  ) : data.some((row) => row.submissions?.name) ? (
+    <Input
+      placeholder="Filter names..."
+      value={table.getColumn("name")?.getFilterValue() ?? ""}
+      onChange={(event) =>
+        table.getColumn("name")?.setFilterValue(event.target.value)
+      }
+      className="max-w-sm"
+    />
+  ) : null}
+</div>
+
+
 			<div className="rounded-md border">
 				<Table>
 					<TableHeader>
@@ -82,8 +106,8 @@ const DataTable = ({ data, columns }) => {
 					<TableBody>
 						{table.getRowModel().rows.map((row) => (
 							<TableRow key={row.id}>
-								{row.getVisibleCells().map((Cell) => (
-									<TableCell key={Cell.id}>{flexRender(Cell.column.columnDef.Cell || Cell.column.columnDef.cell, Cell.getContext())}</TableCell>
+								{row.getVisibleCells().map((cell) => (
+									<TableCell key={cell.id}>{flexRender(cell.column.columnDef.Cell || cell.column.columnDef.cell, { ...cell.getContext(), updateData })}</TableCell>
 								))}
 							</TableRow>
 						))}

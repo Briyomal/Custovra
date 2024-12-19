@@ -3,7 +3,7 @@ import axios from "axios";
 
 const API_URL = import.meta.env.MODE === "development" 
     ? "http://localhost:5000/api/submissions" 
-    : "/api/forms";
+    : "/api/submissions";
 
     
 axios.defaults.withCredentials = true;
@@ -64,6 +64,23 @@ const useSubmissionStore = create((set) => ({
                 error: error.response?.data?.message || "Submission failed",
                 isLoading: false,
             });
+        }
+    },
+
+    deleteSubmission: async (submissionId, callback) => {
+        try {
+            const response = await axios.delete(`${API_URL}/${submissionId}`, {
+                withCredentials: true, // Ensure cookies are sent with the request
+            });
+            // Update the state to reflect that the form has been deleted
+            set((state) => ({
+                submissions: state.submissions.filter((submission) => submission._id !== submissionId),
+            }));
+            if (callback) callback(); // Call the callback function if provided
+            return response.data; // Return successful response data
+        } catch (error) {
+            console.error("Error deleting submission", error);
+            throw error; // Throw error to handle it in the component
         }
     },
 
