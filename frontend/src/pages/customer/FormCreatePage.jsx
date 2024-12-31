@@ -22,6 +22,7 @@ const FormCreatePage = ( ) => {
     const [previewLoading, setPreviewLoading] = useState(false);
     const [previewDetails, setPreviewDetails] = useState(null); // For fetching preview details
     const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+    const [error, setError] = useState(null);
     
     const { updateForm } = useFormStore();
 
@@ -48,6 +49,7 @@ const FormCreatePage = ( ) => {
                 setFormDetails(fetchedDetails); // Set updated form details
             } catch (error) {
                 console.error("Error fetching form details:", error);
+                setError(error.response?.data?.message || "Something went wrong!"); // Store error message
             } finally {
                 setLoading(false);
             }
@@ -151,97 +153,112 @@ const FormCreatePage = ( ) => {
     */
     return (
         <CustomerLayoutPage>
-            <div className="flex justify-between border-b-2 p-4 gap-3 items-center ">
-                {loading &&
-                    <div className="flex flex-col">
-                        <Skeleton className="w-20 h-6" />
-                        <Skeleton className="w-80 h-4 mt-2" />
+            {error ? (
+                    <div className="text-center mt-20">
+                        <h1 className="text-2xl font-bold text-red-700">
+                        🙁 {error}
+                        </h1>
+                        <p className="text-gray-600 mt-2">
+                            Please check if the form ID is correct or ensure that you are authorized to view this form.
+                        </p>
                     </div>
-                }
-                {formDetails && (
-                    <div className="flex flex-col">
-                        <h2 className="text-lg  font-semibold">
-                            {formDetails.form_name}
-                        </h2>
-                        <p className="text-sm text-slate-600 dark:text-slate-400"> {formDetails.form_note}</p>
-                    </div>
-                )}
-                <div className="flex gap-2 items-center">
-                    <Dialog>
-                        <DialogTrigger asChild>
-                        <Button 
-                            variant="outline"
-                            onClick={fetchPreviewDetails}
-                        >
-                            <ScanSearch /> Preview</Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px] p-10">
-                            {previewLoading ? (
-                                    <FormPreviewSkelton />
-                            ) : (
-                                <FormPreview formPreview={previewDetails} />
-                            )}
-                        </DialogContent>
-                    </Dialog>
-                    
-                    
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="secondary"
-                                onClick={() => setIsShareDialogOpen(true)}
-                            >
-                                <QrCode />
-                                Share
-                            </Button>
-                        </DialogTrigger>
-                        <ShareDialog formId={formId} isOpen={isShareDialogOpen} setIsOpen={setIsShareDialogOpen} />
-                    </Dialog>
-                    
-                    {formDetails.is_active ? (
-                        
-                    <Button
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
-                    onClick={handlePublish}
-                    disabled={loadingForm}
-                >
-                    {loadingForm ? (
-                        <>
-                            <Loader className="animate-spin mx-auto mr-0.5" size={28} />Publishing...
-                        </>
-                    ) : (
-                        <>
-                            <SquareArrowOutUpRight />
-                            Publish
-                        </>
+            ) : (
+                <>
+                <div className="flex justify-between border-b-2 p-4 gap-3 items-center ">
+                    {loading &&
+                        <div className="flex flex-col">
+                            <Skeleton className="w-20 h-6" />
+                            <Skeleton className="w-80 h-4 mt-2" />
+                        </div>
+                    }
+    
+                    {formDetails && (
+                        <div className="flex flex-col">
+                            <h2 className="text-lg  font-semibold">
+                                {formDetails.form_name}
+                            </h2>
+                            <p className="text-sm text-slate-600 dark:text-slate-400"> {formDetails.form_note}</p>
+                        </div>
                     )}
-                </Button>
-                    ) : (
-                    <Button
-                        className="bg-gradient-to-r dark:from-slate-900 dark:to-indigo-950 text-white dark:hover:from-slate-800 dark:hover:to-indigo-800"
+                    <div className="flex gap-2 items-center">
+                        <Dialog>
+                            <DialogTrigger asChild>
+                            <Button 
+                                variant="outline"
+                                onClick={fetchPreviewDetails}
+                            >
+                                <ScanSearch /> Preview</Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[500px] p-10">
+                                {previewLoading ? (
+                                        <FormPreviewSkelton />
+                                ) : (
+                                    <FormPreview formPreview={previewDetails} />
+                                )}
+                            </DialogContent>
+                        </Dialog>
+                        
+                        
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="secondary"
+                                    onClick={() => setIsShareDialogOpen(true)}
+                                >
+                                    <QrCode />
+                                    Share
+                                </Button>
+                            </DialogTrigger>
+                            <ShareDialog formId={formId} isOpen={isShareDialogOpen} setIsOpen={setIsShareDialogOpen} />
+                        </Dialog>
+                        
+                        {formDetails.is_active ? (
+                            
+                        <Button
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
                         onClick={handlePublish}
                         disabled={loadingForm}
                     >
                         {loadingForm ? (
                             <>
-                                <Loader className="animate-spin mx-auto mr-0.5" size={28} />Saving...
+                                <Loader className="animate-spin mx-auto mr-0.5" size={28} />Publishing...
                             </>
                         ) : (
                             <>
-                                <Save />
-                                Save
+                                <SquareArrowOutUpRight />
+                                Publish
                             </>
                         )}
                     </Button>
-                    )}
+                        ) : (
+                        <Button
+                            className="bg-gradient-to-r dark:from-slate-900 dark:to-indigo-950 text-white dark:hover:from-slate-800 dark:hover:to-indigo-800"
+                            onClick={handlePublish}
+                            disabled={loadingForm}
+                        >
+                            {loadingForm ? (
+                                <>
+                                    <Loader className="animate-spin mx-auto mr-0.5" size={28} />Saving...
+                                </>
+                            ) : (
+                                <>
+                                    <Save />
+                                    Save
+                                </>
+                            )}
+                        </Button>
+                        )}
+                    </div>
                 </div>
-            </div>
-            <div className="flex w-full flex-grow items-center justify-center relative overflow-y-auto h-[80vh]">
-                <FormBuilder
-                    formDetails={formDetails}
-                    onFieldUpdate={handleFieldUpdate}
-                    onFileSelect={handleFileSelect}
-                />
-            </div>
+                <div className="flex w-full flex-grow items-center justify-center relative overflow-y-auto h-[80vh]">
+                    <FormBuilder
+                        formDetails={formDetails}
+                        onFieldUpdate={handleFieldUpdate}
+                        onFileSelect={handleFileSelect}
+                    />
+                </div>
+                </>
+
+            )}
         </CustomerLayoutPage >
     )
 }

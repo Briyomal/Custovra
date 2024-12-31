@@ -169,8 +169,8 @@ const FormPage = () => {
                                     </>
                                 ) : (
                                     <>
-                                    Next
-                                    <ArrowRight className="" />
+                                        Next
+                                        <ArrowRight className="" />
                                     </>
                                 )}
                             </Button>
@@ -224,17 +224,17 @@ const FormPage = () => {
                         </CardContent>
                     </Card>
                 </div>
-                
+
                 {totalFormsCount === 0 ? (
                     <div className="text-center mt-20">
-                    <h1 className="text-2xl font-bold text-gray-700">
-                      😃 You haven&lsquo;t published a form yet!
-                    </h1>
-                    <p className="text-gray-600 mt-2">
-                      Create your first form and start collecting submissions effortlessly.
-                    </p>
+                        <h1 className="text-2xl font-bold text-gray-700">
+                            😃 You haven&lsquo;t published a form yet!
+                        </h1>
+                        <p className="text-gray-600 mt-2">
+                            Create your first form and start collecting submissions effortlessly.
+                        </p>
                     </div>
-                ) :(
+                ) : (
                     <DataTable data={memoizedForms} columns={memoizedColumns} setForms={updateSetForms} />
 
                 )}

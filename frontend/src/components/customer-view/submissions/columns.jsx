@@ -7,8 +7,33 @@ import toast from "react-hot-toast";
 import useSubmissionStore from "@/store/submissionStore";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox"
 
 export const columns = [
+	{
+		id: "select",
+		header: ({ table }) => (
+		  <Checkbox
+			checked={
+			  table.getIsAllPageRowsSelected() ||
+			  (table.getIsSomePageRowsSelected() && "indeterminate")
+			}
+			onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+			aria-label="Select all"
+		  />
+		),
+
+		enableSorting: false,
+		enableHiding: false,
+		cell: ({ row }) => (
+			<Checkbox
+			  checked={row.getIsSelected()}
+			  onCheckedChange={(value) => row.toggleSelected(!!value)}
+			  aria-label="Select row"
+			/>
+		  ),
+
+	},
 	{
 		id: "name",
 		header: ({ column }) => {
