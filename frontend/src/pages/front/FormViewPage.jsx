@@ -30,6 +30,9 @@ const FormViewPage = () => {
     const [formErrors, setFormErrors] = useState({});
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [submitLoading, setSubmitLoading] = useState(false);
+    const [showGooglePrompt, setShowGooglePrompt] = useState(false); // State to control prompt visibility
+    const [googleLink, setGoogleLink] = useState(""); // Store Google review link
+
 
     useEffect(() => {
         const fetchFormDetails = async () => {
@@ -174,6 +177,7 @@ const FormViewPage = () => {
             const { submitForm, error } = useSubmissionStore.getState();
             const formData = new FormData(e.target);
             let validationErrors = {};
+            let ratingValue = 0; // Store rating value
     
             // Validate and ensure all required fields are included
             formDetails.default_fields.forEach((field) => {
@@ -186,8 +190,9 @@ const FormViewPage = () => {
                     }
                 }
     
-                // Manually append the rating value to formData
+                // Manually append the rating value to formData and Capture rating value
                 if (field.field_type === "rating") {
+                    ratingValue = field.value;
                     formData.set(field.field_name, field.value);
                 }
             });
@@ -217,6 +222,12 @@ const FormViewPage = () => {
             } else {
                 toast.success("Form submitted successfully!");
                 setSubmitSuccess(true);
+
+                // Check if rating is 4 or 5 AND google_link is available
+                if (ratingValue >= 4 && formDetails.google_link) {
+                    setGoogleLink(formDetails.google_link);
+                    setShowGooglePrompt(true); // Show review prompt
+                }
             } 
         } catch (err) {
             console.error("Unexpected Error during submission:", err);
@@ -254,17 +265,43 @@ const FormViewPage = () => {
                     </Card>
                 ) : (
                     <>
-                    {submitSuccess ? (
-                        <Card className="text-center p-4">
-                            <CardHeader>
-                                <Check  size={48} className="mx-auto mb-2 text-green-500" />
-                                <CardTitle>Form Submission Successful</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p>Thank you for your submission!</p>
-                            </CardContent>
-                        </Card>
-                    ) : (
+                        {submitSuccess ? (
+                            showGooglePrompt ? (
+                                <Card className="text-center p-4">
+                                    <CardHeader>
+                                        <Check size={48} className="mx-auto mb-2 text-green-500" />
+                                        <CardTitle>Thank you for your review!</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p>Would you like to leave a review on Google as well?</p>
+                                        <div className="flex justify-center gap-4 mt-4">
+                                            <Button
+                                                className="text-md bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:from-blue-700 hover:to-indigo-800"
+                                                onClick={() => window.open(googleLink, "_blank")}
+                                            >
+                                                Yes, Review on Google
+                                            </Button>
+                                            <Button
+                                                
+                                                onClick={() => setShowGooglePrompt(false)}
+                                            >
+                                                No, Thanks
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <Card className="text-center p-4">
+                                    <CardHeader>
+                                        <Check size={48} className="mx-auto mb-2 text-green-500" />
+                                        <CardTitle>Form Submission Successful</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p>Thank you for your submission!</p>
+                                    </CardContent>
+                                </Card>
+                            )
+                        ) : (
                         <Card className="text-center p-4">
                             {loading ? (
                                 <FormPreviewSkelton />

@@ -24,6 +24,8 @@ const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect  }) => {
     const [formDescription, setFormDescription] = useState("");
     const [formName, setFormName] = useState("");
     const [formNote, setFormNote] = useState("");
+    const [formGoogleLink, setFormGoogleLink] = useState("");
+    const [errorLink, setErrorLink] = useState("");
 
     useEffect(() => {
         if (formDetails && formDetails.is_active !== undefined) {
@@ -38,7 +40,11 @@ const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect  }) => {
         if (formDetails && formDetails.form_note) {
             setFormNote(formDetails.form_note); // Only set if formDetails is defined and has form_description
         }
+        if (formDetails && formDetails.google_link) {
+            setFormGoogleLink(formDetails.google_link); // Only set if formDetails is defined and has form_description
+        }
     }, [formDetails]);
+
 
     const handleDescriptionChange = (e) => {
         const value = e.target.value;
@@ -62,6 +68,22 @@ const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect  }) => {
         setFormNote(value); // Update local state
         onFieldUpdate("form_note", value); // Update parent state
     };
+
+    const handleGoogleReviewLinkChange = (e) => {
+        const value = e.target.value.trim(); // Trim to remove leading/trailing spaces
+    
+        // Allow empty input, but validate if a value is entered
+        if (value && !value.startsWith("https://g.page") && !value.startsWith("https://www.google.com")) {
+            setErrorLink("Invalid URL. Must start with https://g.page or https://www.google.com");
+        } else {
+            setErrorLink(""); // Clear error if valid or empty
+        }
+    
+        setFormGoogleLink(value);
+        onFieldUpdate("google_link", value);
+    };
+    
+    
 
     if (isLoading) {
         return (
@@ -141,6 +163,18 @@ const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect  }) => {
                     onChange={handleDescriptionChange}  
                     placeholder="Write short description of the form" 
                 />
+            </div>
+            <div className="mt-2"> 
+                <Label>Google Review Link</Label>
+                <Input 
+                    className="mt-2" 
+                    type="url"
+                    value={formGoogleLink}
+                    onChange={handleGoogleReviewLinkChange}   
+                    placeholder="Enter your google review link" 
+                    required
+                />
+                {errorLink && <p className="text-red-500 text-sm">{errorLink}</p>}
             </div>
             <Separator className="my-4" />
             <h4 className="text-md font-medium">Form Details</h4>

@@ -140,7 +140,7 @@ export const createForm = async (req, res) => {
 export const updateForm = async (req, res) => {
     try {
         const { id } = req.params; // Form ID from URL parameters
-        const { form_name, form_note, form_type, fields, form_description, is_active, logo } = req.body;
+        const { form_name, form_note, form_type, fields, form_description, google_link, is_active, logo } = req.body;
 
         console.log("Received form data:", req.body);
 
@@ -162,6 +162,7 @@ export const updateForm = async (req, res) => {
         form.form_note = form_note;
         form.form_type = form_type;
         form.form_description = form_description;
+        form.google_link = google_link;
         form.is_active = is_active !== undefined ? is_active : form.is_active;
         form.form_link = formLink || form.form_link;    
 

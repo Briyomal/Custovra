@@ -88,6 +88,16 @@ const FormCreatePage = ( ) => {
       const handlePublish = async () => {
         setLoadingForm(true);
         try {
+            // Validate the Google link
+            if (
+                formDetails.google_link && // Only validate if a value exists
+                !formDetails.google_link.startsWith("https://g.page") &&
+                !formDetails.google_link.startsWith("https://www.google.com")
+            ) {
+                toast.error("Invalid URL. Must start with https://g.page or https://www.google.com"); // Show error toast
+                setLoadingForm(false); // Stop loading
+                return; // Stop form submission
+            }
             let fields = formDetails.default_fields.map((field) => ({
                 label: field.field_name,
                 type: field.field_type,
@@ -109,7 +119,6 @@ const FormCreatePage = ( ) => {
         }
     
             console.log("Mapped Fields:", fields);
-    
             // Create FormData object
             const formData = new FormData();
             formData.append("form_name", formDetails.form_name);
@@ -117,6 +126,7 @@ const FormCreatePage = ( ) => {
             formData.append("form_type", formDetails.form_type);
             formData.append("fields", JSON.stringify(fields)); // Convert fields array to a string
             formData.append("form_description", formDetails.form_description || "");
+            formData.append("google_link", formDetails.google_link);
             formData.append("is_active", formDetails.is_active);
 
             console.log("Form Data Handle Publish:", formData);

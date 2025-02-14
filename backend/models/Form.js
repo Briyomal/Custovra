@@ -70,6 +70,9 @@ const formSchema = new Schema({
     form_link: {
         type: String,
     },
+    google_link: {
+        type: String,
+    },
     is_active: {
         type: Boolean,
         default: false,
