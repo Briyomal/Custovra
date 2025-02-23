@@ -18,6 +18,7 @@ import {
 } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { FileDown } from "lucide-react";
+import toast from "react-hot-toast";
 
 const DataTable = ({ data, columns, setLocalSubmissions }) => {
 	const [sorting, setSorting] = useState([{ id: "createdAt", desc: true }]);
@@ -140,7 +141,7 @@ const exportToCSV = () => {
 	);
 
 	if (selectedData.length === 0) {
-		alert("No rows selected for export.");
+		toast.error("No rows selected for export.");
 		return;
 	}
 

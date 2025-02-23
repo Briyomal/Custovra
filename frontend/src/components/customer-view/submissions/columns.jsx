@@ -13,25 +13,25 @@ export const columns = [
 	{
 		id: "select",
 		header: ({ table }) => (
-		  <Checkbox
-			checked={
-			  table.getIsAllPageRowsSelected() ||
-			  (table.getIsSomePageRowsSelected() && "indeterminate")
-			}
-			onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-			aria-label="Select all"
-		  />
+			<Checkbox
+				checked={
+					table.getIsAllPageRowsSelected() ||
+					(table.getIsSomePageRowsSelected() && "indeterminate")
+				}
+				onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+				aria-label="Select all"
+			/>
 		),
 
 		enableSorting: false,
 		enableHiding: false,
 		cell: ({ row }) => (
 			<Checkbox
-			  checked={row.getIsSelected()}
-			  onCheckedChange={(value) => row.toggleSelected(!!value)}
-			  aria-label="Select row"
+				checked={row.getIsSelected()}
+				onCheckedChange={(value) => row.toggleSelected(!!value)}
+				aria-label="Select row"
 			/>
-		  ),
+		),
 
 	},
 	{
@@ -84,9 +84,10 @@ export const columns = [
 			);
 		},
 		accessorKey: "submissions.rating",
+		accessorFn: (row) => parseFloat(row.submissions?.rating) || 0, // Ensure 0 is treated as a valid number
 		enableSorting: true,
 		cell: ({ row }) => {
-			const rating = parseFloat(row.original.submissions?.rating) || 0; // Default to 0 if undefined or NaN
+			const rating = parseFloat(row.original.submissions?.rating) || 0;
 			const maxStars = 5;
 
 			return (
@@ -174,7 +175,7 @@ export const columns = [
 								View
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
-							<DropdownMenuItem className="cursor-pointer text-red-500 dark:text-red-500 dark:hover:text-white hover:bg-red-500 dark:hover:bg-red-700" onClick={() => setIsDialogOpen(true)}>
+							<DropdownMenuItem className="cursor-pointer text-red-500 dark:text-red-500 hover:text-white  dark:hover:text-white hover:bg-red-500 dark:hover:bg-red-700" onClick={() => setIsDialogOpen(true)}>
 								<Trash2 className="h-4 w-4" />
 								Delete
 							</DropdownMenuItem>
