@@ -23,6 +23,7 @@ import { Toaster } from "react-hot-toast";
 import FormViewPage from "./pages/front/FormViewPage";
 import SubmissionPage from "./pages/customer/SubmissionPage";
 import SubmissionListPage from "./pages/customer/SubmissionListPage";
+import ReportPage from "./pages/customer/ReportPage";
 
 const ProtectedRoute = ({ children, role }) => {
     const { isAuthenticated, user } = useAuthStore();
@@ -117,6 +118,15 @@ function App() {
 					element={
 						<ProtectedRoute role="customer">
 							<SubmissionListPage />
+						</ProtectedRoute>
+					}
+				/>
+
+				<Route
+					path="/reports"
+					element={
+						<ProtectedRoute role="customer">
+							<ReportPage  />
 						</ProtectedRoute>
 					}
 				/>
