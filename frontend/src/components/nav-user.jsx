@@ -31,6 +31,7 @@ import {
 
 
 import { useAuthStore } from "@/store/authStore";
+import { useNavigate } from "react-router-dom";
 
 export function NavUser({ user }) {
   const { isMobile } = useSidebar()
@@ -40,6 +41,7 @@ export function NavUser({ user }) {
 		logout();
 	};
 
+  const navigate = useNavigate();
 
   return (
     <SidebarMenu>
@@ -88,9 +90,9 @@ export function NavUser({ user }) {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Account
+              <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/profile")}>
+                  <BadgeCheck />
+                  Account
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <CreditCard />

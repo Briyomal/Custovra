@@ -113,12 +113,22 @@ const FormCreatePage = ( ) => {
                 { label: "Name", type: "text", isRequired: false, enabled: true, position: 1, placeholder: "John Doe" },
                 { label: "Email", type: "email", isRequired: true, enabled: true, position: 2, placeholder: "mail@example.com" },
                 { label: "Phone", type: "phone", isRequired: false, enabled: true, position: 3, placeholder: "+123456789" },
-                { label: "Rating", type: "rating", isRequired: false, enabled: true, position: 4, placeholder: "" },
+                { label: "Rating", type: "rating", isRequired: true, enabled: true, position: 4, placeholder: "" },
                 { label: "Comment", type: "textarea", isRequired: false, enabled: true, position: 5, placeholder: "Write your review" },
             ];
         }
     
             console.log("Mapped Fields:", fields);
+
+            // Check if there is at least one enabled and required field
+            const hasEnabledAndRequiredField = fields.some(field => field.enabled && field.isRequired);
+
+            if (!hasEnabledAndRequiredField) {
+                toast.error("At least one field must be both enabled and required.");
+                setLoadingForm(false); // Stop loading
+                return; // Stop form submission
+            }
+
             // Create FormData object
             const formData = new FormData();
             formData.append("form_name", formDetails.form_name);

@@ -11,7 +11,7 @@ const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [fields, setFields] = useState([]);
 
-
+/* OLD CODE FOR SHOW FIELDS
     useEffect(() => {
         if (formDetails?.default_fields) {
             // Map formDetails to the format needed for rendering and sort by position
@@ -31,6 +31,37 @@ const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect }) => {
         }
         setTimeout(() => setIsLoading(false), 800);
     }, [formDetails]);
+    */
+
+    useEffect(() => {
+        if (formDetails?.default_fields) {
+            // Map formDetails to the format needed for rendering and sort by position
+            const mappedFields = formDetails.default_fields
+                .map((field, index) => {
+                    // Skip the "Rating" field if form_type is "Complaint"
+                    if (formDetails.form_type === "Complaint" && field.field_name === "Rating") {
+                        return null; // Return null to exclude the field
+                    }
+    
+                    return {
+                        id: String(field.position || index + 1), // Use `position` from the database or fallback to index
+                        label: field.field_name,
+                        type: field.field_type,
+                        is_required: field.is_required,
+                        enabled: field.enabled,
+                        position: field.position || index + 1, // Ensure position is included for rendering
+                        placeholder: field.placeholder || "",
+                    };
+                })
+                .filter(field => field !== null) // Filter out null values (those that were excluded)
+                .sort((a, b) => a.position - b.position); // Sort by position (ascending)
+    
+            setFields(mappedFields);
+        }
+    
+        setTimeout(() => setIsLoading(false), 800);
+    }, [formDetails]);
+    
 
     // Configure sensors with pointer activation constraints
     const sensors = useSensors(

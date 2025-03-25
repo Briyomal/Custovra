@@ -16,6 +16,7 @@ import employeeRoutes from "./routes/employee.route.js";
 import responseRoutes from "./routes/response.route.js";
 import submissionRoutes from "./routes/submission.route.js";
 import reportRoutes from "./routes/report.route.js";
+import profileRoutes from "./routes/profile.route.js";
 import { handleStripeWebhook  } from './controllers/payment.controller.js';
 
 import { fileURLToPath } from 'url';
@@ -57,6 +58,7 @@ app.use('/api/responses', responseRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/reports', reportRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/profile", profileRoutes);
 
 app.listen(PORT, () => {
 	connectDB();

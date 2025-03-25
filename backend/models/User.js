@@ -16,6 +16,15 @@ const userSchema = new Schema(
 			type: String,
 			required: true,
 		},
+		company: {
+			type: String,
+			required: false,
+		},
+		phone: {
+			type: String,
+			required: false,
+			match: [/^\+?[0-9]\d{1,14}$/, 'Invalid phone number format']
+		},
 		role: {
 			type: String,
             enum: ["customer", "admin"],

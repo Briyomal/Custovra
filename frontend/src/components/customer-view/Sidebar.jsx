@@ -12,27 +12,6 @@ const items = [
     { title: 'Forms', url: '/forms/', icon: ListPlus,},
     { title: 'Submissions', url: '/submissions/', icon: MessageSquareText,},
     { title: 'Reports', url: '/reports/', icon: ChartNoAxesCombined,},
-	/*
-	{
-		title: "Form",
-		url: "#",
-		icon: FormInput,
-		items: [
-		  {
-			title: "Create Form",
-			url: "/forms/create",
-		  },
-		  {
-			title: "View Forms",
-			url: "/forms/view",
-		  },
-		  {
-			title: "Quantum",
-			url: "#",
-		  },
-		],
-	  },
-	  */
 ];
 
 export function CustomerSidebar() {

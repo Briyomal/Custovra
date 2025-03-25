@@ -115,7 +115,7 @@ const FormPage = () => {
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
+                        <DialogHeader className="border-b py-4">
                             <DialogTitle>Create Form</DialogTitle>
                             <DialogDescription>
                                 Create your form here. Click next when you&apos;re done.
