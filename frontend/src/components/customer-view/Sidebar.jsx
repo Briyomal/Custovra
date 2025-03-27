@@ -4,7 +4,7 @@ import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu
 import { NavUser } from "@/components/nav-user";
 import { useAuthStore } from "@/store/authStore";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
-import sidebarLogo from "../../assets/logo.png";
+import sidebarLogo from "../../assets/Logo.png";
 // Menu items.
 
 const items = [
