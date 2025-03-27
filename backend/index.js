@@ -3,6 +3,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import path from "path";
 
 import { connectDB } from "./db/connectDB.js";
 
@@ -20,7 +21,6 @@ import profileRoutes from "./routes/profile.route.js";
 import { handleStripeWebhook  } from './controllers/payment.controller.js';
 
 import { fileURLToPath } from 'url';
-import path from 'path';
 import './utils/cronJobs.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -32,9 +32,6 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 
-app.get("/", (req, res) => {
-	res.send("hello World!");
-});
 
 
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
@@ -59,6 +56,16 @@ app.use('/api/submissions', submissionRoutes);
 app.use('/api/reports', reportRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/profile", profileRoutes);
+
+// Move one level up from `backend`
+const rootDir = path.resolve(__dirname, "..");  
+
+if (process.env.NODE_ENV === "production") {
+	app.use(express.static(path.join(rootDir, "frontend/dist")));
+	app.get("*", (req, res) =>
+		res.sendFile(path.resolve(rootDir, "frontend", "dist", "index.html"))
+	);
+}
 
 app.listen(PORT, () => {
 	connectDB();
