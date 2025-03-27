@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableRow, TableHeader, TableBody, TableCell, TableHead } from "@/components/ui/Table";
+import { Table, TableRow, TableHeader, TableBody, TableCell, TableHead } from "@/components/ui/table";
 
 import {
 	/*
