@@ -1,7 +1,7 @@
 import { ImageUp } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { Label } from "@/Components/ui/label";
+import { Label } from "@/components/ui/label";
 
 const ImageUpload = ({ existingImageUrl, onFileSelect }) => {
     const [uploadedImage, setUploadedImage] = useState(existingImageUrl || null);
