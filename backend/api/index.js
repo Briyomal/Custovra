@@ -38,7 +38,7 @@ app.get("/", (req, res) => {
 
 
 app.use(cors({ 
-  origin: "https://review-app-front-iota.vercel.app/", 
+  origin: "https://review-app-front-iota.vercel.app", 
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true 
 }));
