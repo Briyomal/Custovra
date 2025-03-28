@@ -4,20 +4,20 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 
 
-import { connectDB } from "./db/connectDB.js";
+import { connectDB } from "./../db/connectDB.js";
 
-import authRoutes from "./routes/auth.route.js";
-import userRoutes from "./routes/user.route.js";
-import subscriptionRoutes from "./routes/subscription.route.js";
-import paymentRoutes from "./routes/payment.route.js";
-import formRoutes from "./routes/form.route.js";
-import formFieldRoutes from "./routes/formField.route.js";
-import employeeRoutes from "./routes/employee.route.js";
-import responseRoutes from "./routes/response.route.js";
-import submissionRoutes from "./routes/submission.route.js";
-import reportRoutes from "./routes/report.route.js";
-import profileRoutes from "./routes/profile.route.js";
-import { handleStripeWebhook  } from './controllers/payment.controller.js';
+import authRoutes from "...//routes/auth.route.js";
+import userRoutes from "...//routes/user.route.js";
+import subscriptionRoutes from "...//routes/subscription.route.js";
+import paymentRoutes from "...//routes/payment.route.js";
+import formRoutes from "./../routes/form.route.js";
+import formFieldRoutes from "...//routes/formField.route.js";
+import employeeRoutes from "./../routes/employee.route.js";
+import responseRoutes from "./../routes/response.route.js";
+import submissionRoutes from "./../routes/submission.route.js";
+import reportRoutes from "./../routes/report.route.js";
+import profileRoutes from "./../routes/profile.route.js";
+import { handleStripeWebhook  } from './../controllers/payment.controller.js';
 
 import { fileURLToPath } from 'url';
 import path from 'path';
