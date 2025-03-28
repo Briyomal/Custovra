@@ -1,1 +1,13 @@
-{ "version": 2, "rewrites": [{ "source": "/(.*)", "destination": "/api/index.js" }] }
+{ "version": 2, "rewrites": [{ "source": "/(.*)", "destination": "/api/index.js" }], 
+"headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://review-app-front-iota.vercel.app"
+        }
+      ]
+    }
+  ]
+}
