@@ -2,10 +2,9 @@
   "name": "review-app",
   "version": "1.0.0",
   "description": "",
-  "main": "backend/index.js",
+  "main": "index.js",
   "scripts": {
-    "dev": "nodemon backend/index.js",
-    "start": "node backend/index.js"
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
@@ -18,13 +17,14 @@
     "cross-env": "^7.0.3",
     "crypto": "^1.0.1",
     "dotenv": "^16.4.5",
-    "express": "^4.21.1",
+    "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "mailtrap": "^3.4.0",
     "mongoose": "^8.7.2",
     "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
-    "stripe": "^17.3.1"
+    "stripe": "^17.3.1",
+    "utils-merge": "^1.0.1"
   },
   "devDependencies": {
     "@types/node-cron": "^3.0.11",
