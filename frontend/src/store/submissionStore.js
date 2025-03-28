@@ -3,7 +3,7 @@ import axios from "axios";
 
 const API_URL = import.meta.env.MODE === "development" 
     ? "http://localhost:5000/api/submissions" 
-    : "/api/submissions";
+    : "https://review-app-umber.vercel.app/api/submissions";
 
     
 axios.defaults.withCredentials = true;
