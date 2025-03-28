@@ -1,4 +1,3 @@
-//const express =  require('express');
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -29,7 +28,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+//const PORT = process.env.PORT || 5000;
 
 app.get("/", (req, res) => {
 	res.json({ message: "Hello from server!" });
@@ -59,6 +58,7 @@ app.use('/api/reports', reportRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/profile", profileRoutes);
 
+/*
 // Move one level up from `backend`
 const rootDir = path.resolve(__dirname, "..");  
 
@@ -68,7 +68,7 @@ if (process.env.NODE_ENV === "production") {
 	app.get("*", (req, res) =>
 		res.sendFile(path.resolve(rootDir, "frontend", "dist", "index.html"))
 	);
-}
+}*/
 	
 /*
 	if (process.env.NODE_ENV === "production") {
@@ -78,13 +78,12 @@ if (process.env.NODE_ENV === "production") {
 		);
 	  }
 	  
-*/
+
 
 app.listen(PORT, () => {
 	connectDB();
 	console.log("server is running on port: ", PORT);
 });
-
-/*
+*/
 connectDB();
-export default app;*/
+export default app;
