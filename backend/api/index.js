@@ -43,7 +43,6 @@ app.use(cors({
   credentials: true 
 }));
 */
-const cors = require('cors');
 
 app.use(cors({
   origin: 'https://www.acdreviewplatform.com', // Replace with your frontend's URL
