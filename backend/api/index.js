@@ -36,12 +36,23 @@ app.get("/", (req, res) => {
 	res.send("hello World!");
 });
 
-
+/*
 app.use(cors({ 
   origin: "https://review-app-front-iota.vercel.app", 
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true 
 }));
+*/
+const cors = require('cors');
+
+app.use(cors({
+  origin: 'https://www.acdreviewplatform.com', // Replace with your frontend's URL
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+  crossDomain: true,
+  xhrFields: { withCredentials: true },
+  credentials: true,
+}));
+
 
 app.use('/public', express.static(path.join(__dirname, 'public')));
 

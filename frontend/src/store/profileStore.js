@@ -3,7 +3,7 @@ import axios from "axios";
 
 const API_URL = import.meta.env.MODE === "development" 
     ? "http://localhost:5000/api/profile" 
-    : "https://review-app-umber.vercel.app/api/profile";
+    : "https://www.acdreviewplatform.com/api/profile";
 
 axios.defaults.withCredentials = true;
 
