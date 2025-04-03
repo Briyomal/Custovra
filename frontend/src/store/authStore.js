@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import axios from "axios";
 
-const API_URL = import.meta.env.MODE === "development" ? "http://localhost:5000/api/auth" : "https://www.acdreviewplatform.com/api/auth";
+const API_URL = import.meta.env.MODE === "development" ? "http://localhost:5000/api/auth" : "https://review-app-briyomals-projects.vercel.app";
 
 axios.defaults.withCredentials = true;
 
