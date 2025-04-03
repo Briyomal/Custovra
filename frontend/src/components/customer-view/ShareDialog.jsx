@@ -13,7 +13,7 @@ const ShareDialog = ({ formId, isOpen, setIsOpen }) => {
             const fetchPreviewDetails = async () => {
                 try {
                     setPreviewLoading(true);
-                    const response = await axios.get(`http://localhost:5000/api/forms/${formId}`);
+                    const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/forms/${formId}`);
                     setPreviewDetails(response.data);
                 } catch (error) {
                     console.error("Error fetching preview details:", error);

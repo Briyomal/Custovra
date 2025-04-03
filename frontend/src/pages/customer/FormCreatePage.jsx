@@ -32,7 +32,7 @@ const FormCreatePage = ( ) => {
             try {
                 setLoading(true);
     
-                const response = await axios.get(`http://localhost:5000/api/forms/${formId}`);
+                const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/forms/${formId}`);
                 const fetchedDetails = response.data;
     
                 // Check if default_fields is empty or undefined, and assign default values
@@ -62,7 +62,7 @@ const FormCreatePage = ( ) => {
     const fetchPreviewDetails = async () => {
         try {
             setPreviewLoading(true);
-            const response = await axios.get(`http://localhost:5000/api/forms/${formId}`);
+            const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/forms/${formId}`);
             setPreviewDetails(response.data);
         } catch (error) {
             console.error("Error fetching preview details:", error);
@@ -162,7 +162,7 @@ const FormCreatePage = ( ) => {
 /*
     const handleShare = async () => {      try {
         setPreviewLoading(true);
-        const response = await axios.get(`http://localhost:5000/api/forms/${formId}`);
+        const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/forms/${formId}`);
         setPreviewDetails(response.data);
     } catch (error) {
         console.error("Error fetching preview details:", error);

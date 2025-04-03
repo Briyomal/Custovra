@@ -75,7 +75,7 @@ const FormPage = () => {
     useEffect(() => {
         const fetchForms = async () => {
             try {
-                const response = await axios.get("http://localhost:5000/api/forms/");
+                const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/forms/`);
                 console.log("Fetched forms:", response.data);
                 setForms(response.data);
                 setLoading(false);

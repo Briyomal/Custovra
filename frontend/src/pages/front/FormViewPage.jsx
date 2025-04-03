@@ -311,7 +311,7 @@ const FormViewPage = () => {
                                 <CardTitle>{formDetails?.form_name}</CardTitle>
                                 {formDetails.logo && (
                                     <img
-                                        src={`http://localhost:5000${formDetails.logo}`}
+                                        src={`${import.meta.env.VITE_SERVER_URL}${formDetails.logo}`}
                                         alt="Uploaded"
                                         className="mt-1 w-48 h-auto rounded-md mx-auto"
                                     />

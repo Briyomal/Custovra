@@ -9,7 +9,7 @@ const ImageUpload = ({ existingImageUrl, onFileSelect }) => {
     // Update the state when the existingImageUrl prop changes
     useEffect(() => {
         if (existingImageUrl && existingImageUrl.startsWith('/public/')) {
-            setUploadedImage(`http://localhost:5000${existingImageUrl}`);
+            setUploadedImage(`${import.meta.env.VITE_SERVER_URL}${existingImageUrl}`);
         } else {
             setUploadedImage(existingImageUrl);
         }

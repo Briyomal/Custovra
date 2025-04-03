@@ -12,7 +12,7 @@ const UsersPage = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/users/all-users");
+        const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/users/all-users`);
         setUsers(response.data);
         setLoading(false);
       } catch (error) {

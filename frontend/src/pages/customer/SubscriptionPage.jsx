@@ -30,7 +30,7 @@ const SubscriptionPage = () => {
         async function fetchPlans() {
             try {
                 setLoading(true);
-                const response = await axios.get("http://localhost:5000/api/subscriptions/");
+                const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/subscriptions/`);
                 setPlans(response.data);
             } catch (error) {
                 console.error("Error fetching subscription plans:", error);
@@ -46,7 +46,7 @@ const SubscriptionPage = () => {
             try {
               setLoadingPlanId(priceId);
                 // Send request to the backend to create a Stripe Checkout session
-                const response = await axios.post("http://localhost:5000/api/subscriptions/checkout-session", { priceId, planName });
+                const response = await axios.post(`${import.meta.env.VITE_SERVER_URL}/api/subscriptions/checkout-session`, { priceId, planName });
                 // Redirect the user to the Stripe Checkout page
                 window.location.href = response.data.url;
             } catch (error) {

@@ -2,8 +2,8 @@ import { create } from "zustand";
 import axios from "axios";
 
 const API_URL = import.meta.env.MODE === "development" 
-    ? "http://localhost:5000/api/submissions" 
-    : "https://www.acdreviewplatform.com/api/submissions";
+    ? `${import.meta.env.VITE_SERVER_URL}/api/submissions` 
+    : `${import.meta.env.VITE_SERVER_URL}/api/submissions`;
 
     
 axios.defaults.withCredentials = true;
