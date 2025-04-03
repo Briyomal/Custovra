@@ -3,7 +3,7 @@ import axios from "axios";
 
 const API_URL = import.meta.env.MODE === "development" 
     ? "http://localhost:5000/api/profile" 
-    : "https://review-app-briyomals-projects.vercel.app";
+    : "https://review-app-briyomals-projects.vercel.app/api/profile";
 
 axios.defaults.withCredentials = true;
 
