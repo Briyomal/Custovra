@@ -54,14 +54,12 @@ export const handleStripeWebhook = async (req, res) => {
 // Helper function to handle 'checkout.session.completed' event
 export const handleSubscriptionCompleted = async (session) => {
 
-    console.log(`Stripe Customer ID  ${session.customer}`);
-    console.log(`User Id is:  ${session.metadata.userId}`);
-    console.log(`Plan is:  ${session.metadata.planName}`);
+    console.log("🔥 Full Session Data:", session); // Debugging
     
     const userId = session.metadata?.userId || null; // Metadata must include userId
     const customerId = session.customer;
     const subscriptionId = session.subscription || null;
-    const planName = session.metadata?.planName;
+    const planName = session.metadata?.planName || "default_plan"; // Ensure planName is not undefined
     if (!userId) {
         console.error("User ID is missing.");
         return;
@@ -80,7 +78,7 @@ export const handleSubscriptionCompleted = async (session) => {
         user.is_active = true;
         await user.save();
 
-        console.log("Subscription updated successfully");
+        console.log("Subscription updated successfully for user:", userId);
     } catch (error) {
         console.error("Error in subscription update:", error);
     }
