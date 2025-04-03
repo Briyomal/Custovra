@@ -36,8 +36,10 @@ app.get("/", (req, res) => {
 	res.send("hello World!");
 });
 
+const CLIENT_URL = process.env.CLIENT_URL?.replace(/\/$/, ''); // Remove trailing slash if present
+
 app.use(cors({ 
-	origin: process.env.CLIENT_URL, // Replace with your frontend's URL http://localhost:5173
+	origin: CLIENT_URL, // Replace with your frontend's URL http://localhost:5173
 	methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
 	crossDomain: true,
 	xhrFields: { withCredentials: true },
