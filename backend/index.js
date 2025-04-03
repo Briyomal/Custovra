@@ -36,9 +36,13 @@ app.get("/", (req, res) => {
 	res.send("hello World!");
 });
 
-app.use(cors({ origin: "http://localhost:5173",
-	methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-	credentials: true }));
+app.use(cors({ 
+	origin: process.env.CLIENT_URL, // Replace with your frontend's URL http://localhost:5173
+	methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+	crossDomain: true,
+	xhrFields: { withCredentials: true },
+	credentials: true,
+  }));
 
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
