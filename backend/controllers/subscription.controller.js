@@ -43,7 +43,7 @@ export const getAllSubscriptions = async (req, res) => {
 export const createCheckoutSession = async (req, res) => {
     try {
         const { priceId, planName } = req.body;  // Price ID passed from frontend
-        console.log("planName: ", req.body);
+        console.log("plan Data: ", req.body);
        
 
         if (!priceId) {
