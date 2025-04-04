@@ -13,7 +13,7 @@ import toast from "react-hot-toast";
 import { QRCodeCanvas } from "qrcode.react"; // Use QRCodeCanvas for canvas rendering
 
 const FormQR = ({ formLink }) => {
-    const fullUrl = `http://localhost:5173/forms${formLink?.form_link}`;
+    const fullUrl = `${import.meta.env.VITE_SERVER_URL}/forms${formLink?.form_link}`;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(fullUrl) // Copy to clipboard
@@ -119,7 +119,7 @@ const FormQR = ({ formLink }) => {
                         </Label>
                         <Input
                             id="link"
-                            defaultValue={`http://localhost:5173/forms${formLink?.form_link}`}
+                            defaultValue={`${import.meta.env.VITE_SERVER_URL}/forms${formLink?.form_link}`}
                             readOnly
                         />
                     </div>
