@@ -16,6 +16,7 @@ import {
 	getFilteredRowModel,
 } from "@tanstack/react-table";
 import {  useState } from "react";
+//import { ScrollArea } from "../ui/scroll-area";
 
 const DataTable = ({ data, columns, setForms }) => {
 	const [sorting, setSorting] = useState([
@@ -46,13 +47,16 @@ const DataTable = ({ data, columns, setForms }) => {
 
 	return (
 		<div>
+			
+			<div className="max-w-[330px] xs:max-w-[400px] sm:max-w-[500px] md:max-w-full relative overflow-auto">
 			<div className="flex items-center py-4">
 				<Input placeholder="Filter form name..." 
                 value={table.getColumn("form_name")?.getFilterValue() ?? ""} 
                 onChange={(event) => table.getColumn("form_name")?.setFilterValue(event.target.value)} 
                 className="max-w-sm" />
 			</div>
-			<div className="rounded-md border">
+			<div className="rounded-md border w-full">
+				
 				<Table>
 					<TableHeader>
 						{table.getHeaderGroups().map((headerGroup) => (
@@ -75,6 +79,7 @@ const DataTable = ({ data, columns, setForms }) => {
 						))}
 					</TableBody>
 				</Table>
+			
 			</div>
 			<div className="flex items-center justify-end space-x-2 py-4">
 				<Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
@@ -83,6 +88,7 @@ const DataTable = ({ data, columns, setForms }) => {
 				<Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
 					Next
 				</Button>
+			</div>
 			</div>
 		</div>
 	);

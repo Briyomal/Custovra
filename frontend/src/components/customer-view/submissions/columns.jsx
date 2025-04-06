@@ -5,7 +5,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogFooter, AlertDialogHeader }
 import { useState } from "react";
 import toast from "react-hot-toast";
 import useSubmissionStore from "@/store/submissionStore";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox"
 
@@ -169,7 +169,6 @@ export const columns = [
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
 							<DropdownMenuLabel>Actions</DropdownMenuLabel>
-							<DropdownMenuItem onClick={() => navigator.clipboard.writeText(row.original._id)}>Copy Submission ID</DropdownMenuItem>
 							<DropdownMenuItem className="cursor-pointer" onClick={() => setIsViewDialogOpen(true)}>
 								<Eye className="h-4 w-4" />
 								View
@@ -201,9 +200,10 @@ export const columns = [
 
 					<Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
 						<DialogContent>
-							<DialogHeader>
+							<DialogHeader className="text-left">
 								<DialogTitle>Submission Details</DialogTitle>
-							</DialogHeader>
+								<DialogDescription>View the details of this submission.</DialogDescription>
+							</DialogHeader> 
 							<Separator />
 							<div className="flex flex-col gap-3">
 								{Object.entries(row.original.submissions).map(([key, value]) => (

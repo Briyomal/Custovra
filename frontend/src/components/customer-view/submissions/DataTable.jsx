@@ -218,7 +218,7 @@ const exportToCSV = () => {
 
 	return (
 		<div>
-			<div className="flex items-center justify-between py-4">
+			<div className="flex items-center justify-between py-4 gap-2">
 				{data.some((row) => row.submissions?.email) ? (
 					<Input
 						placeholder="Filter emails..."
@@ -256,7 +256,7 @@ const exportToCSV = () => {
 					<FileDown /> Export as CSV
 				</Button>
 			</div>
-
+			<div className="max-w-[330px] xs:max-w-[400px] sm:max-w-[500px] md:max-w-full relative overflow-auto">
 			<div className="rounded-md border">
 				<Table>
 					<TableHeader>
@@ -278,6 +278,7 @@ const exportToCSV = () => {
 						))}
 					</TableBody>
 				</Table>
+			</div>
 			</div>
 			<div className="flex items-center justify-between">
 				<div className="flex-1 text-sm text-muted-foreground">

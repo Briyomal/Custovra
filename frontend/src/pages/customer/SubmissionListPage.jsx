@@ -66,18 +66,9 @@ const SubmissionListPage = () => {
 	const totalSubmissionsCount = memoizedSubmissions.length;
 
 	const updateSetSubmissions = (newData) => {
-        setLocalSubmissions(newData); // Set the state
-    };
+		setLocalSubmissions(newData); // Set the state
+	};
 
-	if (!isAuthenticated) {
-		return (
-			<CustomerLayoutPage>
-				<div className="text-center py-8">
-					<p className="text-gray-600">Please login to view submissions.</p>
-				</div>
-			</CustomerLayoutPage>
-		);
-	}
 
 	if (isloading) {
 		return <LoadingSpinner />;
@@ -108,7 +99,6 @@ const SubmissionListPage = () => {
 						</p>
 					</div>
 				) :
-
 					(
 						<DataTable data={memoizedSubmissions} columns={memoizedColumns} setLocalSubmissions={updateSetSubmissions} />
 					)}

@@ -1,29 +1,22 @@
-import CustomerLayoutPage from "../customer/LayoutPage"
-//import { Home, Settings, Users } from "lucide-react";
-import { useEffect } from "react";
-
+import CustomerLayoutPage from "../customer/LayoutPage";
+import { useAuthStore } from "@/store/authStore";
 
 const CustomerDashboardPage = () => {
-  useEffect(() => {
-    const sessionId = new URLSearchParams(window.location.search).get('session_id');
-    if (sessionId) {
-        console.log(`Payment successful. Session ID: ${sessionId}`);
-        // You can now fetch details from Stripe or your own backend
-    }
-}, []);
+    // Retrieve user data from useProfileStore
+	const { user } = useAuthStore();
 
-  return (
-    <CustomerLayoutPage>
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-        <div className="aspect-video rounded-xl bg-muted/50" />
-        <div className="aspect-video rounded-xl bg-muted/50" />
-        <div className="aspect-video rounded-xl bg-muted/50" />
-      </div>
-      <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" />
-    </div>
-  </CustomerLayoutPage>
-  )
-}
+    return (
+        <CustomerLayoutPage>
+            <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+                <h2 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    Welcome back, <span className="text-slate-800 dark:text-slate-200">
+					{user.name}
+                    </span>
+                </h2>
+				<p>Here&apos;s a quick overview of your dashboard. Let&apos;s make today productive!</p>
+            </div>
+        </CustomerLayoutPage>
+    );
+};
 
-export default CustomerDashboardPage
+export default CustomerDashboardPage;

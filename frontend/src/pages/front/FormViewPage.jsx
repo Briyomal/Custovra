@@ -238,12 +238,11 @@ const FormViewPage = () => {
     };
     
 
-    if (loading) {
-        return <LoadingSpinner/>;
+    if (loading || !formDetails) {
+        return <LoadingSpinner />;
       }
-    
-    if (error) return <p>Error: {error}</p>;
-    if (!formDetails) return <p>No form details found.</p>;
+      
+      if (error) return <p>Error: {error}</p>;
 
     return (
         <FloatingBackground>

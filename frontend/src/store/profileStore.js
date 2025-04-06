@@ -2,7 +2,7 @@ import { create } from "zustand";
 import axios from "axios";
 
 const API_URL = import.meta.env.MODE === "development" 
-    ? `${import.meta.env.VITE_SERVER_URL}/api/auth` 
+    ? `${import.meta.env.VITE_SERVER_URL}/api/profile` 
     : `${import.meta.env.VITE_SERVER_URL}/api/profile`;
 
 axios.defaults.withCredentials = true;

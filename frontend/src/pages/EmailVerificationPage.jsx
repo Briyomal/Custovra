@@ -70,7 +70,7 @@ const EmailVerificationPage = () => {
 				initial={{ opacity: 0, y: -50 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.5 }}
-				className='max-w-md w-full bg-white bg-opacity-60 backdrop-filter backdrop-blur-2xl rounded-2xl shadow-xl overflow-hidden
+				className='m-4 md:m-0 max-w-md w-full bg-white bg-opacity-60 backdrop-filter backdrop-blur-2xl rounded-2xl shadow-xl overflow-hidden
 				dark:bg-slate-800 dark:bg-opacity-40 dark:backdrop-filter dark:backdrop-blur-xl'
 			>
 				<h2 className='text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text

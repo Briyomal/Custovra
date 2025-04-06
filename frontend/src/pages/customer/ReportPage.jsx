@@ -162,7 +162,7 @@ function ReportPage() {
             {chartData.length === 0 && ratingData.ratingData.every(r => r.value === 0) ? (
                 <p className="text-gray-500 mt-4">No submissions data available.</p>
             ) : (
-                <div className="flex lg:flex-col xl:flex-row gap-4 pt-0">
+                <div className="flex flex-col lg:flex-col xl:flex-row gap-4 pt-0 flex-wrap">
                     {/* Bar Chart */}
                     <Card className="mt-4">
                         <CardHeader className="border-b flex flex-row justify-between">
@@ -170,7 +170,7 @@ function ReportPage() {
                             <CardTitle className="text-lg">Total: {filteredSubmissions.length}</CardTitle>
                         </CardHeader>
                         <CardContent className="px-2 sm:p-6">
-                            <ChartContainer config={chartConfig} className="min-h-[300px] w-full mt-4">
+                            <ChartContainer config={chartConfig} className="aspect-auto h-[300px] w-full md:w-full mt-4">
                                 <BarChart data={chartData} margin={{ top: 20, left: 12, right: 12 }}>
                                     <CartesianGrid vertical={false} />
                                     <XAxis
@@ -183,7 +183,7 @@ function ReportPage() {
                                             })
                                         }
                                     />
-                                    <YAxis />
+                                    <YAxis width={20} />
                                     <ChartTooltip
                                         content={
                                             <ChartTooltipContent
@@ -206,14 +206,14 @@ function ReportPage() {
                     </Card>
 
                     {/* Pie Chart */}
-                    <Card className="mt-4  min-w-[400px]">
+                    <Card className="mt-4 min-w-[400px]">
                         <CardHeader className="border-b">
                             <CardTitle className="text-xl text-center">Ratings Distribution</CardTitle>
                         </CardHeader>
-                        <CardContent className="flex-1 pb-4 mt-10">
+                        <CardContent className="flex-1 pb-4 mt-10 p-0">
                             <ChartContainer
                                 config={starChartConfig}
-                                className="mx-auto aspect-square max-h-[250px] pb-0 [&_.recharts-pie-label-text]:fill-foreground"
+                                className="mx-auto aspect-square w-80 max-h-[250px] pb-0 [&_.recharts-pie-label-text]:fill-foreground"
                             >
 
                                 <PieChart>
