@@ -19,7 +19,7 @@ export const VERIFICATION_EMAIL_TEMPLATE = `
     <p>Enter this code on the verification page to complete your registration.</p>
     <p>This code will expire in 15 minutes for security reasons.</p>
     <p>If you didn't create an account with us, please ignore this email.</p>
-    <p>Best regards,<br>Your App Team</p>
+    <p>Best regards,<br>Review Platform</p>
   </div>
   <div style="text-align: center; margin-top: 20px; color: #888; font-size: 0.8em;">
     <p>This is an automated message, please do not reply to this email.</p>
@@ -85,10 +85,91 @@ export const PASSWORD_RESET_REQUEST_TEMPLATE = `
       <a href="{resetURL}" style="background-color: #4f46e5; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset Password</a>
     </div>
     <p>This link will expire in 1 hour for security reasons.</p>
-    <p>Best regards,<br>Your App Team</p>
+    <p>Best regards,<br>Review Platform</p>
   </div>
   <div style="text-align: center; margin-top: 20px; color: #888; font-size: 0.8em;">
     <p>This is an automated message, please do not reply to this email.</p>
+  </div>
+</body>
+</html>
+`;
+
+export const WELCOME_EMAIL_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Review Platform</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      background: linear-gradient(to right, #4f46e5, #2563eb);
+      padding: 20px;
+      text-align: center;
+      color: white;
+      border-radius: 8px 8px 0 0;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 2em;
+    }
+    .content {
+      padding: 20px;
+      text-align: center;
+    }
+    .content p {
+      font-size: 1.1em;
+      line-height: 1.6;
+      color: #555;
+    }
+    .cta-button {
+      background-color: #4f46e5;
+      color: white !important;
+      padding: 10px 20px;
+      font-size: 1.2em;
+      text-decoration: none !important;
+      border-radius: 5px;
+      display: inline-block;
+      margin-top: 20px;
+    }
+    .footer {
+      text-align: center;
+      color: #888;
+      font-size: 0.8em;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Welcome to Review Platform</h1>
+    </div>
+    <div class="content">
+      <p>Hi {name},</p>
+      <p>Thank you for signing up with us! We're thrilled to have you on board.</p>
+      <p>Click the button below to start exploring the platform:</p>
+      <a href="https://acdreviewplatform.com/" class="cta-button">Start Exploring</a>
+    </div>
+    <div class="footer">
+      <p>This is an automated message. If you have any questions, feel free to reach out to us.</p>
+    </div>
   </div>
 </body>
 </html>

@@ -70,7 +70,7 @@ const EmailVerificationPage = () => {
 				initial={{ opacity: 0, y: -50 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.5 }}
-				className='m-4 md:m-0 max-w-md w-full bg-white bg-opacity-60 backdrop-filter backdrop-blur-2xl rounded-2xl shadow-xl overflow-hidden
+				className='m-4 md:m-0 p-8 max-w-md w-full bg-white bg-opacity-60 backdrop-filter backdrop-blur-2xl rounded-2xl shadow-xl overflow-hidden
 				dark:bg-slate-800 dark:bg-opacity-40 dark:backdrop-filter dark:backdrop-blur-xl'
 			>
 				<h2 className='text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text
@@ -90,7 +90,7 @@ const EmailVerificationPage = () => {
 								value={digit}
 								onChange={(e) => handleChange(index, e.target.value)}
 								onKeyDown={(e) => handleKeyDown(index, e)}
-								className='w-12 h-12 text-center text-2xl font-bold bg-blue-50 bg-opacity-30 text-gray-600 border-2 border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none'
+								className='w-12 h-12 text-center text-2xl font-bold bg-blue-50 bg-opacity-30 text-gray-600 dark:text-gray-300 border-2 border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none'
 							/>
 						))}
 					</div>

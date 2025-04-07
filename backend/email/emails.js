@@ -1,4 +1,4 @@
-import { PASSWORD_RESET_REQUEST_TEMPLATE, VERIFICATION_EMAIL_TEMPLATE, PASSWORD_RESET_SUCCESS_TEMPLATE } from "./emailTemplate.js";
+import { PASSWORD_RESET_REQUEST_TEMPLATE, VERIFICATION_EMAIL_TEMPLATE, PASSWORD_RESET_SUCCESS_TEMPLATE, WELCOME_EMAIL_TEMPLATE } from "./emailTemplate.js";
 import { transporter, sender } from "./smtp.config.js";
 
 export const sendVerificationEmail = async (email, verificationToken) => {
@@ -17,17 +17,13 @@ export const sendVerificationEmail = async (email, verificationToken) => {
 };
 
 export const sendWelcomeEmail = async (email, name) => {
-	const html = `
-		<h2>Welcome to Review Platform</h2>
-		<p>Hi ${name}, thanks for signing up!</p>
-	`;
 
 	try {
 		const response = await transporter.sendMail({
 			from: sender,
 			to: email,
 			subject: "Welcome to Review Platform",
-			html: html,
+			html: WELCOME_EMAIL_TEMPLATE.replace("{name}", name),
 		});
 		console.log("Welcome email sent:", response.messageId);
 	} catch (error) {
