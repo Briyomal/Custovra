@@ -2,31 +2,40 @@ import cron from 'node-cron';
 import { User } from "../models/User.js";
 import { Payment } from "../models/Payment.js";
 
-// Run every 5 minutes
+// Run every day at midnight
 cron.schedule('0 0 * * *', async () => {
     console.log('Running subscription expiry check...');
     try {
         const now = new Date();
 
-        // Find all payments where subscription_expiry is in the past
-        const expiredPayments = await Payment.find({
-            subscription_expiry: { $lt: now }
-        });
+        // Step 1: Get all unique user IDs from Payment collection
+        const allUserIds = await Payment.distinct("user_id");
 
-        // Extract user IDs from expired payments
-        const expiredUserIds = expiredPayments.map(payment => payment.user_id);
+        let usersToDeactivate = [];
 
-        if (expiredUserIds.length > 0) {
-            // Update users whose subscriptions have expired
+        // Step 2: Check if each user has any active (non-expired) subscription
+        for (const userId of allUserIds) {
+            const hasActiveSubscription = await Payment.exists({
+                user_id: userId,
+                subscription_expiry: { $gt: now }
+            });
+
+            if (!hasActiveSubscription) {
+                usersToDeactivate.push(userId);
+            }
+        }
+
+        // Step 3: Deactivate users with no active subscriptions
+        if (usersToDeactivate.length > 0) {
             const result = await User.updateMany(
-                { _id: { $in: expiredUserIds }, is_active: true },
+                { _id: { $in: usersToDeactivate }, is_active: true },
                 { $set: { is_active: false } }
             );
-
-            console.log(`Deactivated ${result.nModified} users with expired subscriptions.`);
+            console.log(`Deactivated ${result.modifiedCount} users with no active subscriptions.`);
         } else {
-            console.log('No users with expired subscriptions to deactivate.');
+            console.log('No users need to be deactivated.');
         }
+
     } catch (error) {
         console.error('Error running subscription expiry check:', error);
     }
