@@ -136,7 +136,7 @@ const FormCreatePage = ( ) => {
             formData.append("form_type", formDetails.form_type);
             formData.append("fields", JSON.stringify(fields)); // Convert fields array to a string
             formData.append("form_description", formDetails.form_description || "");
-            formData.append("google_link", formDetails.google_link);
+            formData.append("google_link", formDetails.google_link || "");
             formData.append("is_active", formDetails.is_active);
 
             console.log("Form Data Handle Publish:", formData);
