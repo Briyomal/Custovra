@@ -5,7 +5,6 @@ import {
   ChevronsUpDown,
   CreditCard,
   LogOut,
-  Sparkles,
 } from "lucide-react"
 
 import {
@@ -32,6 +31,7 @@ import {
 
 import { useAuthStore } from "@/store/authStore";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 export function NavUser({ user }) {
   const { isMobile } = useSidebar()
@@ -39,6 +39,7 @@ export function NavUser({ user }) {
     const { logout } = useAuthStore();
 	const handleLogout = () => {
 		logout();
+    toast.success("You have been successfully logged out.");
 	};
 
   const navigate = useNavigate();
@@ -81,13 +82,6 @@ export function NavUser({ user }) {
                 </div>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/profile")}>

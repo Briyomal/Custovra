@@ -168,6 +168,14 @@ function App() {
 					}
 				/>
 				<Route
+					path="/admin/profile"
+					element={
+						<ProtectedRoute role="admin">
+							<ProfilePage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
 					path="/signup"
 					element={
 						<RedirectAuthenticatedUser>

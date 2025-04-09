@@ -1,13 +1,13 @@
 //import { Calendar, Home, Inbox, Search, Settings, Command, Users  } from "lucide-react";
-import { Home, Settings, Users, Command  } from "lucide-react";
+import { Home, Users } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { NavUser } from "@/components/nav-user";
 import { useAuthStore } from "@/store/authStore";
+import sidebarLogo from "../../assets/Logo.png";
 // Menu items.
 
 const items = [
     { title: 'Dashboard', url: '/admin', icon: Home,},
-    { title: 'Users Main', icon: Settings, },
     { title: 'Users', url: '/admin/users', icon: Users },
 ];
 
@@ -16,18 +16,12 @@ export function AdminSidebar() {
 
 	return (
 		<Sidebar collapsible="icon">
-			<SidebarHeader>
+			<SidebarHeader className="py-4">
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<SidebarMenuButton size="lg" asChild>
+						<SidebarMenuButton size="xl" asChild className="hover:bg-gray-200 active:bg-gray-200 dark:hover:bg-gray-900 ">
 							<a href="#">
-								<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-									<Command className="size-4" />
-								</div>
-								<div className="grid flex-1 text-left text-sm leading-tight">
-									<span className="truncate font-semibold">Acme Inc</span>
-									<span className="truncate text-xs">Enterprise</span>
-								</div>
+								<img src={sidebarLogo} alt="Logo" className="w-32" />
 							</a>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
