@@ -166,14 +166,14 @@ function ReportPage() {
                     {/* Bar Chart */}
                     <Card className="mt-4">
                         <CardHeader className="border-b flex flex-row justify-between">
-                            <CardTitle className="text-xl">Submissions</CardTitle>
-                            <CardTitle className="text-lg">Total: {filteredSubmissions.length}</CardTitle>
+                            <CardTitle className="text-lg md:text-xl">Submissions</CardTitle>
+                            <CardTitle className="text-md md:text-lg">Total: {filteredSubmissions.length}</CardTitle>
                         </CardHeader>
                         <CardContent className="px-2 sm:p-6">
                             <ChartContainer config={chartConfig} className="aspect-auto h-[300px] w-full md:w-full mt-4">
                                 <BarChart data={chartData} margin={{ top: 20, left: 12, right: 12 }}>
                                     <CartesianGrid vertical={false} />
-                                    <XAxis
+                                    <XAxis 
                                         dataKey="date"
                                         tickFormatter={(value) =>
                                             new Date(value).toLocaleDateString("en-US", {
@@ -206,7 +206,7 @@ function ReportPage() {
                     </Card>
 
                     {/* Pie Chart */}
-                    <Card className="mt-4 min-w-[400px]">
+                    <Card className="mt-4 min-w-[300px]">
                         <CardHeader className="border-b">
                             <CardTitle className="text-xl text-center">Ratings Distribution</CardTitle>
                         </CardHeader>

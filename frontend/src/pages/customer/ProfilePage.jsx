@@ -148,8 +148,8 @@ function ProfilePage() {
     return (
         <CustomerLayoutPage>
 
-            <div className="p-4">
-            <h2 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <div className="pt-4 md:p-4">
+            <h2 className="text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">
                 Welcome, <span className="text-slate-800 dark:text-slate-200">{name}!</span> 
             </h2>
 
@@ -189,15 +189,15 @@ function ProfilePage() {
                 </div>
             </div>
         </div>
-            <div className="flex flex-row gap-6 p-4 pt-0">
+            <div className="flex flex-col xl:flex-row gap-6 md:p-4 pt-4">
                 <Card className="flex-grow">
                     <CardHeader className="border-b py-4">
-                        <CardTitle className="text-xl font-semibold">Update Profile</CardTitle>
+                        <CardTitle className="text-lg md:text-xl font-semibold">Update Profile</CardTitle>
                     </CardHeader>
 
                     <CardContent>
                     <form onSubmit={handleProfileSubmit}>
-                        <div className="grid grid-cols-2 gap-4 py-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
                             <div>
                                 <Label htmlFor="full_name">
                                     Full Name
@@ -263,7 +263,7 @@ function ProfilePage() {
 
                             <Button
                                     type="submit"
-                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
+                                    className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
                                     disabled={loadingForm}>
 
                                     {loadingForm ? (
@@ -284,7 +284,7 @@ function ProfilePage() {
 
                 <Card className="flex-grow">
                     <CardHeader className="border-b py-4">
-                        <CardTitle className="text-xl font-semibold">Change Password</CardTitle>
+                        <CardTitle className="text-lg md:text-xl font-semibold">Change Password</CardTitle>
                     </CardHeader>
 
                     <form onSubmit={handleSubmit}>
@@ -303,30 +303,30 @@ function ProfilePage() {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label htmlFor="new_password">New Password</Label>
-                                    <Input
-                                        className="mt-2"
-                                        type="password"
-                                        placeholder="New Password"
-                                        value={newPassword}
-                                        onChange={(e) => setNewPassword(e.target.value)}
-                                        required
-                                    />
-                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <Label htmlFor="new_password">New Password</Label>
+                                        <Input
+                                            className="mt-2"
+                                            type="password"
+                                            placeholder="New Password"
+                                            value={newPassword}
+                                            onChange={(e) => setNewPassword(e.target.value)}
+                                            required
+                                        />
+                                    </div>
 
-                                <div>
-                                    <Label htmlFor="confirm_password">Confirm New Password</Label>
-                                    <Input
-                                        className="mt-2"
-                                        type="password"
-                                        placeholder="Confirm New Password"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        required
-                                    />
-                                </div>
+                                    <div>
+                                        <Label htmlFor="confirm_password">Confirm New Password</Label>
+                                        <Input
+                                            className="mt-2"
+                                            type="password"
+                                            placeholder="Confirm New Password"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            required
+                                        />
+                                    </div>
                                 </div>
 
                             </div>
@@ -338,7 +338,7 @@ function ProfilePage() {
                             </div>
                             <Button
                                     type="submit"
-                                    className="mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
+                                    className="w-full md:w-auto mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
                                     disabled={loadingPWForm}>
 
                                     {loadingPWForm ? (

@@ -186,11 +186,11 @@ export const columns = [
 								<h3>Confirm Deletion</h3>
 								<p>Are you sure you want to delete this submission? This action cannot be undone.</p>
 							</AlertDialogHeader>
-							<AlertDialogFooter>
-								<Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+							<AlertDialogFooter className="flex flex-row md:flex-none space-x-2">
+								<Button className="w-1/2 md:w-auto mt-2" variant="outline" onClick={() => setIsDialogOpen(false)}>
 									Cancel
 								</Button>
-								<Button variant="destructive" onClick={confirmDelete}>
+								<Button className="w-1/2 md:w-auto mt-2" variant="destructive" onClick={confirmDelete}>
 									<Trash2 />
 									Delete
 								</Button>

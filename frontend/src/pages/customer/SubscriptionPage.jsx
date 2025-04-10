@@ -65,9 +65,9 @@ const SubscriptionPage = () => {
                         <Loader className="h-10 w-10 animate-spin" /> {/* Replace with your loader component */}
                     </div>
                 ) : (
-        <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+        <div className="mt-4 grid auto-rows-min gap-4 md:grid-cols-3">
           {Array.isArray(plans) && plans.map((plan) => (
-            <Card key={plan.id} className="">
+            <Card key={plan.id} className="text-center rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-md">
                 <CardHeader>
                   <CardTitle>{plan.product.name}</CardTitle>
                   <CardDescription>Card Description</CardDescription>
@@ -78,7 +78,7 @@ const SubscriptionPage = () => {
                 <CardFooter>
                   <Button
                       onClick={() => handleSubscribe(plan.id, plan.product.name)}
-                      className="w-full"
+                      className="w-full inline-block rounded-lg bg-indigo-600 py-3 text-white font-semibold hover:bg-indigo-700 transition duration-200"
                       disabled={loadingPlanId === plan.id} // Disable only the clicked button
                   >
                       {loadingPlanId === plan.id ? (

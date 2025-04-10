@@ -48,7 +48,7 @@ const DataTable = ({ data, columns, setForms }) => {
 	return (
 		<div>
 			
-			<div className="max-w-[330px] xs:max-w-[400px] sm:max-w-[500px] md:max-w-full relative overflow-auto">
+			<div className="max-w-[320px] xs:max-w-[400px] sm:max-w-[500px] md:max-w-full relative overflow-auto">
 			<div className="flex items-center py-4">
 				<Input placeholder="Filter form name..." 
                 value={table.getColumn("form_name")?.getFilterValue() ?? ""} 

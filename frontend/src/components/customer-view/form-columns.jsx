@@ -118,16 +118,16 @@ export const columns = [
 					</DropdownMenu>
 					<ShareDialog formId={row.original._id} isOpen={isShareDialogOpen} setIsOpen={setIsShareDialogOpen} />
 					<AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-						<AlertDialogContent>
+						<AlertDialogContent className="sm:max-w-[500px] py-6 px-4 md:p-10 max-w-[calc(100%-2rem)] rounded-md">
 							<AlertDialogHeader>
 								<h3>Confirm Deletion</h3>
 								<p>Are you sure you want to delete this form? This action cannot be undone.</p>
 							</AlertDialogHeader>
-							<AlertDialogFooter>
-								<Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+							<AlertDialogFooter className="flex flex-row md:flex-none space-x-2">
+								<Button className="w-1/2 md:w-auto mt-2" variant="outline" onClick={() => setIsDialogOpen(false)}>
 									Cancel
 								</Button>
-								<Button variant="destructive" onClick={confirmDelete}>
+								<Button className="w-1/2 md:w-auto mt-2" variant="destructive" onClick={confirmDelete}>
 									<Trash2 />
 									Delete
 								</Button>
