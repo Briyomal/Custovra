@@ -8,6 +8,7 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { useAuthStore } from "@/store/authStore";
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 export default function Header() {
 	const [scrolled, setScrolled] = useState(false);
@@ -18,6 +19,7 @@ export default function Header() {
 
 	function handleLogout() {
 		logout();
+		toast.success("You have been successfully logged out.");
 	}
 
 	useEffect(() => {

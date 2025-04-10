@@ -46,8 +46,11 @@ const ProtectedRoute = ({ children, role }) => {
         return <Navigate to="/admin" replace />;
     }
 
+	 // Define routes to ignore for is_active check
+	 const skipIsActiveCheckRoutes = ["/subscription", "/profile"];
+
     // Skip is_active check for the /subscription page to prevent redirect loops
-    if (user?.is_active === false && location.pathname !== "/subscription") {
+    if (user?.is_active === false && !skipIsActiveCheckRoutes.includes(location.pathname)) {
         return <Navigate to="/subscription" replace />;
     }
 
@@ -164,6 +167,14 @@ function App() {
 					element={
 						<ProtectedRoute role="admin">
 							<UsersPage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/admin/profile"
+					element={
+						<ProtectedRoute role="admin">
+							<ProfilePage />
 						</ProtectedRoute>
 					}
 				/>

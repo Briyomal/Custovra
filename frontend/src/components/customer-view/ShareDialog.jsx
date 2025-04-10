@@ -27,7 +27,7 @@ const ShareDialog = ({ formId, isOpen, setIsOpen }) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContent className="sm:max-w-[500px] p-10">
+            <DialogContent className="sm:max-w-[500px] py-6 px-4 md:p-10 max-w-[calc(100%-2rem)] rounded-md">
                 {previewLoading ? (
                     <FormQRSkelton />
                 ) : (
