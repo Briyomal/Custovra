@@ -5,7 +5,7 @@ import { DialogTitle } from "@radix-ui/react-dialog";
 const FormQRSkelton = () => {
 	return (
 		<div>
-			<DialogHeader>
+			<DialogHeader className="items-start md:items-center">
 				<DialogTitle>
 				    <Skeleton className="h-6 w-24"></Skeleton>
                 </DialogTitle>

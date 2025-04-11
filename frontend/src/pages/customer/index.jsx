@@ -51,7 +51,7 @@ const CustomerDashboardPage = () => {
   const totalComplaintCount = forms.filter((form) => form.form_type === "Complaint").length;
 
   const cardItems = [
-    { label: "Total", count: totalFormsCount, icon: <SquareEqual className="text-green-600" />, border: "border-b-green-600" },
+    { label: "Total Forms", count: totalFormsCount, icon: <SquareEqual className="text-green-600" />, border: "border-b-green-600" },
     { label: "Published", count: totalPublishedCount, icon: <Zap className="text-indigo-500" />, border: "border-b-indigo-600" },
     { label: "Draft", count: totalDraftedCount, icon: <SquareDashedMousePointer className="text-gray-500" />, border: "border-b-gray-600" },
     { label: "Review", count: totalReviewCount, icon: <Star className="text-amber-500" />, border: "border-b-amber-600" },
@@ -69,7 +69,7 @@ const CustomerDashboardPage = () => {
           Here&apos;s a quick overview of your dashboard. Let&apos;s make today productive!
         </p>
 
-        <div className="grid auto-rows-min gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-5 mt-4">
+        <div className="grid auto-rows-min gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-6 mt-4">
           {cardItems.map((item, index) => (
             <Card key={index} className={`border-b-4 ${item.border}`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -78,7 +78,7 @@ const CustomerDashboardPage = () => {
               </CardHeader>
               <CardContent className="px-6 pb-2 md:pb-6">
                 <div className="text-2xl md:text-3xl font-bold">
-                  {loading ? <Skeleton className="h-9 w-full" /> : item.count}
+                  {loading ? <Skeleton className="h-8 md:h-9 w-full" /> : item.count}
                 </div>
               </CardContent>
             </Card>

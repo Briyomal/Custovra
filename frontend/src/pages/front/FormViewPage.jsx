@@ -266,14 +266,14 @@ const FormViewPage = () => {
                     <>
                         {submitSuccess ? (
                             showGooglePrompt ? (
-                                <Card className="text-center p-4">
+                                <Card className="text-center p-4 m-4 md:m-0">
                                     <CardHeader>
                                         <Check size={48} className="mx-auto mb-2 text-green-500" />
-                                        <CardTitle>Thank you for your review!</CardTitle>
+                                        <CardTitle className="text-xl md:text-2xl">Thank you for your review!</CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        <p>Would you like to leave a review on Google as well?</p>
-                                        <div className="flex justify-center gap-4 mt-4">
+                                        <p className="text-md md:text-lg">Would you like to leave a review on Google as well?</p>
+                                        <div className="flex justify-center gap-2 md:gap-4 mt-4">
                                             <Button
                                                 className="text-md bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:from-blue-700 hover:to-indigo-800"
                                                 onClick={() => window.open(googleLink, "_blank")}
@@ -290,13 +290,13 @@ const FormViewPage = () => {
                                     </CardContent>
                                 </Card>
                             ) : (
-                                <Card className="text-center p-4">
+                                <Card className="text-center p-4 m-4 md:m-0">
                                     <CardHeader>
                                         <Check size={48} className="mx-auto mb-2 text-green-500" />
-                                        <CardTitle>Form Submission Successful</CardTitle>
+                                        <CardTitle className="text-xl md:text-2xl">Form Submission Successful</CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        <p>Thank you for your submission!</p>
+                                        <p className="text-md md:text-lg">Thank you for your submission!</p>
                                     </CardContent>
                                 </Card>
                             )

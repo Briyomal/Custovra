@@ -81,9 +81,25 @@ const FormCreatePage = ( ) => {
     const [selectedImage, setSelectedImage] = useState(null);
  
     const handleFileSelect = (file) => {
-        setSelectedImage(file); // This should set the selected image in state
+        if (!file) return;
+      
+        const validTypes = ["image/jpeg", "image/jpg", "image/png"];
+        const maxSize = 1024 * 1024; // 1MB
+      
+        if (!validTypes.includes(file.type)) {
+            toast.error("Only JPG, JPEG, and PNG files are allowed.");
+          return;
+        }
+      
+        if (file.size > maxSize) {
+            toast.error("Image size should not exceed 1MB.");
+          return;
+        }
+      
+        setSelectedImage(file);
         console.log("Selected Image:", file);
       };
+      
 
       const handlePublish = async () => {
         setLoadingForm(true);

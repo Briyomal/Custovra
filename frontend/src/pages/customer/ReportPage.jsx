@@ -208,7 +208,7 @@ function ReportPage() {
                     {/* Pie Chart */}
                     <Card className="mt-4 min-w-[300px]">
                         <CardHeader className="border-b">
-                            <CardTitle className="text-xl text-center">Ratings Distribution</CardTitle>
+                            <CardTitle className="text-lg md:text-xl text-center">Ratings Distribution</CardTitle>
                         </CardHeader>
                         <CardContent className="flex-1 pb-4 mt-10 p-0">
                             <ChartContainer
