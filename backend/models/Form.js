@@ -9,7 +9,7 @@ const defaultFieldSchema = new Schema({
     },
     field_type: {
         type: String,
-        enum: ['text', 'email', 'phone', 'rating', 'textarea'],
+        enum: ['text', 'email', 'tel', 'rating', 'textarea'],
         required: true,
     },
     is_required: {
@@ -27,6 +27,37 @@ const defaultFieldSchema = new Schema({
         type: Number, // Position of the field for drag-and-drop
         required: true,
     },
+});
+
+const customFieldSchema = new Schema({
+    field_name: {
+        type: String,
+        required: true,
+    },
+    field_type: {
+        type: String,
+        enum: ['text', 'email', 'tel', 'number', 'rating', 'textarea'],
+        required: true,
+    },
+    is_required: {
+        type: Boolean,
+        default: false,
+    },
+    placeholder: {
+        type: String,
+    },
+    enabled: {
+        type: Boolean,
+        default: true,
+    },
+    position: {
+        type: Number, // Position of the field for drag-and-drop
+        required: true,
+    },
+    is_new: {
+        type: Boolean,
+        default: false,
+    }, 
 });
 
 const formSchema = new Schema({
@@ -56,10 +87,7 @@ const formSchema = new Schema({
     // Default fields with position
     default_fields: [defaultFieldSchema],
     // Custom fields with position
-    custom_fields: [{
-        type: Schema.Types.ObjectId,
-        ref: 'FormField',
-    }],
+    custom_fields: [customFieldSchema],
     employees: [{
         type: Schema.Types.ObjectId,
         ref: 'Employee',

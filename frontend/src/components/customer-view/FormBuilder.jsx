@@ -8,38 +8,54 @@ import { Button } from "@/components/ui/button";
 
 // Component for each sortable field
 
-const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect }) => {
+const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect, fields, setFields }) => {
     const [isLoading, setIsLoading] = useState(true);
-    const [fields, setFields] = useState([]);
+
+    console.log("Form details fetched:", formDetails);
 
     useEffect(() => {
-        if (formDetails?.default_fields) {
-            // Map formDetails to the format needed for rendering and sort by position
-            const mappedFields = formDetails.default_fields
+        if (formDetails?.default_fields || formDetails?.custom_fields) {
+            const defaultFields = (formDetails.default_fields || [])
                 .map((field, index) => {
-                    // Skip the "Rating" field if form_type is "Complaint"
-                    if (formDetails.form_type === "Complaint" && field.field_name === "Rating") {
-                        return null; // Return null to exclude the field
+                    // Exclude "Rating" field if form_type is "Complaint"
+                    if (formDetails.form_type === "Complaint" && field.field_name === "rating") {
+                        return null;
                     }
 
                     return {
-                        id: String(field.position || index + 1), // Use `position` from the database or fallback to index
+                        id: `default-${field.position || index + 1}`,
                         label: field.field_name,
                         type: field.field_type,
                         is_required: field.is_required,
                         enabled: field.enabled,
-                        position: field.position || index + 1, // Ensure position is included for rendering
+                        position: field.position || index + 1,
                         placeholder: field.placeholder || "",
+                        isNew: false, // Set as false since it's not a new field
                     };
                 })
-                .filter(field => field !== null) // Filter out null values (those that were excluded)
-                .sort((a, b) => a.position - b.position); // Sort by position (ascending)
+                .filter(field => field !== null);
 
-            setFields(mappedFields);
+            const customFields = (formDetails.custom_fields || []).map((field, index) => ({
+                id: `custom-${field.position || index + 1}`,
+                label: field.field_name,
+                type: field.field_type,
+                is_required: field.is_required,
+                enabled: field.enabled,
+                position: field.position || index + 1,
+                placeholder: field.placeholder || "",
+                isNew: true, // Custom fields are not new
+            }));
+
+            // Combine and sort by position
+            const allFields = [...defaultFields, ...customFields].sort((a, b) => a.position - b.position);
+
+            setFields(allFields);
         }
 
-        setTimeout(() => setIsLoading(false), 800);
+        const timeout = setTimeout(() => setIsLoading(false), 800);
+        return () => clearTimeout(timeout); // Clean up timeout
     }, [formDetails]);
+
 
 
     // Configure sensors with pointer activation constraints

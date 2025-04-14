@@ -75,6 +75,16 @@ const useFormStore = create((set) => ({
             // Log FormData for debugging
             console.log("FormData keys:", [...formData.keys()]);
             console.log("FormData values:", [...formData.entries()]);
+            for (let [key, value] of formData.entries()) {
+                if (key === "custom_fields") {
+                  try {
+                    console.log("🛠 Custom Fields Received in updateForm:", JSON.parse(value));
+                  } catch (err) {
+                    console.log("❌ Could not parse custom_fields", err);
+                  }
+                }
+              }
+              
     
             // Make the request with FormData
             const response = await axios.put(`${API_URL}/update-form/${formId}`, formData, {

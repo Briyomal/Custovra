@@ -80,51 +80,81 @@ export const getFormsByUserId = async (req, res) => {
 
 // Create a new form
 export const createForm = async (req, res) => {
-    try {;
+    try {
         const user_id = req.body.user_id || req.userId;
-        const { form_name, form_note, form_type, fields } = req.body;
+        const {
+            form_name,
+            form_note,
+            form_type,
+            form_description,
+            google_link,
+            is_active,
+            default_fields,
+            custom_fields
+        } = req.body;
+
         // Validate required fields
         if (!user_id || !form_name || !form_type) {
             return res.status(400).json({ message: "Missing required fields." });
         }
 
-        // Create the Form document
         const form = new Form({
             user_id,
             form_name,
             form_note,
             form_type,
+            form_description,
+            google_link,
+            is_active,
+            form_link: '', // Temporary, will update after _id is generated
         });
 
-        // Save the form to generate the _id
+        // Save to get form._id
         await form.save();
 
-        // Handle the fields
-        const fieldIds = [];
-        if (fields && fields.length > 0) {
-            for (const field of fields) {
-                const { field_name, field_type, is_required } = field;
+        const formLink = `/view/${form._id}`;
+        form.form_link = formLink;
 
-                // Validate field structure
-                if (!field_name || !field_type) {
-                    return res.status(400).json({ message: "Invalid field data." });
-                }
+        // Parse and handle default_fields and custom_fields
+        let parsedDefaultFields = [];
+        let parsedCustomFields = [];
 
-                // Create FormField documents
-                const formField = new FormField({
-                    form_id: form._id,
-                    field_name,
-                    field_type,
-                    is_required,
-                });
-
-                await formField.save();
-                fieldIds.push(formField._id);
+        if (default_fields) {
+            try {
+                parsedDefaultFields = JSON.parse(default_fields);
+            } catch (err) {
+                return res.status(400).json({ message: "Invalid default_fields format." });
             }
         }
 
-        // Update the Form document with field IDs
-        form.fields = fieldIds;
+        if (custom_fields) {
+            try {
+                parsedCustomFields = JSON.parse(custom_fields);
+            } catch (err) {
+                return res.status(400).json({ message: "Invalid custom_fields format." });
+            }
+        }
+
+        form.default_fields = parsedDefaultFields.map(field => ({
+            field_name: field.label.toLowerCase(),
+            field_type: field.type,
+            is_required: field.isRequired,
+            enabled: field.enabled,
+            position: field.position,
+            placeholder: field.placeholder,
+        }));
+
+        form.custom_fields = parsedCustomFields.map(field => ({
+            field_name: field.label,
+            field_type: field.type,
+            is_required: field.isRequired,
+            enabled: field.enabled,
+            position: field.position,
+            placeholder: field.placeholder,
+            is_new: field.is_new || false,
+        }));
+
+        // Save updated fields and form_link
         await form.save();
 
         return res.status(201).json({
@@ -137,41 +167,46 @@ export const createForm = async (req, res) => {
     }
 };
 
+
 export const updateForm = async (req, res) => {
     try {
-        const { id } = req.params; // Form ID from URL parameters
-        const { form_name, form_note, form_type, fields, form_description, google_link, is_active, logo } = req.body;
+        const { id } = req.params;
+        const {
+            form_name,
+            form_note,
+            form_type,
+            form_description,
+            google_link,
+            is_active,
+            logo,
+            default_fields,
+            custom_fields
+        } = req.body;
 
-        console.log("Received form data:", req.body);
 
-        // Validate required fields
         if (!form_name || !form_type) {
             return res.status(400).json({ message: "Missing required fields." });
         }
 
-        // Find the form by its ID and ensure it belongs to the current user
         const form = await Form.findOne({ _id: id, user_id: req.userId });
         if (!form) {
             return res.status(404).json({ message: "Form not found or unauthorized access." });
         }
-        
+
         const formLink = `/view/${id}`;
 
-        // Update basic form fields
         form.form_name = form_name || form.form_name;
         form.form_note = form_note;
         form.form_type = form_type;
         form.form_description = form_description;
         form.google_link = google_link;
         form.is_active = is_active !== undefined ? is_active : form.is_active;
-        form.form_link = formLink || form.form_link;    
+        form.form_link = formLink;
 
         // Handle logo upload
         if (req.file) {
-            if (form.logo) { // Check if a logo exists in the database
+            if (form.logo) {
                 const oldLogoPath = path.join(__dirname, '../../backend', form.logo);
-                console.log("Attempting to delete old logo at:", oldLogoPath);
-            
                 try {
                     if (fs.existsSync(oldLogoPath)) {
                         fs.unlinkSync(oldLogoPath);
@@ -182,69 +217,51 @@ export const updateForm = async (req, res) => {
                 } catch (error) {
                     console.error("Error deleting old logo:", error);
                 }
-            } else {
-                console.log("No old logo found in the database to delete.");
             }
-        
-            form.logo = req.savedFilePath; // Update the form with the new logo
+            form.logo = req.savedFilePath;
         }
 
-        // Parse and handle fields
-        let parsedFields = [];
-        if (fields) {
+
+        let parsedDefaultFields = [];
+        let parsedCustomFields = [];
+
+        if (default_fields) {
             try {
-                parsedFields = JSON.parse(fields);
+                parsedDefaultFields = JSON.parse(default_fields);
             } catch (error) {
-                return res.status(400).json({ message: "Invalid fields format. Must be a valid JSON string." });
+                return res.status(400).json({ message: "Invalid default_fields format." });
             }
         }
 
-        if (parsedFields.length > 0) {
-            const defaultFields = [];
-            const customFields = [];
-
-            for (const field of parsedFields) {
-                if (["name", "email", "phone", "rating", "comment"].includes(field.label.toLowerCase())) {
-                    // Default field
-                    defaultFields.push({
-                        field_name: field.label.toLowerCase(),
-                        field_type: field.type,
-                        is_required: field.isRequired,
-                        enabled: field.enabled,
-                        position: field.position,
-                        placeholder: field.placeholder,
-                    });
-                } else {
-                    // Custom field
-                    if (!field.label || !field.type) {
-                        return res.status(400).json({ message: "Invalid custom field data." });
-                    }
-                    customFields.push({
-                        form_id: id,
-                        field_name: field.label,
-                        field_type: field.type,
-                        is_required: field.isRequired,
-                        enabled: field.enabled,
-                        position: field.position,
-                        placeholder: field.placeholder,
-                    });
-                }
+        if (custom_fields) {
+            try {
+                parsedCustomFields = JSON.parse(custom_fields);
+            } catch (error) {
+                return res.status(400).json({ message: "Invalid custom_fields format." });
             }
-
-            // Update default fields
-            form.default_fields = defaultFields;
-
-            // Clear existing custom fields and recreate them
-            await FormField.deleteMany({ form_id: id });
-            const customFieldDocuments = await FormField.insertMany(customFields);
-
-            // Update references to custom fields
-            const customFieldIds = customFieldDocuments.map((field) => field._id);
-            form.fields = customFieldIds;
-            form.custom_fields = customFieldIds;
         }
 
-        // Save the updated form
+        form.default_fields = parsedDefaultFields.map(field => ({
+            field_name: field.label.toLowerCase(),
+            field_type: field.type,
+            is_required: field.isRequired,
+            enabled: field.enabled,
+            position: field.position,
+            placeholder: field.placeholder,
+        }));
+
+        form.custom_fields = parsedCustomFields.map(field => ({
+            field_name: field.label,
+            field_type: field.type,
+            is_required: field.isRequired,
+            enabled: field.enabled,
+            position: field.position,
+            placeholder: field.placeholder,
+            is_new: field.is_new || false,
+        }));
+
+        console.log("Custom fields test:", form.custom_fields);
+
         await form.save();
 
         return res.status(200).json({
@@ -256,6 +273,7 @@ export const updateForm = async (req, res) => {
         return res.status(500).json({ message: "An error occurred.", error });
     }
 };
+
 
 // Delete a form
 export const deleteForm = async (req, res) => {

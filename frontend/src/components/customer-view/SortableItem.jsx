@@ -127,6 +127,7 @@ const SortableItem = ({ field, onFieldUpdate }) => {
                                             <SelectItem value="text">Text</SelectItem>
                                             <SelectItem value="email">Email</SelectItem>
                                             <SelectItem value="number">Number</SelectItem>
+                                            <SelectItem value="tel">Phone</SelectItem>
                                             <SelectItem value="textarea">Textarea</SelectItem>
                                             <SelectItem value="rating">Rating</SelectItem>
                                         </SelectContent>

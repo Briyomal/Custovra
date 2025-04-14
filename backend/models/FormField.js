@@ -31,6 +31,10 @@ const formFieldSchema = new Schema({
         type: Number, // Position of the field for drag-and-drop
         required: true,
     },
+    is_new: {
+        type: Boolean,
+        default: false,
+    },    
     created_at: {
         type: Date,
         default: Date.now,
