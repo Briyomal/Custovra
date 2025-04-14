@@ -24,7 +24,7 @@ import {
     SelectItem,
 } from "@/components/ui/select";
 
-const SortableItem = ({ field, onFieldUpdate }) => {
+const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
         id: field.id,
     });
@@ -64,21 +64,21 @@ const SortableItem = ({ field, onFieldUpdate }) => {
     const patchedListeners = {
         ...listeners,
         onMouseDown: (event) => {
-          const nodeName = event.target?.nodeName;
-          if (nodeName === "INPUT" || nodeName === "TEXTAREA" || nodeName === "SELECT" || event.target?.isContentEditable) {
-            return; // Don't trigger drag on form elements
-          }
-          listeners?.onMouseDown?.(event);
+            const nodeName = event.target?.nodeName;
+            if (nodeName === "INPUT" || nodeName === "TEXTAREA" || nodeName === "SELECT" || event.target?.isContentEditable) {
+                return; // Don't trigger drag on form elements
+            }
+            listeners?.onMouseDown?.(event);
         },
         onKeyDown: (event) => {
-          const nodeName = event.target?.nodeName;
-          if (nodeName === "INPUT" || nodeName === "TEXTAREA" || nodeName === "SELECT" || event.target?.isContentEditable) {
-            return;
-          }
-          listeners?.onKeyDown?.(event);
+            const nodeName = event.target?.nodeName;
+            if (nodeName === "INPUT" || nodeName === "TEXTAREA" || nodeName === "SELECT" || event.target?.isContentEditable) {
+                return;
+            }
+            listeners?.onKeyDown?.(event);
         }
-      };
-      
+    };
+
 
     return (
         <div
@@ -146,7 +146,10 @@ const SortableItem = ({ field, onFieldUpdate }) => {
                                 </div>
                             </div>
 
-                            <DialogFooter>
+                            <DialogFooter className="flex justify-between">
+                                <Button variant="destructive" onClick={() => onFieldRemove(field.id)}>
+                                    Remove Field
+                                </Button>
                                 <Button onClick={handleDialogSave}>OK</Button>
                             </DialogFooter>
                         </DialogContent>
