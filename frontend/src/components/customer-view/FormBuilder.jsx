@@ -5,6 +5,7 @@ import FormSkeleton from "./FormSkelton";
 import FormFieldList from "./FormFields";
 import { arrayMove } from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 // Component for each sortable field
 
@@ -148,7 +149,15 @@ const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect, fields, setFiel
         }
     };
 
+    const handleRemoveField = (id) => {
+        const updatedFields = fields.filter((field) => field.id !== id);
+        setFields(updatedFields);
 
+        // Also update formDetails.default_fields if needed
+        if (formDetails.default_fields) {
+            formDetails.default_fields = formDetails.default_fields.filter((_, index) => String(index + 1) !== id);
+        }
+    };
 
     return (
         <div className="flex w-full h-full">
@@ -156,22 +165,25 @@ const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect, fields, setFiel
                 {isLoading ? (
                     <FormSkeleton />
                 ) : (
-                    <div>
-                        <div className="flex justify-end mb-4 px-6">
-                            <Button
-                                onClick={handleAddField}
-                                className=" w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
-                            >
-                                Add Field
-                            </Button>
-                        </div>
 
-                        <FormFieldList
-                            fields={fields}
-                            sensors={sensors}
-                            onDragEnd={handleDragEnd}
-                            onFieldUpdate={handleFieldUpdate}
-                        />
+                    <div className="h-full overflow-hidden">
+                        <ScrollArea className="h-full">
+                            <FormFieldList
+                                fields={fields}
+                                sensors={sensors}
+                                onDragEnd={handleDragEnd}
+                                onFieldUpdate={handleFieldUpdate}
+                                onFieldRemove={handleRemoveField}
+                            />
+                            <div className="max-w-[900px] m-auto flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden px-4 xl:px-40 lg:px-6">
+                                <Button
+                                    onClick={handleAddField}
+                                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800 transition"
+                                >
+                                    Add Field
+                                </Button>
+                            </div>
+                        </ScrollArea>
                     </div>
                 )}
             </div>
