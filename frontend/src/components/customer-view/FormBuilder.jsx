@@ -4,64 +4,59 @@ import FormSidebar from "./FormSidebar";
 import FormSkeleton from "./FormSkelton";
 import FormFieldList from "./FormFields";
 import { arrayMove } from "@dnd-kit/sortable";
+import { Button } from "@/components/ui/button";
 
 // Component for each sortable field
 
-const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect }) => {
+const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect, fields, setFields }) => {
     const [isLoading, setIsLoading] = useState(true);
-    const [fields, setFields] = useState([]);
 
-/* OLD CODE FOR SHOW FIELDS
-    useEffect(() => {
-        if (formDetails?.default_fields) {
-            // Map formDetails to the format needed for rendering and sort by position
-            const mappedFields = formDetails.default_fields
-                .map((field, index) => ({
-                    id: String(field.position || index + 1), // Use `position` from the database or fallback to index
-                    label: field.field_name,
-                    type: field.field_type,
-                    is_required: field.is_required,
-                    enabled: field.enabled,
-                    position: field.position || index + 1, // Ensure position is included for rendering
-                    placeholder: field.placeholder || "",
-                }))
-                .sort((a, b) => a.position - b.position); // Sort by position (ascending)
-    
-            setFields(mappedFields);
-        }
-        setTimeout(() => setIsLoading(false), 800);
-    }, [formDetails]);
-    */
+    console.log("Form details fetched:", formDetails);
 
     useEffect(() => {
-        if (formDetails?.default_fields) {
-            // Map formDetails to the format needed for rendering and sort by position
-            const mappedFields = formDetails.default_fields
+        if (formDetails?.default_fields || formDetails?.custom_fields) {
+            const defaultFields = (formDetails.default_fields || [])
                 .map((field, index) => {
-                    // Skip the "Rating" field if form_type is "Complaint"
-                    if (formDetails.form_type === "Complaint" && field.field_name === "Rating") {
-                        return null; // Return null to exclude the field
+                    // Exclude "Rating" field if form_type is "Complaint"
+                    if (formDetails.form_type === "Complaint" && field.field_name === "rating") {
+                        return null;
                     }
-    
+
                     return {
-                        id: String(field.position || index + 1), // Use `position` from the database or fallback to index
+                        id: `default-${field.position || index + 1}`,
                         label: field.field_name,
                         type: field.field_type,
                         is_required: field.is_required,
                         enabled: field.enabled,
-                        position: field.position || index + 1, // Ensure position is included for rendering
+                        position: field.position || index + 1,
                         placeholder: field.placeholder || "",
+                        isNew: false, // Set as false since it's not a new field
                     };
                 })
-                .filter(field => field !== null) // Filter out null values (those that were excluded)
-                .sort((a, b) => a.position - b.position); // Sort by position (ascending)
-    
-            setFields(mappedFields);
+                .filter(field => field !== null);
+
+            const customFields = (formDetails.custom_fields || []).map((field, index) => ({
+                id: `custom-${field.position || index + 1}`,
+                label: field.field_name,
+                type: field.field_type,
+                is_required: field.is_required,
+                enabled: field.enabled,
+                position: field.position || index + 1,
+                placeholder: field.placeholder || "",
+                isNew: true, // Custom fields are not new
+            }));
+
+            // Combine and sort by position
+            const allFields = [...defaultFields, ...customFields].sort((a, b) => a.position - b.position);
+
+            setFields(allFields);
         }
-    
-        setTimeout(() => setIsLoading(false), 800);
+
+        const timeout = setTimeout(() => setIsLoading(false), 800);
+        return () => clearTimeout(timeout); // Clean up timeout
     }, [formDetails]);
-    
+
+
 
     // Configure sensors with pointer activation constraints
     const sensors = useSensors(
@@ -124,18 +119,60 @@ const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect }) => {
         formDetails.default_fields = updatedDefaultFields;
     };
 
+    const handleAddField = () => {
+        const newId = String(fields.length + 1);
+        const newField = {
+            id: newId,
+            label: "Enter Field Name",
+            type: "text",
+            is_required: false,
+            enabled: true,
+            position: fields.length + 1,
+            placeholder: "",
+            isNew: true, // <-- Flag to show edit mode
+        };
+
+        const updatedFields = [...fields, newField];
+        setFields(updatedFields);
+
+        // Add to formDetails.default_fields
+        if (formDetails.default_fields) {
+            formDetails.default_fields.push({
+                field_name: newField.label,
+                field_type: newField.type,
+                is_required: newField.is_required,
+                enabled: newField.enabled,
+                position: newField.position,
+                placeholder: newField.placeholder,
+            });
+        }
+    };
+
+
+
     return (
         <div className="flex w-full h-full">
             <div className="p-4 w-full">
                 {isLoading ? (
                     <FormSkeleton />
                 ) : (
-                    <FormFieldList
-                        fields={fields}
-                        sensors={sensors}
-                        onDragEnd={handleDragEnd}
-                        onFieldUpdate={handleFieldUpdate}
-                    />
+                    <div>
+                        <div className="flex justify-end mb-4 px-6">
+                            <Button
+                                onClick={handleAddField}
+                                className=" w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+                            >
+                                Add Field
+                            </Button>
+                        </div>
+
+                        <FormFieldList
+                            fields={fields}
+                            sensors={sensors}
+                            onDragEnd={handleDragEnd}
+                            onFieldUpdate={handleFieldUpdate}
+                        />
+                    </div>
                 )}
             </div>
             <FormSidebar

@@ -100,12 +100,12 @@ const FormPage = () => {
 			<div className="flex flex-1 flex-col gap-4 md:p-4 pt-0">
 				<Dialog>
 					<DialogTrigger asChild>
-						<Button className="w-fit mb-4 left-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800">
+						<Button className="w-full sm:w-fit mt-4 mb-4 left-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800">
 							<FilePlus /> Create Form
 						</Button>
 					</DialogTrigger>
 					<DialogContent className="sm:max-w-[425px] max-w-[calc(100%-2rem)] rounded-md">
-						<DialogHeader className="border-b py-4">
+						<DialogHeader className="border-b py-4 text-left">
 							<DialogTitle>Create Form</DialogTitle>
 							<DialogDescription>Create your form here. Click next when you&apos;re done.</DialogDescription>
 						</DialogHeader>

@@ -102,7 +102,7 @@ const FormQR = ({ formLink }) => {
     
     return (
         <>
-            <DialogHeader>
+            <DialogHeader className="text-left md:text-center">
                 <DialogTitle>Share link</DialogTitle>
                 <DialogDescription>
                     Anyone who has this link will be able to view this form.
