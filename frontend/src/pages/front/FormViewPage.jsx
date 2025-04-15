@@ -301,18 +301,18 @@ const FormViewPage = () => {
                                 </Card>
                             )
                         ) : (
-                            <Card className="text-center p-4">
+                            <Card className="text-center p-0 md:p-4 my-16 mx-4 md:my-6 md:mx-4">
                                 {loading ? (
                                     <FormPreviewSkelton />
                                 ) : (
                                     <>
                                         <CardHeader>
-                                            <CardTitle>{formDetails?.form_name}</CardTitle>
+                                            <CardTitle className="mb-2">{formDetails?.form_name}</CardTitle>
                                             {formDetails.logo && (
                                                 <img
                                                     src={`${import.meta.env.VITE_SERVER_URL}${formDetails.logo}`}
                                                     alt="Uploaded"
-                                                    className="mt-1 w-48 h-auto rounded-md mx-auto"
+                                                    className="mt-1 w-28 md:w-44 h-auto rounded-md mx-auto"
                                                 />
                                             )}
                                             {formDetails?.form_description && (
