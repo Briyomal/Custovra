@@ -123,49 +123,6 @@ const FormViewPage = () => {
         }));
     };
 
-    /*
-    const handleSubmit = (e) => {
-        e.preventDefault();
-    
-        console.log("Form State on Submit:", formDetails);
-    
-        const formData = new FormData(e.target);
-        let validationErrors = {};
-    
-        // Validate and ensure all required fields are included
-        formDetails.default_fields.forEach((field) => {
-            const value = field.field_type === "rating" ? field.value : formData.get(field.field_name)?.trim();
-    
-            if (field.is_required) {
-                const error = validateField(field.field_name, value, field);
-                if (error) {
-                    validationErrors[field.field_name] = error;
-                }
-            }
-    
-            // Manually append the rating value to formData
-            if (field.field_type === "rating") {
-                formData.set(field.field_name, field.value);
-            }
-        });
-    
-        // If there are validation errors, update state and stop submission
-        if (Object.keys(validationErrors).length > 0) {
-            setFormErrors(validationErrors);
-            console.log("Validation Errors:", validationErrors);
-            return;
-        }
-    
-        // Log all form data, including the rating
-        console.log(
-            "Form submitted with data:",
-            Object.fromEntries(formData.entries())
-        );
-    
-        // Perform the actual form submission logic here
-
-    };
-    */
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -237,6 +194,26 @@ const FormViewPage = () => {
         }
     };
 
+    const handleGoogleReview = () => {
+        if (formDetails) {
+          const commentField = formDetails.default_fields.find(field => field.field_type === "textarea");
+          if (commentField?.value) {
+            navigator.clipboard.writeText(commentField.value)
+              .then(() => {
+                toast.success("Your review text is copied! Please paste it on Google Reviews.");
+                window.open(googleLink, "_blank");
+              })
+              .catch((err) => {
+                console.error('Failed to copy: ', err);
+                window.open(googleLink, "_blank");
+              });
+          } else {
+            window.open(googleLink, "_blank");
+          }
+        }
+      };
+      
+
 
     if (loading || !formDetails) {
         return <LoadingSpinner />;
@@ -273,10 +250,12 @@ const FormViewPage = () => {
                                     </CardHeader>
                                     <CardContent>
                                         <p className="text-md md:text-lg">Would you like to leave a review on Google as well?</p>
+                                        <small>Your review text will be copied to your clipboard. Please paste it on Google Reviews.</small>
                                         <div className="flex justify-center gap-2 md:gap-4 mt-4">
                                             <Button
                                                 className="text-md bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:from-blue-700 hover:to-indigo-800"
-                                                onClick={() => window.open(googleLink, "_blank")}
+                                                //onClick={() => window.open(googleLink, "_blank")}
+                                                onClick={handleGoogleReview}
                                             >
                                                 Yes, Review on Google
                                             </Button>
