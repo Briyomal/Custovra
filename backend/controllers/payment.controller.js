@@ -42,6 +42,46 @@ export const handleStripeWebhook = async (req, res) => {
             await handlePaymentSucceeded(invoice);
             break;
             
+                case 'customer.subscription.deleted':
+            try {
+                const subscription = event.data.object;
+                const customerId = subscription.customer;
+
+                const user = await User.findOne({ stripeCustomerId: customerId });
+                if (user) {
+                    user.is_active = false;
+                    await user.save();
+                    console.log("User deactivated due to subscription cancellation.");
+                }
+            } catch (err) {
+                console.error("Error handling subscription.deleted:", err);
+            }
+            break;
+
+        case 'customer.subscription.updated':
+            try {
+                const subscription = event.data.object;
+                const customerId = subscription.customer;
+                const subscriptionId = subscription.id;
+                const endDate = new Date(subscription.current_period_end * 1000);
+
+                const user = await User.findOne({ stripeCustomerId: customerId });
+                if (user) {
+                    user.subscription_plan = subscriptionId;
+                    user.is_active = subscription.status === 'active';
+                    await user.save();
+
+                    // Optional: Update expiry in latest Payment
+                    await Payment.updateOne(
+                        { user_id: user._id, subscription_id: subscriptionId },
+                        { $set: { subscription_expiry: endDate } }
+                    );
+                    console.log("User and payment info updated from subscription.updated.");
+                }
+            } catch (err) {
+                console.error("Error handling subscription.updated:", err);
+            }
+            break;
 
         default:
             console.log(`Unhandled event type: ${event.type}`);
@@ -87,46 +127,49 @@ export const handleSubscriptionCompleted = async (session) => {
 // Helper function to handle 'invoice.payment_succeeded'
 const handlePaymentSucceeded = async (invoice) => {
     try {
-        // Retrieve the subscription ID and customer ID from the invoice
         const subscriptionId = invoice.subscription;
         const customerId = invoice.customer;
 
-        // Fetch the latest session associated with this subscription
-        const sessions = await stripe.checkout.sessions.list({
-            subscription: subscriptionId,
-            limit: 1, // Only fetch the latest session
-        });
+        // Step 1: Get Stripe customer details (to access metadata)
+        const customer = await stripe.customers.retrieve(customerId);
+        const userId = customer.metadata?.userId;
 
-        if (sessions.data.length === 0) {
-            throw new Error("No checkout session found for the subscription.");
+        if (!userId) {
+            console.warn("No userId in Stripe customer metadata.");
+            return;
         }
 
-        const session = sessions.data[0]; // Get the latest session
-        const metadata = session.metadata; // Access metadata passed in checkout.session.completed
+        // Step 2: Get dates
+        const payment_date = new Date(invoice.created * 1000);
+        const subscription_expiry = new Date(invoice.lines.data[0].period.end * 1000);
+        const amount = invoice.amount_paid / 100;
 
-        // Extract metadata and relevant fields
-        const userId = metadata.userId;
-        const planName = metadata.planName;
+        // Step 3: Get plan name from Stripe price
+        const plan = invoice.lines.data[0]?.price?.nickname || "default";
 
-        // Retrieve payment dates from the invoice
-        const payment_date = new Date(invoice.created * 1000); // Invoice creation time
-        const subscription_expiry = new Date(invoice.lines.data[0].period.end * 1000); // Subscription end date
+        // Step 4: Upsert Payment record
+        await Payment.findOneAndUpdate(
+            { user_id: userId, subscription_id: subscriptionId },
+            {
+                plan,
+                amount,
+                payment_date,
+                subscription_expiry,
+                updated_at: new Date(),
+            },
+            { upsert: true, new: true }
+        );
 
-        const amount = invoice.lines.data[0].amount; //Amount of the invoice
-
-        // Save payment record
-        const payment = new Payment({
-            user_id: userId,
-            subscription_id: subscriptionId,
-            plan: planName,
-            amount: amount,
-            payment_date: payment_date,
-            subscription_expiry: subscription_expiry,
+        // Step 5: Update user subscription status
+        await User.findByIdAndUpdate(userId, {
+            is_active: true,
+            subscription_plan: subscriptionId,
+            subscription_expiry,
         });
 
-        await payment.save();
-        console.log("Payment record saved successfully.");
+        console.log(`✅ Payment recorded and user ${userId} updated`);
     } catch (error) {
-        console.error("Error handling invoice.payment_succeeded:", error);
+        console.error("❌ Error handling invoice.payment_succeeded:", error);
     }
 };
+

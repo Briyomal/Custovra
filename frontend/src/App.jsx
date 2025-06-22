@@ -48,7 +48,7 @@ const ProtectedRoute = ({ children, role }) => {
     }
 
 	 // Define routes to ignore for is_active check
-	 const skipIsActiveCheckRoutes = ["/subscription", "/profile"];
+	 const skipIsActiveCheckRoutes = ["/subscription", "/profile", "/billing" ];
 
     // Skip is_active check for the /subscription page to prevent redirect loops
     if (user?.is_active === false && !skipIsActiveCheckRoutes.includes(location.pathname)) {

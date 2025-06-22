@@ -40,7 +40,7 @@ const userSchema = new Schema(
 		},
 		stripeCustomerId: { 
 			type: String, 
-			required: true,
+			required: false,
 		},
 		lastLogin: {
 			type: Date,

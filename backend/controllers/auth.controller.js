@@ -23,33 +23,25 @@ import mongoose from "mongoose";
 import axios from "axios";
 
 export const signup = async (req, res) => {
-	const {
-		email,
-		password,
-		name,
-		captchaToken
-	} = req.body;
+	const { email, password, name, captchaToken } = req.body;
+
 	try {
-		// Validate captcha token
+		// 1. CAPTCHA verification
 		if (!captchaToken) {
-			return res.status(400).json({
-				message: "Captcha verification failed"
-			});
+			return res.status(400).json({ message: "Captcha verification failed" });
 		}
 
 		const captchaResponse = await axios.post(
 			"https://challenges.cloudflare.com/turnstile/v0/siteverify",
 			new URLSearchParams({
-				secret: process.env.TURNSTILE_SECRET_KEY, // Use secret key from environment
+				secret: process.env.TURNSTILE_SECRET_KEY,
 				response: captchaToken,
-			}), {
-				headers: {
-					"Content-Type": "application/x-www-form-urlencoded"
-				}
+			}),
+			{
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
 			}
 		);
 
-		// If CAPTCHA verification fails
 		if (!captchaResponse.data.success) {
 			return res.status(400).json({
 				success: false,
@@ -58,61 +50,58 @@ export const signup = async (req, res) => {
 			});
 		}
 
+		// 2. Validate input
 		if (!email || !password || !name) {
 			throw new Error("All fields are required");
 		}
-		// Validate email format
-		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-		if (!emailRegex.test(email)) {
-			return res.status(400).json({
-				success: false,
-				message: "Invalid email format"
-			});
+		if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+			return res.status(400).json({ success: false, message: "Invalid email format" });
 		}
-
-		// Validate password strength (at least 6 characters)
 		if (password.length < 6) {
-			return res.status(400).json({
-				success: false,
-				message: "Password must be at least 6 characters long"
-			});
+			return res.status(400).json({ success: false, message: "Password must be at least 6 characters long" });
 		}
-		const userAlreadyExists = await User.findOne({
-			email
-		});
+
+		const userAlreadyExists = await User.findOne({ email });
 		if (userAlreadyExists) {
-			return res.status(400).json({
-				success: false,
-				message: "User already exists"
-			});
+			return res.status(400).json({ success: false, message: "User already exists" });
 		}
 
-
+		// 3. Create user without stripeCustomerId
 		const hashedPassword = await bcryptjs.hash(password, 10);
 		const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
-
-		const customer = await stripe.customers.create({
-			email
-		}, {
-			apiKey: process.env.STRIPE_SECRET_KEY,
-		})
 
 		const user = new User({
 			email,
 			password: hashedPassword,
 			name,
-			stripeCustomerId: customer.id,
 			verificationToken,
-			verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+			verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000,
 		});
 
 		await user.save();
 
-		//jwt
+		// 4. Create Stripe customer with userId in metadata
+		const customer = await stripe.customers.create(
+			{
+				email,
+				metadata: {
+					userId: user._id.toString(),
+				},
+			},
+			{ apiKey: process.env.STRIPE_SECRET_KEY }
+		);
+
+		// 5. Update user with Stripe ID
+		user.stripeCustomerId = customer.id;
+		await user.save();
+
+		// 6. Create session token
 		generateTokenAndSetCookie(res, user._id);
 
+		// 7. Send verification email
 		await sendVerificationEmail(user.email, verificationToken);
 
+		// 8. Response
 		res.status(201).json({
 			success: true,
 			message: "User created successfully",
@@ -122,10 +111,8 @@ export const signup = async (req, res) => {
 			},
 		});
 	} catch (error) {
-		res.status(400).json({
-			success: false,
-			message: error.message
-		});
+		console.error("Signup error:", error);
+		res.status(400).json({ success: false, message: error.message });
 	}
 };
 

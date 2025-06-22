@@ -3,7 +3,7 @@ import { User } from "../models/User.js";
 import { Payment } from "../models/Payment.js";
 
 // Run every day at midnight
-cron.schedule('0 0 * * *', async () => {
+cron.schedule('* * * * *', async () => {
     console.log('Running subscription expiry check...');
     try {
         const now = new Date();
