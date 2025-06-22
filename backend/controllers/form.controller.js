@@ -1,6 +1,7 @@
 // controllers/FormController.js
 import { Form } from '../models/Form.js';
 import { FormField } from '../models/FormField.js';
+import { Submission } from "../models/Submission.js";
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -304,6 +305,11 @@ export const deleteForm = async (req, res) => {
         // Delete related custom fields
         await FormField.deleteMany({ form_id: id });
         console.log("Related custom fields deleted successfully.");
+
+        // Delete related submissions
+        await Submission.deleteMany({ form_id: id });
+        console.log("Related submissions deleted successfully.");
+
 
         // Delete the form itself
         await Form.deleteOne({ _id: id });

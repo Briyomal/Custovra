@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import useFormStore from "@/store/formStore";
 import useSubmissionStore from "@/store/submissionStore";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader } from "lucide-react";
 
 const PIE_COLORS = ["#bedcfe", "#a3c8f7", "#7aaff7", "#5197f7", "#3b86f7", "#2563eb"];
 
@@ -23,6 +23,7 @@ function ReportPage() {
     const { user, isAuthenticated } = useAuthStore();
     const { fetchFormsNew, forms } = useFormStore();
     const { fetchSubmissions, submissions } = useSubmissionStore();
+    const [loading, setLoading] = useState(true);
 
     const userId = user?._id;
     const [filter, setFilter] = useState("all");
@@ -31,8 +32,9 @@ function ReportPage() {
     // **Fetch Data Once When Component Mounts**
     useEffect(() => {
         if (isAuthenticated && userId) {
-            fetchFormsNew(userId);
-            fetchSubmissions(userId);
+            setLoading(true);
+            Promise.all([fetchFormsNew(userId), fetchSubmissions(userId)])
+                .finally(() => setLoading(false));
         }
     }, [userId, isAuthenticated]);
 
@@ -159,7 +161,11 @@ function ReportPage() {
             </div>
 
             {/* Charts */}
-            {chartData.length === 0 && ratingData.ratingData.every(r => r.value === 0) ? (
+            {loading ? (
+                <div className="flex justify-center items-center h-64">
+                    <Loader className="animate-spin h-8 w-8 text-slate-800 dark:text-white" />
+                </div>
+            ) : chartData.length === 0 && ratingData.ratingData.every(r => r.value === 0) ? (
                 <p className="text-gray-500 mt-4">No submissions data available.</p>
             ) : (
                 <div className="flex flex-col lg:flex-col xl:flex-row gap-4 pt-0 flex-wrap">
@@ -173,7 +179,7 @@ function ReportPage() {
                             <ChartContainer config={chartConfig} className="aspect-auto h-[300px] w-full md:w-full mt-4">
                                 <BarChart data={chartData} margin={{ top: 20, left: 12, right: 12 }}>
                                     <CartesianGrid vertical={false} />
-                                    <XAxis 
+                                    <XAxis
                                         dataKey="date"
                                         tickFormatter={(value) =>
                                             new Date(value).toLocaleDateString("en-US", {

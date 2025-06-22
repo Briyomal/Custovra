@@ -88,7 +88,7 @@ export function NavUser({ user }) {
                   <BadgeCheck />
                   Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/billing")}>
                 <CreditCard />
                 Billing
               </DropdownMenuItem>

@@ -1,22 +1,27 @@
 //import { Calendar, Home, Inbox, Search, Settings, Command, Users  } from "lucide-react";
-import { Home, ChevronRight, MessageSquareText, ListPlus, ChartNoAxesCombined  } from "lucide-react";
+import { Home, ChevronRight, MessageSquareText, ListPlus, ChartNoAxesCombined } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, SidebarHeader, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar";
 import { NavUser } from "@/components/nav-user";
 import { useAuthStore } from "@/store/authStore";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import sidebarLogo from "../../assets/Logo.png";
+import { useLocation } from "react-router-dom";
+
 // Menu items.
 
 const items = [
-    { title: 'Dashboard', url: '/dashboard/', icon: Home,},
-    { title: 'Forms', url: '/forms/', icon: ListPlus,},
-    { title: 'Submissions', url: '/submissions/', icon: MessageSquareText,},
-    { title: 'Reports', url: '/reports/', icon: ChartNoAxesCombined,},
+	{ title: 'Dashboard', url: '/dashboard/', icon: Home, },
+	{ title: 'Forms', url: '/forms/', icon: ListPlus, },
+	{ title: 'Submissions', url: '/submissions/', icon: MessageSquareText, },
+	{ title: 'Reports', url: '/reports/', icon: ChartNoAxesCombined, },
 ];
 
 export function CustomerSidebar() {
 	const { user } = useAuthStore();
-	
+	const location = useLocation();
+	const currentPath = location.pathname;
+
+
 
 	return (
 		<Sidebar collapsible="icon" >
@@ -36,46 +41,50 @@ export function CustomerSidebar() {
 					<SidebarGroupContent>
 						<SidebarMenu>
 							{items.map((item) => (
-							item.items ? ( // Check if the item has sub-items
-								<Collapsible
-								key={item.title}
-								asChild
-								defaultOpen={item.isActive}
-								className="group/collapsible"
-								>
-								<SidebarMenuItem>
-									<CollapsibleTrigger asChild>
-									<SidebarMenuButton tooltip={item.title} >
-										{item.icon && <item.icon />}
-										<span>{item.title}</span>
-										<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-									</SidebarMenuButton>
-									</CollapsibleTrigger>
-									<CollapsibleContent>
-									<SidebarMenuSub>
-										{item.items.map((subItem) => (
-										<SidebarMenuSubItem key={subItem.title} >
-											<SidebarMenuSubButton asChild >
-											<a href={subItem.url}>
-												<span>{subItem.title}</span>
+								item.items ? ( // Check if the item has sub-items
+									<Collapsible
+										key={item.title}
+										asChild
+										defaultOpen={item.isActive}
+										className="group/collapsible"
+									>
+										<SidebarMenuItem>
+											<CollapsibleTrigger asChild>
+												<SidebarMenuButton tooltip={item.title} >
+													{item.icon && <item.icon />}
+													<span>{item.title}</span>
+													<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+												</SidebarMenuButton>
+											</CollapsibleTrigger>
+											<CollapsibleContent>
+												<SidebarMenuSub>
+													{item.items.map((subItem) => (
+														<SidebarMenuSubItem key={subItem.title} >
+															<SidebarMenuSubButton asChild >
+																<a href={subItem.url}>
+																	<span>{subItem.title}</span>
+																</a>
+															</SidebarMenuSubButton>
+														</SidebarMenuSubItem>
+													))}
+												</SidebarMenuSub>
+											</CollapsibleContent>
+										</SidebarMenuItem>
+									</Collapsible>
+								) : ( // Render a simple menu item for items without sub-items
+									<SidebarMenuItem key={item.title}>
+										<SidebarMenuButton
+											asChild
+											className={`${currentPath.startsWith(item.url) ? "bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-700 text-white font-medium" : ""
+												}`}
+										>
+											<a href={item.url}>
+												{item.icon && <item.icon />}
+												<span>{item.title}</span>
 											</a>
-											</SidebarMenuSubButton>
-										</SidebarMenuSubItem>
-										))}
-									</SidebarMenuSub>
-									</CollapsibleContent>
-								</SidebarMenuItem>
-								</Collapsible>
-							) : ( // Render a simple menu item for items without sub-items
-								<SidebarMenuItem key={item.title}>
-								<SidebarMenuButton asChild>
-								<a href={item.url}>
-									{item.icon && <item.icon />}
-									<span>{item.title}</span>
-									</a>
-								</SidebarMenuButton>
-								</SidebarMenuItem>
-							)
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								)
 							))}
 						</SidebarMenu>
 					</SidebarGroupContent>

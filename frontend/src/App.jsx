@@ -25,6 +25,7 @@ import SubmissionPage from "./pages/customer/SubmissionPage";
 import SubmissionListPage from "./pages/customer/SubmissionListPage";
 import ReportPage from "./pages/customer/ReportPage";
 import ProfilePage from "./pages/customer/ProfilePage";
+import BillingPage from "./pages/customer/BillingPage";
 
 const ProtectedRoute = ({ children, role }) => {
     const { isAuthenticated, user } = useAuthStore();
@@ -149,6 +150,15 @@ function App() {
 					element={
 						<ProtectedRoute role="customer">
 							<ProfilePage />
+						</ProtectedRoute>
+					}
+				/>
+
+				<Route
+					path="/billing"
+					element={
+						<ProtectedRoute role="customer">
+							<BillingPage />
 						</ProtectedRoute>
 					}
 				/>

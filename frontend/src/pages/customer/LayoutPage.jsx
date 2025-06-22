@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
 
 function CustomerLayoutPage({ children }) {
-	
+
 	const { user } = useAuthStore();
 
 	const { setTheme } = useTheme();
@@ -42,11 +42,22 @@ function CustomerLayoutPage({ children }) {
 						</div>
 						{/* Right-aligned dropdown */}
 						<div className="ml-auto">
-            				{user.payment ? (
-								<Badge className="mr-3 px-3 py-1 border-lime-300 dark:border-green-700 rounded-sm bg-gradient-to-r from-green-700 to-lime-500 text-white text-sm">{user.payment.plan}</Badge>
-            				) : (
-            				    <p></p>
-            				)}
+							{user.payment ? (
+								<Badge
+									className={`mr-3 px-3 py-1 rounded-sm text-white text-sm ${user.payment.plan === 'Premium'
+											? 'bg-gradient-to-r from-green-700 to-lime-500 border-lime-300 dark:border-green-700'
+											: user.payment.plan === 'Standard'
+												? 'bg-gradient-to-r from-purple-700 to-fuchsia-500 border-fuchsia-300 dark:border-purple-700'
+												: user.payment.plan === 'Basic'
+													? 'bg-gradient-to-r from-blue-700 to-cyan-500 border-cyan-300 dark:border-blue-700'
+													: 'bg-gradient-to-r from-stone-700 to-gray-500 border-gray-300 dark:border-stone-700'
+										}`}
+								>
+									{user.payment.plan}
+								</Badge>
+							) : (
+								<p></p>
+							)}
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button variant="outline" size="icon">
