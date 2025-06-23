@@ -16,9 +16,23 @@ import { fileURLToPath } from 'url';
 import multer from 'multer';
 import path from 'path';
 
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import cloudinary from '../utils/cloudinary.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Setup Cloudinary Storage
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'logos', // folder in Cloudinary
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif'],
+    transformation: [{ width: 500, height: 500, crop: 'limit' }],
+  },
+});
+
+/*
 // Define storage for multer to save logos in 'public/uploads/logos/'
 const logoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -55,6 +69,9 @@ const logoUpload = multer({
   fileFilter: logoFileFilter,
 });
 
+*/
+
+const logoUpload = multer({ storage });
 
 const router = express.Router();
 

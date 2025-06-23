@@ -76,6 +76,9 @@ const formSchema = new Schema({
     logo: {
         type: String,
     },
+    logo_id: {
+        type: String,
+    },
     form_description: {
         type: String,
     },

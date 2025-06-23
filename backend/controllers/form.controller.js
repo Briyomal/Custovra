@@ -6,6 +6,8 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
 
+import cloudinary from '../utils/cloudinary.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -22,7 +24,7 @@ export const getAllForms = async (req, res) => {
 export const getAllUserForms = async (req, res) => {
     try {
         // `req.user` should have the user's ID set by the `verifyToken` middleware
-        const userId = req.userId; 
+        const userId = req.userId;
 
         // Fetch all forms related to the logged-in user
         const forms = await Form.find({ user_id: userId }).populate('user_id');
@@ -41,7 +43,7 @@ export const getAllUserForms = async (req, res) => {
 export const getFormById = async (req, res) => {
     try {
         const { id } = req.params; // Form ID from the URL
-        const  userId  = req.userId; // Get userId from the body (or use req.user if authenticated)
+        const userId = req.userId; // Get userId from the body (or use req.user if authenticated)
 
         // Ensure userId is provided, if not, return an error
         if (!userId) {
@@ -206,22 +208,20 @@ export const updateForm = async (req, res) => {
 
         // Handle logo upload
         if (req.file) {
-            if (form.logo) {
-                const oldLogoPath = path.join(__dirname, '../../backend', form.logo);
+            // Delete old logo from Cloudinary if it exists
+            if (form.logo_id) {
                 try {
-                    if (fs.existsSync(oldLogoPath)) {
-                        fs.unlinkSync(oldLogoPath);
-                        console.log("Old logo deleted successfully.");
-                    } else {
-                        console.log("Old logo does not exist at:", oldLogoPath);
-                    }
-                } catch (error) {
-                    console.error("Error deleting old logo:", error);
+                    await cloudinary.uploader.destroy(form.logo_id);
+                    console.log("Old logo removed from Cloudinary.");
+                } catch (err) {
+                    console.error("Failed to delete old logo from Cloudinary:", err);
                 }
             }
-            form.logo = req.savedFilePath;
-        }
 
+            // Save new logo info
+            form.logo = req.file.path;        // Cloudinary image URL
+            form.logo_id = req.file.filename; // public_id (used for deleting in future)
+        }
 
         let parsedDefaultFields = [];
         let parsedCustomFields = [];
@@ -287,18 +287,13 @@ export const deleteForm = async (req, res) => {
             return res.status(404).json({ message: "Form not found or unauthorized access." });
         }
 
-        // Delete the logo from file storage if it exists
-        if (form.logo) {
-            const logoPath = path.join(__dirname, '../../backend', form.logo);
+        // ✅ Delete the logo from Cloudinary if it exists
+        if (form.logo_id) {
             try {
-                if (fs.existsSync(logoPath)) {
-                    fs.unlinkSync(logoPath);
-                    console.log("Logo deleted successfully.");
-                } else {
-                    console.log("Logo does not exist at:", logoPath);
-                }
-            } catch (error) {
-                console.error("Error deleting logo:", error);
+                await cloudinary.uploader.destroy(form.logo_id);
+                console.log("Logo deleted from Cloudinary.");
+            } catch (err) {
+                console.error("Error deleting logo from Cloudinary:", err);
             }
         }
 
@@ -327,11 +322,11 @@ export const viewForm = async (req, res) => {
         const { id } = req.params;
         const form = await Form.findById(id);
         if (!form) {
-            return res.status(404).json({ message: 'Form not found' }); 
+            return res.status(404).json({ message: 'Form not found' });
         }
         res.status(200).json(form);
     } catch (error) {
-        res.status(500).json({ error: error.message }); 
+        res.status(500).json({ error: error.message });
     }
 };
 

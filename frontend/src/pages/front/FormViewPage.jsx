@@ -128,7 +128,14 @@ const FormViewPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (!captchaToken) {
+            alert("Please complete the captcha.");
+            return;
+        }
+
+
         setSubmitLoading(true);
+        
 
         try {
             console.log("Form State on Submit:", formDetails);
@@ -291,7 +298,8 @@ const FormViewPage = () => {
                                             <CardTitle className="mb-2">{formDetails?.form_name}</CardTitle>
                                             {formDetails.logo && (
                                                 <img
-                                                    src={`${import.meta.env.VITE_SERVER_URL}${formDetails.logo}`}
+                                                src={formDetails?.logo}
+                                                    //src={`${import.meta.env.VITE_SERVER_URL}${formDetails.logo}`}
                                                     alt="Uploaded"
                                                     className="mt-1 w-28 md:w-44 h-auto rounded-md mx-auto"
                                                 />
