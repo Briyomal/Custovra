@@ -35,9 +35,34 @@ export const getSubmissionsByFormId = async (req, res) => {
 
 // Create a response
 export const createSubmission = async (req, res) => {
-    const { form_id, user_id, submissions } = req.body;
+    const { form_id, user_id, submissions, captchaToken } = req.body;
 
     try {
+        
+		// 1. CAPTCHA verification Start
+		if (!captchaToken) {
+			return res.status(400).json({ message: "Captcha verification failed" });
+		}
+        		const captchaResponse = await axios.post(
+			"https://challenges.cloudflare.com/turnstile/v0/siteverify",
+			new URLSearchParams({
+				secret: process.env.TURNSTILE_SECRET_KEY,
+				response: captchaToken,
+			}),
+			{
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			}
+		);
+
+		if (!captchaResponse.data.success) {
+			return res.status(400).json({
+				success: false,
+				message: "Invalid captcha",
+				errors: captchaResponse.data["error-codes"]
+			});
+		}
+        // CAPTCHA verification End
+
         if (!form_id || !user_id || !submissions) {
             return res.status(400).json({ message: "Missing required fields." });
         }

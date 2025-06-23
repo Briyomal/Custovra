@@ -20,6 +20,7 @@ import FormPreviewSkelton from "@/components/customer-view/FormPreviewSkelton";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import useSubmissionStore from "@/store/submissionStore";
 import toast from "react-hot-toast";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 const FormViewPage = () => {
     const { viewForm } = useFormStore();
@@ -32,6 +33,7 @@ const FormViewPage = () => {
     const [submitLoading, setSubmitLoading] = useState(false);
     const [showGooglePrompt, setShowGooglePrompt] = useState(false); // State to control prompt visibility
     const [googleLink, setGoogleLink] = useState(""); // Store Google review link
+    const [captchaToken, setCaptchaToken] = useState(null);
 
 
     useEffect(() => {
@@ -339,6 +341,16 @@ const FormViewPage = () => {
                                                             )}
                                                         </div>
                                                     ))}
+
+                                                    
+                        <div className="mt-4">
+                            <Turnstile
+                                siteKey={`${import.meta.env.VITE_TURNSTILE_SITE_KEY}`}
+                                onSuccess={(token) => setCaptchaToken(token)}
+                                onExpire={() => setCaptchaToken(null)}
+                                onError={() => setCaptchaToken(null)}
+                            />
+                        </div>
 
 
                                                 <Button
