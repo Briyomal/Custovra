@@ -2,6 +2,9 @@
 import { Form } from '../models/Form.js';
 import { FormField } from '../models/FormField.js';
 import { Submission } from "../models/Submission.js";
+import { subscriptionPlans } from "../utils/subscriptionPlans.js";
+import { Payment } from "../models/Payment.js";
+import { User } from "../models/User.js";
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -101,6 +104,32 @@ export const createForm = async (req, res) => {
             return res.status(400).json({ message: "Missing required fields." });
         }
 
+        // 🔒 Check form creation limit
+        const user = await User.findById(user_id);
+        if (!user) return res.status(404).json({ message: "User not found." });
+
+// 🔍 Get latest payment record for this user
+const latestPayment = await Payment.findOne({ user_id: user_id })
+  .sort({ created_at: -1 }); // latest payment first
+
+let planName = "basic"; // default
+
+if (latestPayment?.plan) {
+  planName = latestPayment.plan.toLowerCase(); // e.g., 'Basic' → 'basic'
+}
+
+// 📦 Get form limit from config
+const formLimit = subscriptionPlans[planName]?.formLimit ?? 1;
+
+// 🔒 Enforce limit
+const existingFormCount = await Form.countDocuments({ user_id });
+
+if (existingFormCount >= formLimit) {
+  return res.status(403).json({
+    message: `You have reached the limit (${formLimit}) of forms for your ${planName} plan.`
+  });
+}
+        // Create the form
         const form = new Form({
             user_id,
             form_name,
@@ -112,13 +141,12 @@ export const createForm = async (req, res) => {
             form_link: '', // Temporary, will update after _id is generated
         });
 
-        // Save to get form._id
+        // Save to generate _id
         await form.save();
 
-        const formLink = `/view/${form._id}`;
-        form.form_link = formLink;
+        form.form_link = `/view/${form._id}`;
 
-        // Parse and handle default_fields and custom_fields
+        // Parse fields
         let parsedDefaultFields = [];
         let parsedCustomFields = [];
 
@@ -157,13 +185,14 @@ export const createForm = async (req, res) => {
             is_new: field.is_new || false,
         }));
 
-        // Save updated fields and form_link
+        // Save updated form
         await form.save();
 
         return res.status(201).json({
             message: "Form created successfully.",
             form,
         });
+
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: "An error occurred.", error });

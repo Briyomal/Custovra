@@ -61,6 +61,15 @@ export const createCheckoutSession = async (req, res) => {
         // Create a new checkout session
         const user = await User.findById(userIdString);
         const stripeCustomerId = user.stripeCustomerId;
+        
+        // ✅ Update Stripe customer with userId in metadata
+        await stripe.customers.update(stripeCustomerId, {
+            metadata: {
+                userId: userIdString
+            }
+        });
+
+
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             mode: 'subscription',  // Subscription mode

@@ -363,7 +363,7 @@ export const checkAuth = async (req, res) => {
 
 		const payment = await Payment.findOne({
 			user_id: new mongoose.Types.ObjectId(user._id)
-		});
+		}).sort({ updated_at: -1 }); // Or sort by created_at: -1
 
 		res.status(200).json({
 			success: true,
