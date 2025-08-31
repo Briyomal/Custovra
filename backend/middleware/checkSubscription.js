@@ -15,13 +15,13 @@ const checkSubscription = async (req, res, next) => {
             await user.save();
 
             // Redirect or block access based on route
-            if (req.originalUrl !== '/subscription') {
+            if (req.originalUrl !== '/billing') {
                 return res
                     .status(403)
                     .json({ message: 'Subscription expired. Please renew to continue.' });
             }
         }
-        next(); // Proceed if subscription is valid or user is on the subscription page
+        next(); // Proceed if subscription is valid or user is on the billing page
     } catch (error) {
         console.error('Error checking subscription:', error);
         res.status(500).json({ error: error.message });

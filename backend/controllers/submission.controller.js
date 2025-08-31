@@ -1,4 +1,5 @@
 import { Submission } from '../models/Submission.js';
+import axios from "axios";
 
 export const getAllSubmissions = async (req, res) => {
     try {
@@ -67,6 +68,9 @@ export const createSubmission = async (req, res) => {
             return res.status(400).json({ message: "Missing required fields." });
         }
 
+        // Note: Monthly submission limits are checked by middleware
+        // The middleware adds req.submissionUsage with current usage info
+        
         const newSubmission = new Submission({
             form_id,
             user_id,
@@ -74,7 +78,14 @@ export const createSubmission = async (req, res) => {
         });
 
         const savedSubmission = await newSubmission.save();
-        res.status(201).json(savedSubmission);
+        
+        // Include usage information in response for frontend
+        const responseData = {
+            ...savedSubmission.toObject(),
+            usageInfo: req.submissionUsage || null
+        };
+        
+        res.status(201).json(responseData);
     } catch (error) {
         console.error("Error saving submission:", error);
         res.status(500).json({ message: "Server error. Unable to save submission." });

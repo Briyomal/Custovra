@@ -17,6 +17,8 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuthStore } from "@/store/authStore";
+import { parseLimitError, formatLimitMessage } from "@/utils/subscriptionLimits";
+// Plan downgrade protection is now handled in BillingPage with modal-first approach
 
 const FormPage = () => {
 	const [formName, setFormName] = useState("");
@@ -26,6 +28,8 @@ const FormPage = () => {
 	const { createForm, error } = useFormStore();
 	const [isLoading, setIsLoading] = useState(false);
 	const { user } = useAuthStore();
+
+	// Plan downgrade protection is now handled in BillingPage
 
 	const navigate = useNavigate();
 
@@ -52,8 +56,34 @@ const FormPage = () => {
 					duration: 5000,
 				}
 			);
-		} catch {
-			toast.error("Error creating form");
+		} catch (error) {
+			console.error("Form creation error:", error);
+			
+			// Check if this is a subscription limit error
+			const limitError = parseLimitError(error);
+			
+			if (limitError) {
+				// Handle subscription limit errors with user-friendly messages
+				const formattedMessage = formatLimitMessage(limitError);
+				
+				toast.error(
+					<div className="space-y-2">
+						<div className="font-semibold">{formattedMessage.title}</div>
+						<div className="text-sm">{formattedMessage.message}</div>
+						<div className="text-xs text-gray-600">{formattedMessage.suggestion}</div>
+					</div>,
+					{
+						icon: "⚠️",
+						duration: 8000,
+					}
+				);
+			} else {
+				// Handle other errors
+				const errorMessage = error?.response?.data?.error || 
+									 error?.response?.data?.message || 
+									 "Error creating form";
+				toast.error(errorMessage);
+			}
 		} finally {
 			setIsLoading(false);
 		}
@@ -70,7 +100,7 @@ const FormPage = () => {
 				setForms(response.data);
 				setLoading(false);
 			} catch (error) {
-				console.error("Error fetching users:", error);
+				console.error("Error fetching forms:", error);
 				setLoading(false);
 			}
 		};

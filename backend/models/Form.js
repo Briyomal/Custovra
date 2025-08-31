@@ -108,6 +108,12 @@ const formSchema = new Schema({
         type: Boolean,
         default: false,
     },
+    lockedAt: {
+        type: Date,
+    },
+    lockReason: {
+        type: String,
+    },
     created_at: {
         type: Date,
         default: Date.now,

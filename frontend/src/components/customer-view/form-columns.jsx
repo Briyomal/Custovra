@@ -1,4 +1,4 @@
-import { MoreHorizontal, ArrowUpDown, Edit, Trash2, QrCode } from "lucide-react";
+import { MoreHorizontal, ArrowUpDown, Edit, Trash2, QrCode, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "../ui/badge";
@@ -53,9 +53,56 @@ export const columns = [
 			);
 		},
 		accessorKey: "is_active",
-		cell: ({ getValue }) => {
+		cell: ({ getValue, row }) => {
 			const value = getValue(); // Retrieve the true/false value
-			return <Badge className={value ? "rounded-sm bg-indigo-500 text-white hover:bg-indigo-600" : "rounded-sm bg-gray-200 text-black hover:bg-gray-300"}>{value ? "Published" : "Draft"}</Badge>;
+			const form = row.original;
+			const isLocked = form.lockedAt && form.lockReason;
+			
+			if (isLocked) {
+				return (
+					<div className="flex items-center gap-1">
+						<Badge className="rounded-sm bg-amber-100 text-amber-800 hover:bg-amber-200 flex items-center gap-1">
+							<Lock className="h-3 w-3" />
+							Locked
+						</Badge>
+					</div>
+				);
+			}
+			
+			return (
+				<Badge className={value ? "rounded-sm bg-indigo-500 text-white hover:bg-indigo-600" : "rounded-sm bg-gray-200 text-black hover:bg-gray-300"}>
+					{value ? "Published" : "Draft"}
+				</Badge>
+			);
+		},
+	},
+	{
+		id: "created_at",
+		header: ({ column }) => {
+			return (
+				<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+					Created At
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			);
+		},
+		accessorKey: "created_at",
+		enableSorting: true,
+		cell: ({ row }) => {
+			const dateValue = row.original.created_at;
+			if (!dateValue) {
+				return <span className="text-sm text-gray-600">N/A</span>;
+			}
+			const date = new Date(dateValue);
+			if (isNaN(date.getTime())) {
+				return <span className="text-sm text-gray-600">Invalid Date</span>;
+			}
+			const formattedDate = date.toLocaleDateString("en-US", {
+				year: "numeric",
+				month: "short",
+				day: "numeric",
+			});
+			return <span className="text-sm text-gray-600">{formattedDate}</span>;
 		},
 	},
 	{
@@ -65,10 +112,24 @@ export const columns = [
 		setForms: [],
 		Cell: ({ row, updateData }) => {
 			const navigate = useNavigate(); // Use inside the functional component
+			const form = row.original;
+			const isLocked = form.lockedAt && form.lockReason;
 
 			// Handle form editing
 			const handleEditForm = () => {
+				if (isLocked) {
+					toast.error('This form is locked due to plan restrictions. Upgrade your plan to edit it.');
+					return;
+				}
 				navigate(`/forms/create-form/${row.original._id}`); // Navigate to the dynamic route
+			};
+
+			const handleShareForm = () => {
+				if (isLocked) {
+					toast.error('This form is locked due to plan restrictions. Upgrade your plan to share it.');
+					return;
+				}
+				setIsShareDialogOpen(true);
 			};
 
 			const { deleteForm } = useFormStore();
@@ -106,14 +167,24 @@ export const columns = [
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
 							<DropdownMenuLabel>Actions</DropdownMenuLabel>
-							<DropdownMenuItem className="cursor-pointer" onClick={() => setIsShareDialogOpen(true)}>
+							<DropdownMenuItem 
+								className={`cursor-pointer ${isLocked ? 'opacity-50' : ''}`} 
+								onClick={handleShareForm}
+								disabled={isLocked}
+							>
 								<QrCode className="h-4 w-4" />
 								Share Form
+								{isLocked && <Lock className="h-3 w-3 ml-1" />}
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
-							<DropdownMenuItem className="cursor-pointer" onClick={handleEditForm}>
+							<DropdownMenuItem 
+								className={`cursor-pointer ${isLocked ? 'opacity-50' : ''}`} 
+								onClick={handleEditForm}
+								disabled={isLocked}
+							>
 								<Edit className="h-4 w-4" />
 								Edit Form
+								{isLocked && <Lock className="h-3 w-3 ml-1" />}
 							</DropdownMenuItem>
 							<DropdownMenuItem className="cursor-pointer text-red-500 dark:text-red-500 dark:hover:text-white hover:bg-red-500 dark:hover:bg-red-700" onClick={() => setIsDialogOpen(true)}>
 								<Trash2 className="h-4 w-4" />
@@ -121,7 +192,11 @@ export const columns = [
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
-					<ShareDialog formId={row.original._id} isOpen={isShareDialogOpen} setIsOpen={setIsShareDialogOpen} />
+					<ShareDialog 
+						formId={row.original._id} 
+						isOpen={isShareDialogOpen && !isLocked} 
+						setIsOpen={setIsShareDialogOpen} 
+					/>
     <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <AlertDialogContent className="sm:max-w-[500px] py-6 px-4 md:p-10 max-w-[calc(100%-2rem)] rounded-md">
         <AlertDialogHeader>

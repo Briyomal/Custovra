@@ -3,6 +3,7 @@
 import { Subscription } from "../models/Subscription.js";
 import { Payment } from '../models/Payment.js';
 import { User } from '../models/User.js';
+import { handlePlanChangeProtection } from '../middleware/planChangeProtection.js';
 
 import Stripe from "stripe";
 
@@ -38,8 +39,497 @@ export const getAllSubscriptions = async (req, res) => {
     }
 };
 
-// Create checkout session for subscriptions
+// Check plan change requirements (for modal display) without updating Stripe
+export const checkPlanChangeRequirements = async (req, res) => {
+    try {
+        const { priceId, planName } = req.body;
+        console.log("🔍 Checking plan change requirements:", req.body);
 
+        if (!priceId || !planName) {
+            return res.status(400).json({ error: "Price ID and plan name are required" });
+        }
+
+        if (!req.userId) {
+            return res.status(401).json({ error: "User not authenticated" });
+        }
+
+        const userIdString = req.userId.toString();
+        const user = await User.findById(userIdString);
+        
+        if (!user.stripeCustomerId) {
+            return res.status(400).json({ error: "User has no Stripe customer ID" });
+        }
+
+        // Check if user has an existing active subscription
+        const subscriptions = await stripe.subscriptions.list({
+            customer: user.stripeCustomerId,
+            status: 'active',
+            limit: 1
+        });
+
+        if (subscriptions.data.length === 0) {
+            // No active subscription - will create new one
+            return res.status(200).json({
+                success: true,
+                requiresFormSelection: false,
+                isNewSubscription: true,
+                message: "This will create a new subscription"
+            });
+        }
+
+        const currentSubscription = subscriptions.data[0];
+        const currentPriceId = currentSubscription.items.data[0].price.id;
+
+        // Check if trying to switch to the same plan
+        if (currentPriceId === priceId) {
+            return res.status(400).json({ 
+                error: "You are already subscribed to this plan",
+                current: true 
+            });
+        }
+
+        // Get current plan info
+        const previousPrice = await stripe.prices.retrieve(currentPriceId);
+        const previousProduct = await stripe.products.retrieve(previousPrice.product);
+        const previousPlanName = previousProduct.name;
+
+        console.log(`🔄 Plan change check: ${previousPlanName} → ${planName}`);
+        console.log('🔍 DEBUG: Plan names for comparison:');
+        console.log('  - previousPlanName:', previousPlanName);
+        console.log('  - planName:', planName);
+        console.log('  - userIdString:', userIdString);
+
+        // Check what this plan change would require
+        // We need to simulate what the plan limits would be AFTER the change
+        const { subscriptionPlans, getPlanByName } = await import('../utils/subscriptionPlans.js');
+        const targetPlanLimits = getPlanByName(planName.toLowerCase());
+        
+        console.log('🎯 Target plan info:');
+        console.log('  - Target plan name:', planName);
+        console.log('  - Target plan limits:', targetPlanLimits);
+        
+        // Get user's current active forms to check against target plan limits
+        const { Form } = await import('../models/Form.js');
+        const activeForms = await Form.find({
+            user_id: userIdString,
+            is_active: true
+        }).sort({ createdAt: -1 });
+        
+        const currentFormCount = activeForms.length;
+        const targetPlanLimit = targetPlanLimits.formLimit;
+        
+        console.log('📊 Form count analysis:');
+        console.log('  - Current active forms:', currentFormCount);
+        console.log('  - Target plan limit:', targetPlanLimit);
+        console.log('  - Forms exceed limit:', currentFormCount > targetPlanLimit);
+        
+        // Use plan comparison to determine upgrade/downgrade
+        const { comparePlans } = await import('../utils/subscriptionPlans.js');
+        const planComparison = comparePlans(previousPlanName, planName);
+        
+        console.log('🔍 CORRECTED Plan comparison:');
+        console.log('  - previousPlanName:', previousPlanName);
+        console.log('  - targetPlanName:', planName);
+        console.log('  - isUpgrade:', planComparison.isUpgrade);
+        console.log('  - isDowngrade:', planComparison.isDowngrade);
+        console.log('  - isSamePlan:', planComparison.isSamePlan);
+
+        // Check for same plan (should return error)
+        if (planComparison.isSamePlan) {
+            console.log(`🚫 Same plan detected: ${previousPlanName} = ${planName}`);
+            return res.status(400).json({ 
+                error: "You are already subscribed to this plan",
+                current: true 
+            });
+        }
+        
+        // ALWAYS show modal for downgrades (even if no forms need to be locked)
+        // This ensures users are aware of the downgrade and can confirm it
+        if (planComparison.isDowngrade) {
+            console.log(`📦 Downgrade detected: ${previousPlanName} → ${planName} - showing modal`);
+            
+            // Determine if action is required (forms need to be selected/locked)
+            const requiresAction = currentFormCount > targetPlanLimit;
+            const excessFormCount = Math.max(0, currentFormCount - targetPlanLimit);
+            
+            console.log(`🔍 Modal data preparation:`);
+            console.log('  - requiresAction:', requiresAction);
+            console.log('  - excessFormCount:', excessFormCount);
+            
+            return res.status(200).json({
+                success: true,
+                requiresFormSelection: true,
+                isDowngrade: true,
+                currentPlan: previousPlanName,
+                targetPlan: planName,
+                planChangeInfo: {
+                    success: true,
+                    requiresAction: requiresAction,
+                    isDowngrade: true,
+                    planName: planName.toLowerCase(),
+                    previousPlanName: previousPlanName,
+                    currentPlan: planName,
+                    newPlanLimit: targetPlanLimit,
+                    currentFormCount: currentFormCount,
+                    excessFormCount: excessFormCount,
+                    activeForms: activeForms.map(form => ({
+                        _id: form._id,
+                        form_name: form.form_name,
+                        form_note: form.form_note,
+                        form_type: form.form_type,
+                        created_at: form.created_at,
+                        submissionCount: form.submissionCount || 0
+                    })),
+                    message: requiresAction ? 
+                        `Your ${planName} plan allows only ${targetPlanLimit} active form(s). You currently have ${currentFormCount}. Please select which forms to keep active.` :
+                        `Confirm downgrade from ${previousPlanName} to ${planName}. All your forms will remain active.`
+                },
+                subscriptionInfo: {
+                    subscriptionId: currentSubscription.id,
+                    itemId: currentSubscription.items.data[0].id,
+                    priceId: priceId,
+                    planName: planName,
+                    previousPlanName: previousPlanName
+                },
+                message: requiresAction ?
+                    `Switching from ${previousPlanName} to ${planName} requires form selection` :
+                    `Confirm downgrade from ${previousPlanName} to ${planName}`
+            });
+        }
+
+        // For upgrades or non-conflicting changes, no form selection needed
+        return res.status(200).json({
+            success: true,
+            requiresFormSelection: false,
+            isUpgrade: planComparison.isUpgrade,
+            isDowngrade: planComparison.isDowngrade,
+            isSamePlan: planComparison.isSamePlan,
+            currentPlan: previousPlanName,
+            targetPlan: planName,
+            planChangeInfo: {
+                success: true,
+                requiresAction: false,
+                isUpgrade: planComparison.isUpgrade,
+                isDowngrade: planComparison.isDowngrade,
+                isSamePlan: planComparison.isSamePlan,
+                planName: planName.toLowerCase(),
+                previousPlanName: previousPlanName,
+                message: planComparison.isSamePlan ? 
+                    'No action required - same plan selected' : 
+                    `Ready to upgrade from ${previousPlanName} to ${planName}`
+            },
+            subscriptionInfo: {
+                subscriptionId: currentSubscription.id,
+                itemId: currentSubscription.items.data[0].id,
+                priceId: priceId,
+                planName: planName,
+                previousPlanName: previousPlanName
+            },
+            message: planComparison.isSamePlan ?
+                'You are already subscribed to this plan' :
+                planComparison.isUpgrade ? 
+                    `Ready to upgrade from ${previousPlanName} to ${planName}` :
+                    `Ready to change from ${previousPlanName} to ${planName}`
+        });
+
+    } catch (error) {
+        console.error("Error checking plan change requirements:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Update/Modify existing subscription
+export const updateSubscriptionPlan = async (req, res) => {
+    try {
+        const { priceId, planName, selectedFormIds, formsPreSelected } = req.body;
+        console.log("Updating subscription plan:", req.body);
+
+        if (!priceId) {
+            return res.status(400).json({ error: "Price ID is required" });
+        }
+
+        if (!req.userId) {
+            return res.status(401).json({ error: "User not authenticated" });
+        }
+
+        const userIdString = req.userId.toString();
+        const user = await User.findById(userIdString);
+        
+        if (!user.stripeCustomerId) {
+            return res.status(400).json({ error: "User has no Stripe customer ID" });
+        }
+
+        // Check if user has an existing active subscription
+        const subscriptions = await stripe.subscriptions.list({
+            customer: user.stripeCustomerId,
+            status: 'active',
+            limit: 1
+        });
+
+        if (subscriptions.data.length === 0) {
+            // No active subscription - create new one
+            return createCheckoutSession(req, res);
+        }
+
+        const currentSubscription = subscriptions.data[0];
+        const currentPriceId = currentSubscription.items.data[0].price.id;
+
+        // Check if trying to switch to the same plan
+        if (currentPriceId === priceId) {
+            return res.status(400).json({ 
+                error: "You are already subscribed to this plan",
+                current: true 
+            });
+        }
+
+        // Store previous plan info for downgrade protection
+        const previousPrice = await stripe.prices.retrieve(currentPriceId);
+        const previousProduct = await stripe.products.retrieve(previousPrice.product);
+        const previousPlanName = previousProduct.name;
+
+        console.log(`Checking plan change from ${previousPlanName} to ${planName}`);
+
+        // If forms were pre-selected (modal-first flow), handle the form selection first
+        if (formsPreSelected && selectedFormIds) {
+            console.log('🔄 Modal-first flow detected - handling form selection before Stripe update');
+            
+            // Import the form handling functions
+            const { Form } = await import('../models/Form.js');
+            
+            // Verify all selected forms belong to the user
+            const selectedForms = await Form.find({
+                _id: { $in: selectedFormIds },
+                user_id: userIdString
+            });
+
+            if (selectedForms.length !== selectedFormIds.length) {
+                return res.status(403).json({
+                    error: "One or more selected forms do not belong to you"
+                });
+            }
+
+            // Get target plan limits to validate selection
+            const { getPlanByName } = await import('../utils/subscriptionPlans.js');
+            const targetPlanLimits = getPlanByName(planName.toLowerCase());
+            
+            if (selectedFormIds.length > targetPlanLimits.formLimit) {
+                return res.status(400).json({
+                    error: `You can only select ${targetPlanLimits.formLimit} form(s) for your ${planName} plan.`
+                });
+            }
+
+            console.log(`🔒 Locking forms: ${selectedFormIds.length} forms will remain active`);
+            
+            // Get all user's forms
+            const allUserForms = await Form.find({ user_id: userIdString });
+
+            // Deactivate all forms first
+            await Form.updateMany(
+                { user_id: userIdString },
+                { 
+                    is_active: false,
+                    lockedAt: new Date(),
+                    lockReason: `Locked due to downgrade to ${planName} plan`
+                }
+            );
+
+            // Reactivate only selected forms
+            const result = await Form.updateMany(
+                { 
+                    _id: { $in: selectedFormIds },
+                    user_id: userIdString 
+                },
+                { 
+                    is_active: true,
+                    $unset: { lockedAt: 1, lockReason: 1 } // Remove lock fields
+                }
+            );
+
+            const lockedFormCount = allUserForms.length - selectedFormIds.length;
+            console.log(`✅ Form locking completed: ${selectedFormIds.length} active, ${lockedFormCount} locked`);
+        } else {
+            // IMPORTANT: Check for downgrades BEFORE updating Stripe subscription
+            // This prevents webhook auto-handling from interfering with manual selection
+            const preliminaryCheck = await handlePlanChangeProtection(userIdString, previousPlanName, false);
+            console.log('🔍 Preliminary check result:', preliminaryCheck);
+            
+            // DEBUG: Log all relevant values for troubleshooting
+            console.log('🐛 DEBUG VALUES:');
+            console.log('  preliminaryCheck.success:', preliminaryCheck.success);
+            console.log('  preliminaryCheck.isDowngrade:', preliminaryCheck.isDowngrade);
+            console.log('  preliminaryCheck.requiresAction:', preliminaryCheck.requiresAction);
+            console.log('  preliminaryCheck.autoHandled:', preliminaryCheck.autoHandled);
+            
+            // Check if this is a downgrade that requires manual intervention
+            if (preliminaryCheck.success && preliminaryCheck.isDowngrade && preliminaryCheck.requiresAction) {
+                console.log(`🚫 DOWNGRADE DETECTED - STOPPING STRIPE UPDATE`);
+                console.log(`📊 User has ${preliminaryCheck.currentFormCount} forms, new plan allows ${preliminaryCheck.newPlanLimit}`);
+                console.log(`🛡️ Returning dialog data - NO Stripe subscription update will occur`);
+                
+                // This is a downgrade that requires user intervention
+                // Return the downgrade info WITHOUT updating Stripe yet
+                return res.status(200).json({
+                    success: true,
+                    requiresFormSelection: true,
+                    subscriptionNotUpdated: true,
+                    planChangeProtection: preliminaryCheck,
+                    message: `Plan change requires form selection. Please select which forms to keep active.`,
+                    // Include Stripe update info for when user completes selection
+                    pendingUpdate: {
+                        subscriptionId: currentSubscription.id,
+                        itemId: currentSubscription.items.data[0].id,
+                        priceId: priceId,
+                        planName: planName,
+                        previousPlanName: previousPlanName
+                    }
+                });
+            }
+        }
+
+        console.log(`⬆️ PROCEEDING WITH STRIPE UPDATE - Forms handled, updating subscription`);
+        console.log(`🔄 Updating subscription from ${previousPlanName} to ${planName}`);
+
+        // Update the subscription with new price
+        const updatedSubscription = await stripe.subscriptions.update(
+            currentSubscription.id,
+            {
+                items: [
+                    {
+                        id: currentSubscription.items.data[0].id,
+                        price: priceId,
+                    },
+                ],
+                proration_behavior: 'create_prorations', // Handle prorations for immediate changes
+                metadata: {
+                    planName,
+                    userId: userIdString,
+                    previousPlan: previousPlanName,
+                    formsPreSelected: formsPreSelected ? 'true' : 'false'
+                }
+            }
+        );
+
+        // IMMEDIATELY update Payment record for instant UI refresh
+        // This ensures the frontend gets updated plan info without waiting for webhooks
+        try {
+            const { Payment } = await import('../models/Payment.js');
+            const subscriptionExpiry = new Date(updatedSubscription.current_period_end * 1000);
+            
+            await Payment.findOneAndUpdate(
+                { user_id: userIdString, subscription_id: updatedSubscription.id },
+                {
+                    plan: planName,
+                    subscription_expiry: subscriptionExpiry,
+                    updated_at: new Date(),
+                },
+                { upsert: true, new: true }
+            );
+            
+            console.log(`✅ Payment record updated immediately for plan change to ${planName}`);
+        } catch (paymentUpdateError) {
+            console.warn('Failed to update payment record immediately:', paymentUpdateError);
+            // Don't fail the request if payment update fails - webhook will handle it
+        }
+
+        // For upgrades, handle form unlocking (only if not in modal-first flow)
+        if (!formsPreSelected) {
+            const preliminaryCheck = await handlePlanChangeProtection(userIdString, previousPlanName, false);
+            if (preliminaryCheck.success && preliminaryCheck.isUpgrade) {
+                const upgradeResult = await handlePlanChangeProtection(userIdString, previousPlanName, true);
+                console.log(`Upgrade processed:`, upgradeResult);
+            }
+        }
+        
+        console.log(`Subscription updated successfully:`, {
+            subscriptionId: updatedSubscription.id,
+            newPlan: planName,
+            previousPlan: previousPlanName,
+            formsPreSelected
+        });
+
+        res.status(200).json({ 
+            success: true,
+            subscription: updatedSubscription,
+            message: `Successfully updated to ${planName} plan`
+        });
+
+    } catch (error) {
+        console.error("Error updating subscription plan:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Complete subscription update after form selection (for downgrades)
+export const completeSubscriptionUpdate = async (req, res) => {
+    try {
+        const { pendingUpdate, selectedFormIds } = req.body;
+        console.log("Completing subscription update after form selection:", req.body);
+
+        if (!pendingUpdate || !selectedFormIds) {
+            return res.status(400).json({ error: "Pending update info and selected form IDs are required" });
+        }
+
+        if (!req.userId) {
+            return res.status(401).json({ error: "User not authenticated" });
+        }
+
+        const userIdString = req.userId.toString();
+
+        // Import axios for internal API calls
+        const axios = (await import('axios')).default;
+
+        // First, handle the form selection
+        const formSelectionResponse = await axios.post(
+            `${process.env.SERVER_URL || 'http://localhost:5000'}/api/plan-downgrade/handle-form-selection`,
+            { selectedFormIds },
+            { 
+                headers: { 
+                    'Authorization': req.headers.authorization,
+                    'Cookie': req.headers.cookie 
+                }
+            }
+        );
+
+        if (!formSelectionResponse.data.success) {
+            return res.status(400).json({ error: formSelectionResponse.data.error });
+        }
+
+        // Now update the Stripe subscription
+        const updatedSubscription = await stripe.subscriptions.update(
+            pendingUpdate.subscriptionId,
+            {
+                items: [
+                    {
+                        id: pendingUpdate.itemId,
+                        price: pendingUpdate.priceId,
+                    },
+                ],
+                proration_behavior: 'create_prorations',
+                metadata: {
+                    planName: pendingUpdate.planName,
+                    userId: userIdString,
+                    previousPlan: pendingUpdate.previousPlanName,
+                    formsPreSelected: 'true' // Flag to prevent webhook auto-handling
+                }
+            }
+        );
+
+        console.log(`Subscription update completed after form selection`);
+
+        res.status(200).json({ 
+            success: true,
+            subscription: updatedSubscription,
+            formSelection: formSelectionResponse.data.data,
+            message: `Successfully updated to ${pendingUpdate.planName} plan and managed forms`
+        });
+
+    } catch (error) {
+        console.error("Error completing subscription update:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Create checkout session for new subscriptions
 export const createCheckoutSession = async (req, res) => {
     try {
         const { priceId, planName } = req.body;  // Price ID passed from frontend
@@ -80,7 +570,7 @@ export const createCheckoutSession = async (req, res) => {
                 },
             ],
             success_url: `${process.env.CLIENT_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,  // Redirect after successful payment
-            cancel_url: `${process.env.CLIENT_URL}/subscription`,  // Redirect if user cancels
+            cancel_url: `${process.env.CLIENT_URL}/billing`,  // Redirect if user cancels
             customer: stripeCustomerId,
             metadata: {
                 planName,

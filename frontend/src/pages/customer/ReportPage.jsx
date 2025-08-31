@@ -170,7 +170,7 @@ function ReportPage() {
             ) : (
                 <div className="flex flex-col lg:flex-col xl:flex-row gap-4 pt-0 flex-wrap">
                     {/* Bar Chart */}
-                    <Card className="mt-4">
+                    <Card className="mt-4 w-full lg:w-1/2 xl:w-2/3">
                         <CardHeader className="border-b flex flex-row justify-between">
                             <CardTitle className="text-lg md:text-xl">Submissions</CardTitle>
                             <CardTitle className="text-md md:text-lg">Total: {filteredSubmissions.length}</CardTitle>

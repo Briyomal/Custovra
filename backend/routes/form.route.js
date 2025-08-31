@@ -11,6 +11,7 @@ import {
 
 import checkSubscription from '../middleware/checkSubscription.js';  // Importing the middleware function
 import { verifyToken } from '../middleware/verifyToken.js';
+import { checkFormCreationLimit } from '../middleware/checkSubscriptionLimits.js';
 import { fileURLToPath } from 'url';
 
 import multer from 'multer';
@@ -77,7 +78,7 @@ const router = express.Router();
 
 router.get('/', verifyToken, checkSubscription, getAllUserForms);
 router.get('/:id', verifyToken, checkSubscription, getFormById);
-router.post('/create-form', verifyToken, checkSubscription, createForm);
+router.post('/create-form', verifyToken, checkSubscription, checkFormCreationLimit, createForm);
 
 // Use the 'logoUpload' multer configuration to handle image upload for logos
 router.put('/update-form/:id', verifyToken, checkSubscription, logoUpload.single('image'), updateForm);

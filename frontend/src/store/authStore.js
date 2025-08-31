@@ -100,4 +100,16 @@ export const useAuthStore = create((set) => ({
 			throw error;
 		}
 	},
+
+	// Update user payment information after plan changes
+	updateUserPayment: async () => {
+		try {
+			const response = await axios.get(`${API_URL}/check-auth`);
+			set({ user: response.data.user });
+			return response.data.user;
+		} catch (error) {
+			console.error('Error updating user payment info:', error);
+			throw error;
+		}
+	},
 }));

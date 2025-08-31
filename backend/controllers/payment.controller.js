@@ -1,6 +1,7 @@
 import { stripe } from "../utils/stripe.js";
 import { User } from "../models/User.js";
 import { Payment } from "../models/Payment.js";
+import { handlePlanChangeProtection } from "../middleware/planChangeProtection.js";
 
 //const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -42,6 +43,28 @@ export const handleStripeWebhook = async (req, res) => {
             await handlePaymentSucceeded(invoice);
             break;
 
+        case 'invoice.payment_failed':
+            try {
+                const invoice = event.data.object;
+                const customerId = invoice.customer;
+                const subscriptionId = invoice.subscription;
+
+                // Get the user ID from Customer
+                const customer = await stripe.customers.retrieve(customerId);
+                const userId = customer.metadata?.userId;
+
+                if (userId) {
+                    await User.findByIdAndUpdate(userId, {
+                        subscription_status: 'past_due',
+                        is_active: false, // Deactivate user on payment failure
+                    });
+                    console.log(`✅ User ${userId} marked as past_due due to payment failure`);
+                }
+            } catch (err) {
+                console.error('❌ Error handling invoice.payment_failed:', err);
+            }
+            break;
+
         case 'customer.subscription.deleted':
             try {
                 const subscription = event.data.object;
@@ -50,8 +73,9 @@ export const handleStripeWebhook = async (req, res) => {
                 const user = await User.findOne({ stripeCustomerId: customerId });
                 if (user) {
                     user.is_active = false;
+                    user.subscription_status = 'canceled';
                     await user.save();
-                    console.log("User deactivated due to subscription cancellation.");
+                    console.log("User deactivated and marked as canceled due to subscription deletion.");
                 }
             } catch (err) {
                 console.error("Error handling subscription.deleted:", err);
@@ -79,6 +103,7 @@ export const handleStripeWebhook = async (req, res) => {
                 };
 
                 const planName = productMap[productId] || 'default';
+                const previousPlan = subscription.metadata?.previousPlan;
 
                 // Get the user ID from Customer
                 const customer = await stripe.customers.retrieve(customerId);
@@ -93,6 +118,7 @@ export const handleStripeWebhook = async (req, res) => {
                 await User.findByIdAndUpdate(userId, {
                     subscription_plan: subscriptionId,
                     subscription_expiry: endDate,
+                    subscription_status: status,
                     is_active: status === 'active',
                 });
 
@@ -106,6 +132,35 @@ export const handleStripeWebhook = async (req, res) => {
                     },
                     { upsert: true }
                 );
+
+                // Trigger downgrade protection if this is a plan change (auto-handle in webhooks)
+                // Skip if forms were pre-selected (to avoid conflict with manual selection)
+                if (previousPlan && previousPlan !== planName) {
+                    const formsPreSelected = subscription.metadata?.formsPreSelected === 'true';
+                    
+                    if (formsPreSelected) {
+                        console.log(`✅ Skipping auto-handling for user ${userId} - forms were pre-selected`);
+                    } else {
+                        console.log(`⚠️ Plan change detected: ${previousPlan} → ${planName} for user ${userId}`);
+                        
+                        // SAFETY CHECK: If this is a downgrade, NEVER auto-handle from webhook
+                        // The frontend should handle downgrade selection manually
+                        const { comparePlans } = await import('../utils/subscriptionPlans.js');
+                        const planComparison = comparePlans(previousPlan, planName);
+                        
+                        if (planComparison.isDowngrade) {
+                            console.log(`🚫 WEBHOOK SAFETY: Detected downgrade ${previousPlan} → ${planName} - NOT auto-handling`);
+                            console.log(`⚠️ This suggests the API call updated Stripe before showing dialog!`);
+                        } else {
+                            // Only auto-handle upgrades or same-plan changes
+                            const protectionResult = await handlePlanChangeProtection(userId, previousPlan, true);
+                            
+                            if (protectionResult.requiresAction) {
+                                console.log(`Plan change protection triggered for user ${userId}:`, protectionResult.message);
+                            }
+                        }
+                    }
+                }
 
                 console.log(`✅ User and payment info updated from subscription.updated to plan ${planName}`);
             } catch (err) {
@@ -142,11 +197,23 @@ export const handleSubscriptionCompleted = async (session) => {
             console.log(`User not found with userId: ${userId}`);
             return;
         }
+        // Get subscription details from Stripe
+        let subscriptionExpiry = null;
+        if (subscriptionId) {
+            try {
+                const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+                subscriptionExpiry = new Date(subscription.current_period_end * 1000);
+            } catch (error) {
+                console.error('Error retrieving subscription:', error);
+            }
+        }
+
         // Update user details
         user.subscription_plan = subscriptionId || "default_plan"; // Default plan if subscriptionId is null
-        //user.subscription_expiry = subscriptionExpiry;
-        user.stripeCustomerId = customerId,
-            user.is_active = true;
+        user.subscription_expiry = subscriptionExpiry;
+        user.subscription_status = 'active';
+        user.stripeCustomerId = customerId;
+        user.is_active = true;
         await user.save();
 
         console.log("Subscription updated successfully for user:", userId);
@@ -205,6 +272,7 @@ const handlePaymentSucceeded = async (invoice) => {
             is_active: true,
             subscription_plan: subscriptionId,
             subscription_expiry,
+            subscription_status: 'active',
         });
 
         console.log(`✅ Payment saved and user ${userId} updated`);

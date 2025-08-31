@@ -104,31 +104,8 @@ export const createForm = async (req, res) => {
             return res.status(400).json({ message: "Missing required fields." });
         }
 
-        // 🔒 Check form creation limit
-        const user = await User.findById(user_id);
-        if (!user) return res.status(404).json({ message: "User not found." });
-
-// 🔍 Get latest payment record for this user
-const latestPayment = await Payment.findOne({ user_id: user_id })
-  .sort({ created_at: -1 }); // latest payment first
-
-let planName = "basic"; // default
-
-if (latestPayment?.plan) {
-  planName = latestPayment.plan.toLowerCase(); // e.g., 'Basic' → 'basic'
-}
-
-// 📦 Get form limit from config
-const formLimit = subscriptionPlans[planName]?.formLimit ?? 1;
-
-// 🔒 Enforce limit
-const existingFormCount = await Form.countDocuments({ user_id });
-
-if (existingFormCount >= formLimit) {
-  return res.status(403).json({
-    message: `You have reached the limit (${formLimit}) of forms for your ${planName} plan.`
-  });
-}
+        // Note: Form creation limits are now checked by middleware
+        // The middleware adds req.userPlan with limit information
         // Create the form
         const form = new Form({
             user_id,

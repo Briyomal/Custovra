@@ -64,8 +64,16 @@ const useFormStore = create((set) => ({
             return response.data.form;
         } catch (error) {
             console.error("Error creating form:", error.response?.data || error.message);
-            set({ error: error.response?.data?.message || "Failed to create form", loading: false });
-            throw error; // Re-throw the error for further handling if needed
+            
+            // Store the full error details for better error handling
+            const errorMessage = error.response?.data?.error || 
+                               error.response?.data?.message || 
+                               "Failed to create form";
+            
+            set({ error: errorMessage, loading: false });
+            
+            // Re-throw the original error with all details intact
+            throw error;
         }
     },
 

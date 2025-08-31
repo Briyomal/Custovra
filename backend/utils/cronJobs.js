@@ -2,8 +2,8 @@ import cron from 'node-cron';
 import { User } from "../models/User.js";
 import { Payment } from "../models/Payment.js";
 
-// Run every day at midnight
-cron.schedule('* * * * *', async () => {
+// Run every day at midnight (00:00) - Check subscription expiry
+cron.schedule('0 0 * * *', async () => {
     console.log('Running subscription expiry check...');
     try {
         const now = new Date();
@@ -29,7 +29,12 @@ cron.schedule('* * * * *', async () => {
         if (usersToDeactivate.length > 0) {
             const result = await User.updateMany(
                 { _id: { $in: usersToDeactivate }, is_active: true },
-                { $set: { is_active: false } }
+                { 
+                    $set: { 
+                        is_active: false,
+                        subscription_status: 'expired'
+                    } 
+                }
             );
             console.log(`Deactivated ${result.modifiedCount} users with no active subscriptions.`);
         } else {
@@ -38,5 +43,29 @@ cron.schedule('* * * * *', async () => {
 
     } catch (error) {
         console.error('Error running subscription expiry check:', error);
+    }
+});
+
+// Run on the first day of every month at 00:01 - Reset monthly submission counts
+cron.schedule('1 0 1 * *', async () => {
+    console.log('Running monthly submission count reset...');
+    try {
+        const now = new Date();
+        
+        // Reset monthly submission count for all users
+        const result = await User.updateMany(
+            {}, // Update all users
+            {
+                $set: {
+                    monthly_submission_count: 0,
+                    last_submission_reset: now
+                }
+            }
+        );
+        
+        console.log(`Reset monthly submission count for ${result.modifiedCount} users.`);
+        
+    } catch (error) {
+        console.error('Error running monthly submission reset:', error);
     }
 });

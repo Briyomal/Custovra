@@ -140,7 +140,7 @@ const FormViewPage = () => {
         try {
             console.log("Form State on Submit:", formDetails);
 
-            const { submitForm, error } = useSubmissionStore.getState();
+            const { submitForm } = useSubmissionStore.getState();
             const formData = new FormData(e.target);
             let validationErrors = {};
             let ratingValue = 0; // Store rating value
@@ -175,16 +175,19 @@ const FormViewPage = () => {
                 form_id: formDetails._id,
                 user_id: formDetails.user_id,
                 submissions: Object.fromEntries(formData.entries()),
+                captchaToken,
             };
 
             console.log("Form submitted with data:", submissionDetails);
 
             // Submit the form
             await submitForm(submissionDetails);
+            const { error } = useSubmissionStore.getState();
 
             if (error) {
                 toast.error("Form submission failed.");
                 console.log("Submission Error:", error);
+                return;
             } else {
                 toast.success("Form submitted successfully!");
                 setSubmitSuccess(true);

@@ -9,7 +9,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import HomePage from "./pages/front/HomePage";
 import AdminDashboardPage from "./pages/admin/index";
 import UsersPage from "./pages/admin/UsersPage";
-import SubscriptionPage from "./pages/customer/SubscriptionPage";
+
 import FormPage from "./pages/customer/FormPage";
 
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -48,11 +48,11 @@ const ProtectedRoute = ({ children, role }) => {
     }
 
 	 // Define routes to ignore for is_active check
-	 const skipIsActiveCheckRoutes = ["/subscription", "/profile", "/billing" ];
+	 const skipIsActiveCheckRoutes = ["/billing", "/profile" ];
 
-    // Skip is_active check for the /subscription page to prevent redirect loops
+    // Redirect users without active subscription to billing page to choose a plan
     if (user?.is_active === false && !skipIsActiveCheckRoutes.includes(location.pathname)) {
-        return <Navigate to="/subscription" replace />;
+        return <Navigate to="/billing" replace />;
     }
 
     return children;
@@ -93,11 +93,7 @@ function App() {
 				/>
 				<Route
 					path="/subscription"
-					element={
-						<ProtectedRoute role="customer">
-							<SubscriptionPage />
-						</ProtectedRoute>
-					}
+					element={<Navigate to="/billing" replace />}
 				/>
 
 				<Route
