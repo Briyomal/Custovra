@@ -104,7 +104,16 @@ const useFormStore = create((set) => ({
             return response.data;
         } catch (error) {
             console.error("Error updating form:", error.response?.data || error.message);
-            return error.response?.data;
+            
+            // Store the error for state management
+            const errorMessage = error.response?.data?.error || 
+                               error.response?.data?.message || 
+                               "Failed to update form";
+            
+            set({ error: errorMessage });
+            
+            // Re-throw the original error with all details intact
+            throw error;
         } finally {
             set({ isLoading: false });
         }

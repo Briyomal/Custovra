@@ -1,6 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableRow, TableHeader, TableBody, TableCell, TableHead } from "@/components/ui/table";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
 import {
@@ -17,23 +23,98 @@ import {
 	getFilteredRowModel,
 } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
-import { FileDown } from "lucide-react";
+import { FileDown, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
+import useSubmissionStore from "@/store/submissionStore";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const DataTable = ({ data, columns, setLocalSubmissions }) => {
 	const [sorting, setSorting] = useState([{ id: "createdAt", desc: true }]);
 	const [columnFilters, setColumnFilters] = useState([]);
 	const [rowSelection, setRowSelection] = useState({});
+	const [employeeFilter, setEmployeeFilter] = useState("");
+	const [dateFrom, setDateFrom] = useState(null);
+	const [dateTo, setDateTo] = useState(null);
+	const [pagination, setPagination] = useState({
+		pageIndex: 0,
+		pageSize: 10,
+	});
 
 	const updateData = (newData) => {
 		setLocalSubmissions(newData);
 	};
 
+	// Check if submissions contain employee data
+	const hasEmployeeData = useMemo(() => {
+		return data.some((row) => {
+			// Check for employee field in submissions
+			const submissions = row.submissions || {};
+			return Object.keys(submissions).some(key => 
+				key.toLowerCase().includes('employee') && submissions[key]
+			);
+		});
+	}, [data]);
+
+	// Bulk delete functionality
+	const { deleteSubmission } = useSubmissionStore();
+	
+	// Get unique employee values for filter dropdown
+	const uniqueEmployees = useMemo(() => {
+		if (!hasEmployeeData) return [];
+		
+		const employees = new Set();
+		data.forEach((row) => {
+			const submissions = row.submissions || {};
+			Object.keys(submissions).forEach(key => {
+				if (key.toLowerCase().includes('employee') && submissions[key]) {
+					employees.add(submissions[key]);
+				}
+			});
+		});
+		
+		return Array.from(employees).sort();
+	}, [data, hasEmployeeData]);
+
+	// Apply employee filter to data
+	const employeeFilteredData = useMemo(() => {
+		if (!employeeFilter || employeeFilter === "all-employees" || !hasEmployeeData) return data;
+		
+		return data.filter((row) => {
+			const submissions = row.submissions || {};
+			return Object.keys(submissions).some(key => {
+				if (key.toLowerCase().includes('employee') && submissions[key]) {
+					return submissions[key] === employeeFilter;
+				}
+				return false;
+			});
+		});
+	}, [data, employeeFilter, hasEmployeeData]);
+
+	// Apply date range filter to data
+	const dateFilteredData = useMemo(() => {
+		if (!dateFrom && !dateTo) return employeeFilteredData;
+		
+		return employeeFilteredData.filter((row) => {
+			const createdAt = new Date(row.createdAt);
+			
+			if (dateFrom && dateTo) {
+				return createdAt >= dateFrom && createdAt <= dateTo;
+			} else if (dateFrom) {
+				return createdAt >= dateFrom;
+			} else if (dateTo) {
+				return createdAt <= dateTo;
+			}
+			
+			return true;
+		});
+	}, [employeeFilteredData, dateFrom, dateTo]);
+
 	// Filter out columns based on the presence of submissions.email
 	const filteredColumns = useMemo(() => {
-		const hasEmail = data.some((row) => row.submissions?.email);
-		const hasPhone = data.some((row) => row.submissions?.phone);
-		const hasName = data.some((row) => row.submissions?.name);
+		const dataToUse = dateFilteredData;
+		const hasEmail = dataToUse.some((row) => row.submissions?.email);
+		const hasPhone = dataToUse.some((row) => row.submissions?.phone);
+		const hasName = dataToUse.some((row) => row.submissions?.name);
 		return columns.filter((column) => {
 			if (column.accessorKey === "submissions.email") {
 				return hasEmail;
@@ -46,10 +127,10 @@ const DataTable = ({ data, columns, setLocalSubmissions }) => {
 			}
 			return true; // Keep other columns
 		});
-	}, [data, columns]);
+	}, [dateFilteredData, columns]);
 
 	const table = useReactTable({
-		data,
+		data: dateFilteredData,
 		columns: filteredColumns,
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
@@ -58,12 +139,49 @@ const DataTable = ({ data, columns, setLocalSubmissions }) => {
 		onColumnFiltersChange: setColumnFilters,
 		getFilteredRowModel: getFilteredRowModel(),
 		onRowSelectionChange: setRowSelection,
+		getRowId: (row) => row._id, // Add this to maintain selection across pages
+		onPaginationChange: setPagination, // Use React Table's pagination state
 		state: {
 			sorting,
 			columnFilters,
 			rowSelection,
+			pagination, // Use the pagination state directly
 		},
 	});
+	
+	const selectedRows = table.getFilteredSelectedRowModel().rows;
+	const selectedCount = selectedRows.length;
+
+	const handleBulkDelete = async () => {
+		if (selectedCount === 0) {
+			toast.error("No items selected for deletion.");
+			return;
+		}
+
+		toast.promise(
+			(async () => {
+				const selectedIds = selectedRows.map(row => row.original._id);
+				
+				// Delete all selected submissions
+				for (const id of selectedIds) {
+					await deleteSubmission(id);
+				}
+
+				// Update local state to reflect deletions
+				updateData((prevData) => 
+					prevData.filter(item => !selectedIds.includes(item._id))
+				);
+
+				// Clear selection
+				setRowSelection({});
+			})(),
+			{
+				loading: `Deleting ${selectedCount} submission${selectedCount > 1 ? 's' : ''}...`,
+				success: `${selectedCount} submission${selectedCount > 1 ? 's' : ''} deleted successfully!`,
+				error: "Failed to delete submissions.",
+			}
+		);
+	};
 /*
 	// CSV Export Utility Function
 	const exportToCSV = () => {
@@ -215,84 +333,297 @@ const exportToCSV = () => {
 	document.body.removeChild(a);
 };
 
-
 	return (
 		<div>
 			<div className="flex items-center justify-between py-4 gap-2">
-				{data.some((row) => row.submissions?.email) ? (
-					<Input
-						placeholder="Filter emails..."
-						value={table.getColumn("email")?.getFilterValue() ?? ""}
-						onChange={(event) =>
-							table.getColumn("email")?.setFilterValue(event.target.value)
-						}
-						className="max-w-sm"
-					/>
-				) : data.some((row) => row.submissions?.phone) ? (
-					<Input
-						placeholder="Filter phones..."
-						value={table.getColumn("phone")?.getFilterValue() ?? ""}
-						onChange={(event) =>
-							table.getColumn("phone")?.setFilterValue(event.target.value)
-						}
-						className="max-w-sm"
-					/>
-				) : data.some((row) => row.submissions?.name) ? (
-					<Input
-						placeholder="Filter names..."
-						value={table.getColumn("name")?.getFilterValue() ?? ""}
-						onChange={(event) =>
-							table.getColumn("name")?.setFilterValue(event.target.value)
-						}
-						className="max-w-sm"
-					/>
-				) : null}
-				<Button
-					size="sm"
-					onClick={exportToCSV}
-					className="bg-green-600 text-white hover:bg-green-700"
-
-				>
-					<FileDown /> Export as CSV
-				</Button>
-			</div>
-			<div className="max-w-[330px] xs:max-w-[400px] sm:max-w-[500px] md:max-w-full relative overflow-auto">
-			<div className="rounded-md border">
-				<Table>
-					<TableHeader>
-						{table.getHeaderGroups().map((headerGroup) => (
-							<TableRow key={headerGroup.id}>
-								{headerGroup.headers.map((header) => (
-									<TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header || header.column.columnDef.Header, header.getContext())}</TableHead>
+				<div className="flex items-center gap-2">
+					{data.some((row) => row.submissions?.email) ? (
+						<Input
+							placeholder="Filter emails..."
+							value={table.getColumn("email")?.getFilterValue() ?? ""}
+							onChange={(event) =>
+								table.getColumn("email")?.setFilterValue(event.target.value)
+							}
+							className="max-w-sm"
+						/>
+					) : data.some((row) => row.submissions?.phone) ? (
+						<Input
+							placeholder="Filter phones..."
+							value={table.getColumn("phone")?.getFilterValue() ?? ""}
+							onChange={(event) =>
+								table.getColumn("phone")?.setFilterValue(event.target.value)
+							}
+							className="max-w-sm"
+						/>
+					) : data.some((row) => row.submissions?.name) ? (
+						<Input
+							placeholder="Filter names..."
+							value={table.getColumn("name")?.getFilterValue() ?? ""}
+							onChange={(event) =>
+								table.getColumn("name")?.setFilterValue(event.target.value)
+							}
+							className="max-w-sm"
+						/>
+					) : null}
+					
+					{hasEmployeeData && (
+						<Select value={employeeFilter} onValueChange={(value) => setEmployeeFilter(value === "all-employees" ? "" : value)}>
+							<SelectTrigger className="w-[200px]">
+								<SelectValue placeholder="Filter by employee" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all-employees">All Employees</SelectItem>
+								{uniqueEmployees.map((employee) => (
+									<SelectItem key={employee} value={employee}>
+										{employee}
+									</SelectItem>
 								))}
-							</TableRow>
-						))}
-					</TableHeader>
-					<TableBody>
-						{table.getRowModel().rows.map((row) => (
-							<TableRow key={row.id}>
-								{row.getVisibleCells().map((cell) => (
-									<TableCell key={cell.id}>{flexRender(cell.column.columnDef.Cell || cell.column.columnDef.cell, { ...cell.getContext(), updateData })}</TableCell>
-								))}
-							</TableRow>
-						))}
-					</TableBody>
-				</Table>
+							</SelectContent>
+						</Select>
+					)}
+					
+					{/* Date Range Filter */}
+					<div className="flex items-center gap-2">
+						<Popover>
+							<PopoverTrigger asChild>
+								<Button
+									variant="outline"
+									size="sm"
+									className={cn(
+										"w-[140px] justify-start text-left font-normal",
+										!dateFrom && "text-muted-foreground"
+									)}
+								>
+									<CalendarIcon className="mr-2 h-4 w-4" />
+									{dateFrom ? format(dateFrom, "dd/MM/yyyy") : "From date"}
+								</Button>
+							</PopoverTrigger>
+							<PopoverContent className="w-auto p-0" align="start">
+								<Calendar
+									mode="single"
+									selected={dateFrom}
+									onSelect={setDateFrom}
+									initialFocus
+								/>
+							</PopoverContent>
+						</Popover>
+						
+						<Popover>
+							<PopoverTrigger asChild>
+								<Button
+									variant="outline"
+									size="sm"
+									className={cn(
+										"w-[140px] justify-start text-left font-normal",
+										!dateTo && "text-muted-foreground"
+									)}
+								>
+									<CalendarIcon className="mr-2 h-4 w-4" />
+									{dateTo ? format(dateTo, "dd/MM/yyyy") : "To date"}
+								</Button>
+							</PopoverTrigger>
+							<PopoverContent className="w-auto p-0" align="start">
+								<Calendar
+									mode="single"
+									selected={dateTo}
+									onSelect={setDateTo}
+									initialFocus
+								/>
+							</PopoverContent>
+						</Popover>
+						
+						{(dateFrom || dateTo) && (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => {
+									setDateFrom(null);
+									setDateTo(null);
+								}}
+								className="px-2"
+							>
+								Clear
+							</Button>
+						)}
+					</div>
+				</div>
+				<div className="flex items-center gap-2">
+					{selectedCount > 0 && (
+						<AlertDialog>
+							<AlertDialogTrigger asChild>
+								<Button
+									variant="destructive"
+									size="sm"
+									className="gap-2"
+								>
+									<Trash2 className="h-4 w-4" />
+									Delete {selectedCount} item{selectedCount > 1 ? 's' : ''}
+								</Button>
+							</AlertDialogTrigger>
+							<AlertDialogContent>
+								<AlertDialogHeader>
+									<AlertDialogTitle>Confirm Bulk Deletion</AlertDialogTitle>
+									<AlertDialogDescription>
+										Are you sure you want to delete {selectedCount} selected submission{selectedCount > 1 ? 's' : ''}? This action cannot be undone.
+									</AlertDialogDescription>
+								</AlertDialogHeader>
+								<AlertDialogFooter>
+									<Button variant="outline" onClick={() => {}}>
+										Cancel
+									</Button>
+									<Button variant="destructive" onClick={handleBulkDelete}>
+										Delete {selectedCount} item{selectedCount > 1 ? 's' : ''}
+									</Button>
+								</AlertDialogFooter>
+							</AlertDialogContent>
+						</AlertDialog>
+					)}
+					<Button
+						size="sm"
+						onClick={exportToCSV}
+						className="bg-green-600 text-white hover:bg-green-700"
+					>
+						<FileDown /> Export as CSV
+					</Button>
+				</div>
 			</div>
+			<div className="rounded-md border flex">
+				<ScrollArea className="w-1 flex-1" orientation="horizontal">
+						<Table className="relative w-full">
+							<TableHeader className="bg-white dark:bg-slate-900">
+								{table.getHeaderGroups().map((headerGroup) => (
+									<TableRow key={headerGroup.id}>
+										{headerGroup.headers.map((header) => {
+											const isActionsColumn = header.column.id === 'actions';
+											return (
+												<TableHead 
+													key={header.id} 
+													className={isActionsColumn ? 'sticky right-0 bg-white dark:bg-slate-900 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.1)] z-10 min-w-[100px]' : 'whitespace-nowrap px-4 min-w-[120px]'}
+												>
+													{header.isPlaceholder ? null : flexRender(header.column.columnDef.header || header.column.columnDef.Header, header.getContext())}
+												</TableHead>
+											);
+										})}
+									</TableRow>
+								))}
+							</TableHeader>
+							<TableBody>
+								{table.getPaginationRowModel().rows.map((row) => (
+									<TableRow key={row.id}>
+										{row.getVisibleCells().map((cell) => {
+											const isActionsColumn = cell.column.id === 'actions';
+											return (
+												<TableCell 
+													key={cell.id}
+													className={isActionsColumn ? 'sticky right-0 bg-white dark:bg-slate-900 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.1)] z-10 min-w-[100px]' : 'whitespace-nowrap px-4 min-w-[120px]'}
+												>
+													{flexRender(cell.column.columnDef.Cell || cell.column.columnDef.cell, { ...cell.getContext(), updateData })}
+												</TableCell>
+											);
+										})}
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					<ScrollBar orientation="horizontal" />
+				</ScrollArea>
 			</div>
 			<div className="flex items-center justify-between">
-				<div className="flex-1 text-sm text-muted-foreground">
-					{table.getFilteredSelectedRowModel().rows.length} of{" "}
-					{table.getFilteredRowModel().rows.length} row(s) selected.
+				<div className="flex items-center gap-4">
+					<div className="flex-1 text-sm text-muted-foreground">
+						{table.getFilteredSelectedRowModel().rows.length} of{" "}
+						{table.getFilteredRowModel().rows.length} row(s) selected.
+					</div>
+					<div className="flex items-center gap-2">
+						<span className="text-sm text-muted-foreground">Rows per page:</span>
+						<Select value={pagination.pageSize.toString()} onValueChange={(value) => {
+							const newPageSize = Number(value);
+							table.setPageSize(newPageSize);
+						}}>
+							<SelectTrigger className="w-[70px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="10">10</SelectItem>
+								<SelectItem value="25">25</SelectItem>
+								<SelectItem value="50">50</SelectItem>
+								<SelectItem value="100">100</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
 				</div>
-				<div className="flex items-center justify-end space-x-2 py-4">
-					<Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-						Previous
-					</Button>
-					<Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-						Next
-					</Button>
-				</div>
+				<div className="flex items-center gap-2">
+					<div className="text-sm text-muted-foreground">
+						Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+					</div>
+					<div className="flex items-center space-x-2">
+						<Button 
+							variant="outline" 
+							size="sm" 
+							onClick={() => table.setPageIndex(0)} 
+							disabled={!table.getCanPreviousPage()}
+						>
+							«
+						</Button>
+						<Button 
+							variant="outline" 
+							size="sm" 
+							onClick={() => table.previousPage()} 
+							disabled={!table.getCanPreviousPage()}
+						>
+							‹
+						</Button>
+						
+						{/* Page Numbers */}
+						{(() => {
+							const currentPage = table.getState().pagination.pageIndex;
+							const totalPages = table.getPageCount();
+							const pages = [];
+							
+							// Show max 5 page numbers
+							let startPage = Math.max(0, currentPage - 2);
+							let endPage = Math.min(totalPages - 1, startPage + 4);
+							
+							// Adjust if we're near the end
+							if (endPage - startPage < 4) {
+								startPage = Math.max(0, endPage - 4);
+							}
+							
+							for (let i = startPage; i <= endPage; i++) {
+								pages.push(
+									<Button
+										key={i}
+										variant={currentPage === i ? "default" : "outline"}
+										size="sm"
+										onClick={() => table.setPageIndex(i)}
+										className="w-8 h-8 p-0"
+									>
+										{i + 1}
+									</Button>
+								);
+							}
+							
+							return pages;
+						})()}
+						
+						<Button 
+							variant="outline" 
+							size="sm" 
+							onClick={() => table.nextPage()} 
+							disabled={!table.getCanNextPage()}
+						>
+							›
+						</Button>
+						<Button 
+							variant="outline" 
+							size="sm" 
+							onClick={() => table.setPageIndex(table.getPageCount() - 1)} 
+							disabled={!table.getCanNextPage()}
+						>
+							»
+						</Button>
+					</div>
+					</div>
 			</div>
 		</div>
 	);

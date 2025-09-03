@@ -32,6 +32,7 @@ const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect, fields, setFiel
                         position: field.position || index + 1,
                         placeholder: field.placeholder || "",
                         isNew: false, // Set as false since it's not a new field
+                        employees: field.employees || [] // Load existing employee data
                     };
                 })
                 .filter(field => field !== null);
@@ -45,6 +46,7 @@ const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect, fields, setFiel
                 position: field.position || index + 1,
                 placeholder: field.placeholder || "",
                 isNew: true, // Custom fields are not new
+                employees: field.employees || [] // Load existing employee data
             }));
 
             // Combine and sort by position
@@ -114,9 +116,24 @@ const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect, fields, setFiel
             prevFields.map((field) => (field.id === id ? { ...field, ...updatedField } : field))
         );
         // Reflect changes in formDetails
-        const updatedDefaultFields = formDetails.default_fields.map((field, index) =>
-            String(index + 1) === id ? { ...field, ...updatedField } : field
-        );
+        const updatedDefaultFields = formDetails.default_fields.map((field, index) => {
+            if (String(index + 1) === id) {
+                const updated = { ...field, ...updatedField };
+                // Handle employee field type with special employees data
+                if (updatedField.employees) {
+                    updated.employees = updatedField.employees;
+                }
+                // Handle field type changes
+                if (updatedField.type) {
+                    updated.field_type = updatedField.type;
+                }
+                if (updatedField.label) {
+                    updated.field_name = updatedField.label;
+                }
+                return updated;
+            }
+            return field;
+        });
         formDetails.default_fields = updatedDefaultFields;
     };
 

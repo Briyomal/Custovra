@@ -12,6 +12,7 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
+import UsageIndicators from "@/components/ui/usage-indicators";
 
 function CustomerLayoutPage({ children }) {
 
@@ -40,8 +41,10 @@ function CustomerLayoutPage({ children }) {
 								</BreadcrumbList>
 							</Breadcrumb>
 						</div>
-						{/* Right-aligned dropdown */}
-						<div className="ml-auto">
+						{/* Right-aligned content */}
+						<div className="ml-auto flex items-center gap-4">
+							{/* Usage Indicators */}
+							<UsageIndicators />
 							{user.payment ? (
 								<Badge
 									className={`mr-3 px-3 py-1 rounded-sm text-white text-sm ${user.payment.plan === 'Premium'
@@ -58,6 +61,8 @@ function CustomerLayoutPage({ children }) {
 							) : (
 								<p></p>
 							)}
+							
+							{/* Theme Toggle */}
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button variant="outline" size="icon">

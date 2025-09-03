@@ -13,7 +13,7 @@ const formFieldSchema = new Schema({
     },
     field_type: {
         type: String,
-        enum: ['text', 'email', 'phone', 'rating', 'textarea'],
+        enum: ['text', 'email', 'phone', 'rating', 'textarea', 'employee'],
         required: true,
     },
     placeholder: {
@@ -34,7 +34,11 @@ const formFieldSchema = new Schema({
     is_new: {
         type: Boolean,
         default: false,
-    },    
+    },
+    employees: [{
+        type: Schema.Types.ObjectId,
+        ref: 'Employee'
+    }], // For employee dropdown fields
     created_at: {
         type: Date,
         default: Date.now,

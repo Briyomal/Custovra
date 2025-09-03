@@ -1,5 +1,5 @@
 //import { Calendar, Home, Inbox, Search, Settings, Command, Users  } from "lucide-react";
-import { Home, ChevronRight, MessageSquareText, ListPlus, ChartNoAxesCombined } from "lucide-react";
+import { Home, ChevronRight, MessageSquareText, ListPlus, ChartNoAxesCombined, Users } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, SidebarHeader, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar";
 import { NavUser } from "@/components/nav-user";
 import { useAuthStore } from "@/store/authStore";
@@ -13,6 +13,7 @@ const items = [
 	{ title: 'Dashboard', url: '/dashboard/', icon: Home, },
 	{ title: 'Forms', url: '/forms/', icon: ListPlus, },
 	{ title: 'Submissions', url: '/submissions/', icon: MessageSquareText, },
+	{ title: 'Employees', url: '/employees/', icon: Users, },
 	{ title: 'Reports', url: '/reports/', icon: ChartNoAxesCombined, },
 ];
 

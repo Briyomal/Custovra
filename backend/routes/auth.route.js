@@ -5,7 +5,7 @@ import { verifyToken, adminRoute } from "../middleware/verifyToken.js";
 const router = express.Router();
 
 router.get("/check-auth", verifyToken, checkAuth);
-router.get("/admin-dashboard", verifyToken, adminRoute, adminUser);verifyToken
+router.get("/admin-dashboard", verifyToken, adminRoute, adminUser); // Fixed duplicate verifyToken
 router.get("/dashboard", verifyToken, cusUser);
 
 router.post("/signup", signup);

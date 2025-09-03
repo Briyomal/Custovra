@@ -35,6 +35,12 @@ const FormCreatePage = () => {
 				const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/forms/${formId}`);
 				const fetchedDetails = response.data;
 
+				// Check if form is locked
+				if (fetchedDetails.isLocked) {
+					setError(`This form is locked due to plan restrictions. ${fetchedDetails.lockStatus?.lockReason || 'Upgrade your plan to access it.'}`);
+					return;
+				}
+
 				// Check if default_fields is empty or undefined, and assign default values
 				if (!Array.isArray(fetchedDetails.default_fields) || fetchedDetails.default_fields.length === 0) {
 					fetchedDetails.default_fields = [
@@ -49,7 +55,13 @@ const FormCreatePage = () => {
 				setFormDetails(fetchedDetails); // Set updated form details
 			} catch (error) {
 				console.error("Error fetching form details:", error);
-				setError(error.response?.data?.message || "Something went wrong!"); // Store error message
+				
+				// Handle locked form errors specifically
+				if (error.response?.status === 403 && error.response?.data?.locked) {
+					setError(`🔒 This form is locked due to plan restrictions. ${error.response.data.lockReason || 'Upgrade your plan to access it.'}`);
+				} else {
+					setError(error.response?.data?.message || "Something went wrong!"); // Store error message
+				}
 			} finally {
 				setLoading(false);
 			}
@@ -103,14 +115,22 @@ const FormCreatePage = () => {
 	const handlePublish = async () => {
 		setLoadingForm(true);
 		try {
-			// Validate the Google link
-			if (formDetails.google_link && !formDetails.google_link.startsWith("https://g.page") && !formDetails.google_link.startsWith("https://www.google.com")) {
+			// Validate the Google link if provided
+			const googleLink = formDetails.google_link ? formDetails.google_link.trim() : "";
+			if (googleLink && !googleLink.startsWith("https://g.page") && !googleLink.startsWith("https://www.google.com")) {
 				toast.error("Invalid URL. Must start with https://g.page or https://www.google.com");
 				setLoadingForm(false);
 				return;
 			}
 
 			console.log("Form details before update:", formDetails);
+			
+			// Validate essential form fields
+			if (!formDetails.form_name || !formDetails.form_type) {
+				toast.error("Form name and type are required");
+				setLoadingForm(false);
+				return;
+			}
 
 			// If no fields at all, apply defaults
 			let allFields = fields;
@@ -140,6 +160,7 @@ const FormCreatePage = () => {
 					enabled: field.enabled,
 					position: field.position,
 					placeholder: field.placeholder || "",
+					employees: field.employees || []
 				}));
 
 			const customFieldPayloads = allFields
@@ -153,26 +174,35 @@ const FormCreatePage = () => {
 					position: field.position,
 					placeholder: field.placeholder || "",
 					is_new: true,
+					employees: field.employees || []
 				}));
 
-			// Prepare form payload
+			// Prepare form payload with proper validation and defaults
 			const formPayload = {
-				form_name: formDetails.form_name,
-				form_note: formDetails.form_note,
-				form_type: formDetails.form_type,
+				form_name: formDetails.form_name || "",
+				form_note: formDetails.form_note || "",
+				form_type: formDetails.form_type || "",
 				form_description: formDetails.form_description || "",
-				google_link: formDetails.google_link || "",
-				is_active: formDetails.is_active,
+				google_link: (formDetails.google_link && formDetails.google_link.trim()) || "",
+				is_active: formDetails.is_active !== undefined ? formDetails.is_active : false,
 				default_fields: defaultFields,
 			};
 
-			// Use FormData to send with optional image
+			// Use FormData to send with optional image - ensure no undefined values
 			const formData = new FormData();
 			for (const key in formPayload) {
+				const value = formPayload[key];
+				
+				// Skip undefined or null values
+				if (value === undefined || value === null) {
+					continue;
+				}
+				
 				if (key === "default_fields") {
-					formData.append(key, JSON.stringify(formPayload[key]));
+					formData.append(key, JSON.stringify(value));
 				} else {
-					formData.append(key, formPayload[key]);
+					// Ensure we're not appending 'undefined' as string
+					formData.append(key, String(value));
 				}
 			}
 
@@ -182,16 +212,25 @@ const FormCreatePage = () => {
 
 			// Save the form
 			formData.append("custom_fields", JSON.stringify(customFieldPayloads));
+			
 			console.log("🚀 FormData (before sending):");
+			console.log("📋 Form Payload:", formPayload);
 			for (let pair of formData.entries()) {
-				console.log(pair[0], ":", pair[1]);
+				console.log(`${pair[0]}:`, pair[1]);
 			}
+			
 			await updateForm(formDetails._id, formData);
 
 			toast.success("Form saved successfully!");
 		} catch (error) {
-			toast.error("Error publishing form");
 			console.error("Error publishing form:", error);
+			
+			// Handle locked form errors specifically
+			if (error.response?.status === 403 && error.response?.data?.locked) {
+				toast.error(`🔒 ${error.response.data.message}`);
+			} else {
+				toast.error(error.response?.data?.message || "Error publishing form");
+			}
 		} finally {
 			setLoadingForm(false);
 		}
@@ -212,9 +251,19 @@ const FormCreatePage = () => {
 	return (
 		<CustomerLayoutPage>
 			{error ? (
-				<div className="text-center mt-20">
+				<div className="text-center mt-20 space-y-4">
 					<h1 className="text-2xl font-bold text-red-700">🙁 {error}</h1>
 					<p className="text-gray-600 mt-2">Please check if the form ID is correct or ensure that you are authorized to view this form.</p>
+					{error.includes('locked') && (
+						<div className="mt-4">
+							<Button 
+								onClick={() => window.open('/billing', '_blank')}
+								ClassName="bg-blue-600 hover:bg-blue-700 text-white"
+							>
+								🚀 Upgrade Plan
+							</Button>
+						</div>
+					)}
 				</div>
 			) : (
 				<>

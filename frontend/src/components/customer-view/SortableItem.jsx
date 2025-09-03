@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "../ui/textarea";
-import { Star, MoreVertical } from "lucide-react";
+import { Star, MoreVertical, Users } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     Dialog,
     DialogTrigger,
@@ -23,6 +24,7 @@ import {
     SelectContent,
     SelectItem,
 } from "@/components/ui/select";
+import EmployeeSelectionDialog from "./EmployeeSelectionDialog";
 
 const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
@@ -30,11 +32,29 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
     });
 
     const [open, setOpen] = useState(false);
+    const [employeeDialogOpen, setEmployeeDialogOpen] = useState(false);
     const [editValues, setEditValues] = useState({
         label: field.label,
         type: field.type,
         placeholder: field.placeholder || "",
     });
+    const [selectedEmployees, setSelectedEmployees] = useState(field.employees || []);
+
+    // Helper function to get initials for avatar fallback
+    const getInitials = (name) => {
+        return name
+            .split(' ')
+            .map(word => word.charAt(0))
+            .join('')
+            .toUpperCase()
+            .slice(0, 2);
+    };
+
+    // Update selectedEmployees when field.employees changes
+    useEffect(() => {
+        console.log('SortableItem field.employees updated:', field.employees);
+        setSelectedEmployees(field.employees || []);
+    }, [field.employees]);
 
     const style = {
         transform: CSS.Translate.toString(transform),
@@ -53,12 +73,25 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
     };
 
     const handleDialogSave = () => {
-        onFieldUpdate(field.id, {
+        const updates = {
             label: editValues.label,
             type: editValues.type,
             placeholder: editValues.placeholder,
-        });
+        };
+        
+        // Include employees data for employee field type
+        if (editValues.type === 'employee') {
+            updates.employees = selectedEmployees;
+        }
+        
+        onFieldUpdate(field.id, updates);
         setOpen(false);
+    };
+
+    const handleEmployeesSelect = (employees) => {
+        setSelectedEmployees(employees);
+        // Update the field immediately to save the employee selection
+        onFieldUpdate(field.id, { employees });
     };
 
     const patchedListeners = {
@@ -130,6 +163,7 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
                                             <SelectItem value="tel">Phone</SelectItem>
                                             <SelectItem value="textarea">Textarea</SelectItem>
                                             <SelectItem value="rating">Rating</SelectItem>
+                                            <SelectItem value="employee">Employee Dropdown</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -170,6 +204,56 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
                         />
                     ))}
                 </div>
+            ) : field.type === "employee" ? (
+                <div className="mt-2 space-y-2">
+                    <Select disabled={!field.enabled}>
+                        <SelectTrigger>
+                            <SelectValue placeholder={field.placeholder || "Select an employee"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {selectedEmployees.length > 0 ? (
+                                selectedEmployees.map(employee => (
+                                    <SelectItem key={employee._id} value={employee._id}>
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-6 w-6">
+                                                <AvatarImage 
+                                                    src={employee.profile_photo?.url} 
+                                                    alt={employee.name}
+                                                    className="object-cover"
+                                                />
+                                                <AvatarFallback className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                                                    {getInitials(employee.name)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex flex-col">
+                                                <span className="font-medium text-xs">{employee.name}</span>
+                                                <span className="text-xs text-gray-500">{employee.designation}</span>
+                                            </div>
+                                        </div>
+                                    </SelectItem>
+                                ))
+                            ) : (
+                                <SelectItem value="no-employees" disabled>
+                                    No employees selected
+                                </SelectItem>
+                            )}
+                        </SelectContent>
+                    </Select>
+                    {field.enabled && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEmployeeDialogOpen(true)}
+                            className="flex items-center gap-2"
+                        >
+                            <Users className="h-4 w-4" />
+                            {selectedEmployees.length > 0 
+                                ? `Manage Employees (${selectedEmployees.length})` 
+                                : 'Select Employees'
+                            }
+                        </Button>
+                    )}
+                </div>
             ) : (
                 <Input
                     className="mt-2"
@@ -195,6 +279,14 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
                     onCheckedChange={handleEnabledChange}
                 />
             </div>
+            
+            {/* Employee Selection Dialog */}
+            <EmployeeSelectionDialog
+                isOpen={employeeDialogOpen}
+                onClose={() => setEmployeeDialogOpen(false)}
+                selectedEmployees={selectedEmployees}
+                onEmployeesSelect={handleEmployeesSelect}
+            />
         </div>
     );
 };

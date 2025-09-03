@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import useSubmissionStore from "@/store/submissionStore";
 import useFormStore from "@/store/formStore";
 import DataTable from "@/components/customer-view/submissions/DataTable";
-import { columns } from "@/components/customer-view/submissions/columns";
+import { generateDynamicColumns } from "@/components/customer-view/submissions/columns";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
 const SubmissionListPage = () => {
@@ -22,12 +22,13 @@ const SubmissionListPage = () => {
 
 	const userId = user?._id;
 
-	console.log("Form ID:", useParams());
-
 	useEffect(() => {
 		if (forms && formId) {
 			// Find the form data for the current form ID
-			const currentForm = forms.find((form) => form._id === formId);
+			const currentForm = forms.find((form) => {
+				const compareId = form._id || form.id;
+				return compareId === formId;
+			});
 			setFormData(currentForm); // Set the current form data
 		}
 	}, [forms, formId]);
@@ -36,9 +37,10 @@ const SubmissionListPage = () => {
 		const loadSubmissions = async () => {
 			if (isAuthenticated && formId) {
 				try {
+					// Fetch forms first, then submissions
+					await fetchFormsByUser(userId);
 					const data = await fetchSubmissionsByForm(formId);
 					setLocalSubmissions(data);
-					await fetchFormsByUser(userId);
 					setIsLoading(false)
 				} catch (err) {
 					console.error("Error fetching submissions:", err);
@@ -55,14 +57,18 @@ const SubmissionListPage = () => {
 		};
 	}, [isAuthenticated, formId, fetchSubmissionsByForm, userId, fetchFormsByUser]);
 
-	console.log("Form Data:", formData);
-
 	// Use localSubmissions instead of filtering the store's submissions
-	const filteredSubmissions = localSubmissions.filter((submission) => submission.form_id === formId);
-	console.log("Submissions");
+	const filteredSubmissions = localSubmissions.filter((submission) => {
+		// Handle both populated form_id object and string ID
+		const submissionFormId = submission.form_id?._id || submission.form_id;
+		return submissionFormId === formId;
+	});
 
 	const memoizedSubmissions = useMemo(() => filteredSubmissions, [filteredSubmissions]);
-	const memoizedColumns = useMemo(() => columns, []);
+	const memoizedColumns = useMemo(() => {
+		// Generate dynamic columns based on actual submission data
+		return generateDynamicColumns(filteredSubmissions);
+	}, [filteredSubmissions]);
 	const totalSubmissionsCount = memoizedSubmissions.length;
 
 	const updateSetSubmissions = (newData) => {

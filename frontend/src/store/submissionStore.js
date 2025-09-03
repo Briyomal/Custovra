@@ -14,27 +14,33 @@ const useSubmissionStore = create((set) => ({
     error: null,
     isLoading: false,
 
-    // Fetch submissions
+    // Fetch submissions for forms owned by a user (includes public submissions)
     fetchSubmissions: async (userId) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await axios.get(`${API_URL}/${userId}`);
+            const response = await axios.get(`${API_URL}/owner/${userId}`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('authToken')}`
+                }
+            });
             set({ submissions: response.data, isLoading: false });
         } catch (error) {
             set({
                 error: error.response?.data?.message || "Failed to fetch submissions",
                 isLoading: false,
             });
-            console.error("Error fetching submissions:", error);
         }
     },
 
         
     fetchSubmissionsByForm: async (formId) => {
       try {
-        console.log("Fetching submissions for formId:", formId);
         set({ isLoading: true, error: null });
-        const response = await axios.get(`${API_URL}/form/${formId}`);
+        const response = await axios.get(`${API_URL}/form/${formId}`, {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('authToken')}`
+            }
+        });
         set({ 
           submissions: response.data,
           isLoading: false 
@@ -79,7 +85,6 @@ const useSubmissionStore = create((set) => ({
             if (callback) callback(); // Call the callback function if provided
             return response.data; // Return successful response data
         } catch (error) {
-            console.error("Error deleting submission", error);
             throw error; // Throw error to handle it in the component
         }
     },

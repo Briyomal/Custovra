@@ -13,6 +13,8 @@ import { motion } from "framer-motion";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Ban, Check, Loader } from "lucide-react";
 import StarRating from "@/components/customer-view/StarRating";
@@ -23,6 +25,8 @@ import toast from "react-hot-toast";
 import { Turnstile } from "@marsidev/react-turnstile";
 
 const FormViewPage = () => {
+    // Security Note: This component handles public form viewing
+    // Sensitive information like form owner's user_id should never be logged or exposed
     const { viewForm } = useFormStore();
     const { formId } = useParams();
     const [loading, setLoading] = useState(false);
@@ -35,6 +39,16 @@ const FormViewPage = () => {
     const [googleLink, setGoogleLink] = useState(""); // Store Google review link
     const [captchaToken, setCaptchaToken] = useState(null);
 
+    // Helper function to get initials for avatar fallback
+    const getInitials = (name) => {
+        return name
+            .split(' ')
+            .map(word => word.charAt(0))
+            .join('')
+            .toUpperCase()
+            .slice(0, 2);
+    };
+
 
     useEffect(() => {
         const fetchFormDetails = async () => {
@@ -45,7 +59,38 @@ const FormViewPage = () => {
                 if (data?.error) {
                     setError(data.error);
                 } else {
-                    setFormDetails(data);
+                    // Initialize rating fields with value: 0 if not set
+                    const initializeFields = (fields) => {
+                        return fields ? fields.map(field => ({
+                            ...field,
+                            value: field.field_type === 'rating' ? (field.value || 0) : (field.value || '')
+                        })) : [];
+                    };
+                    
+                    const initializedData = {
+                        ...data,
+                        default_fields: initializeFields(data.default_fields),
+                        custom_fields: initializeFields(data.custom_fields)
+                    };
+                    
+                    // Remove sensitive information before logging and setting state
+                    const publicFormData = {
+                        ...initializedData,
+                        user_id: undefined, // Remove form owner's user ID for security
+                    };
+                    
+                    // Only log in development environment
+                    if (import.meta.env.MODE === 'development') {
+                        console.log("Public form data loaded (sensitive info removed):", {
+                            form_name: publicFormData.form_name,
+                            form_type: publicFormData.form_type,
+                            is_active: publicFormData.is_active,
+                            fields_count: (publicFormData.default_fields?.length || 0) + (publicFormData.custom_fields?.length || 0)
+                        });
+                    }
+                    
+                    // Set the original data with user_id for internal use
+                    setFormDetails(initializedData);
                 }
             } catch (err) {
                 console.error("Error fetching form details:", err);
@@ -60,7 +105,16 @@ const FormViewPage = () => {
         }
     }, [formId, viewForm]);
 
-    console.log("Form Details:", formDetails);
+    // Debug log without sensitive information (development only)
+    if (import.meta.env.MODE === 'development' && formDetails) {
+        console.log("Form loaded:", {
+            form_name: formDetails.form_name,
+            form_type: formDetails.form_type,
+            is_active: formDetails.is_active,
+            has_logo: !!formDetails.logo,
+            total_fields: (formDetails.default_fields?.length || 0) + (formDetails.custom_fields?.length || 0)
+        });
+    }
 
     const validateField = (name, value, field) => {
         if (field.is_required) {
@@ -98,10 +152,12 @@ const FormViewPage = () => {
 
 
     const handleChange = (e, field) => {
-
-        console.log("Field Value:", e.target.value);
-        console.log("Field Details:", field);
         const { name, value } = e.target;
+        
+        // Development-only logging
+        if (import.meta.env.MODE === 'development') {
+            console.log("Field changed:", name, "Value:", value);
+        }
 
         // Validate the field and update the errors object
         const error = validateField(name, value, field);
@@ -109,19 +165,25 @@ const FormViewPage = () => {
             const newErrors = { ...prev };
             if (error) {
                 newErrors[name] = error;
-                console.log("Validation Error:", error);
+                // Development-only error logging
+                if (import.meta.env.MODE === 'development') {
+                    console.log("Validation Error for", name + ":", error);
+                }
             } else {
                 delete newErrors[name];
             }
             return newErrors;
         });
 
-        // Update the value in the form details
+        // Update the value in both default_fields and custom_fields
         setFormDetails((prevDetails) => ({
             ...prevDetails,
             default_fields: prevDetails.default_fields.map((f) =>
                 f.field_name === name ? { ...f, value } : f
             ),
+            custom_fields: prevDetails.custom_fields ? prevDetails.custom_fields.map((f) =>
+                f.field_name === name ? { ...f, value } : f
+            ) : [],
         }));
     };
 
@@ -138,7 +200,10 @@ const FormViewPage = () => {
         
 
         try {
-            console.log("Form State on Submit:", formDetails);
+            // Development-only logging
+            if (import.meta.env.MODE === 'development') {
+                console.log("Form submission started for form:", formDetails.form_name);
+            }
 
             const { submitForm } = useSubmissionStore.getState();
             const formData = new FormData(e.target);
@@ -146,7 +211,10 @@ const FormViewPage = () => {
             let ratingValue = 0; // Store rating value
 
             // Validate and ensure all required fields are included
-            formDetails.default_fields.forEach((field) => {
+            // Process both default_fields and custom_fields
+            const allFields = [...(formDetails.default_fields || []), ...(formDetails.custom_fields || [])];
+            
+            allFields.forEach((field) => {
                 const value = field.field_type === "rating" ? field.value : formData.get(field.field_name)?.trim();
 
                 if (field.is_required) {
@@ -158,8 +226,8 @@ const FormViewPage = () => {
 
                 // Manually append the rating value to formData and Capture rating value
                 if (field.field_type === "rating") {
-                    ratingValue = field.value;
-                    formData.set(field.field_name, field.value);
+                    ratingValue = Math.max(ratingValue, field.value || 0); // Use the highest rating for Google prompt
+                    formData.set(field.field_name, field.value || 0);
                 }
             });
 
@@ -171,14 +239,24 @@ const FormViewPage = () => {
             }
 
             // Prepare form details for submission
+            const formDataEntries = Object.fromEntries(formData.entries());
+            
+            // Filter out any unwanted fields (like turnstile responses)
+            // eslint-disable-next-line no-unused-vars
+            const { 'cf-turnstile-response': _, ...cleanedSubmissions } = formDataEntries;
+            
             const submissionDetails = {
                 form_id: formDetails._id,
-                user_id: formDetails.user_id,
-                submissions: Object.fromEntries(formData.entries()),
+                // Don't include user_id for public form submissions
+                // The backend will handle this as a public submission
+                submissions: cleanedSubmissions,
                 captchaToken,
             };
 
-            console.log("Form submitted with data:", submissionDetails);
+            // Development-only logging
+            if (import.meta.env.MODE === 'development') {
+                console.log("Submitting form with", Object.keys(submissionDetails.submissions).length, "fields");
+            }
 
             // Submit the form
             await submitForm(submissionDetails);
@@ -316,8 +394,11 @@ const FormViewPage = () => {
                                                 {[...(formDetails?.default_fields || []), ...(formDetails?.custom_fields || [])]
                                                     .filter((field) => field?.enabled)
                                                     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0)) // ✅ sort by position
-                                                    .map((field, index) => (
-                                                        <div key={field._id || `${field.field_name}-${index}`} className="flex flex-col space-y-2">
+                                                    .map((field, index) => {
+                                                        // Create unique key for each field
+                                                        const fieldKey = field._id || `${field.field_name}-${field.field_type}-${index}`;
+                                                        return (
+                                                        <div key={fieldKey} className="flex flex-col space-y-2">
                                                             <Label className="capitalize">
                                                                 {field.field_name || `Field ${index + 1}`}
                                                                 {field.is_required && <span className="text-red-500 ml-1">*</span>}
@@ -332,11 +413,52 @@ const FormViewPage = () => {
                                                                 />
                                                             ) : field.field_type === "rating" ? (
                                                                 <StarRating
+                                                                    key={`star-${fieldKey}`} // Unique key for StarRating
                                                                     rating={field.value || 0}
                                                                     onChange={(value) =>
                                                                         handleChange({ target: { name: field.field_name, value } }, field)
                                                                     }
                                                                 />
+                                                            ) : field.field_type === "employee" ? (
+                                                                <Select
+                                                                    name={field.field_name}
+                                                                    required={field.is_required}
+                                                                    onValueChange={(value) =>
+                                                                        handleChange({ target: { name: field.field_name, value } }, field)
+                                                                    }
+                                                                >
+                                                                    <SelectTrigger>
+                                                                        <SelectValue placeholder={field.placeholder || "Select an employee"} />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {field.employees && field.employees.length > 0 ? (
+                                                                            field.employees.map(employee => (
+                                                                                <SelectItem key={employee._id} value={employee._id}>
+                                                                                    <div className="flex items-center gap-3">
+                                                                                        <Avatar className="h-8 w-8">
+                                                                                            <AvatarImage 
+                                                                                                src={employee.profile_photo?.url} 
+                                                                                                alt={employee.name}
+                                                                                                className="object-cover"
+                                                                                            />
+                                                                                            <AvatarFallback className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                                                                                                {getInitials(employee.name)}
+                                                                                            </AvatarFallback>
+                                                                                        </Avatar>
+                                                                                        <div className="flex flex-col">
+                                                                                            <span className="font-medium text-sm">{employee.name}</span>
+                                                                                            <span className="text-xs text-gray-500">{employee.designation}</span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </SelectItem>
+                                                                            ))
+                                                                        ) : (
+                                                                            <SelectItem value="no-employees" disabled>
+                                                                                No employees available
+                                                                            </SelectItem>
+                                                                        )}
+                                                                    </SelectContent>
+                                                                </Select>
                                                             ) : (
                                                                 <Input
                                                                     name={field.field_name}
@@ -351,7 +473,7 @@ const FormViewPage = () => {
                                                                 <p className="text-sm text-red-500">{formErrors[field.field_name]}</p>
                                                             )}
                                                         </div>
-                                                    ))}
+                                                    )})}
 
                                                     
                         <div className="mt-4">

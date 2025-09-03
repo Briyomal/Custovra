@@ -9,7 +9,7 @@ const defaultFieldSchema = new Schema({
     },
     field_type: {
         type: String,
-        enum: ['text', 'email', 'tel', 'rating', 'textarea'],
+        enum: ['text', 'email', 'tel', 'rating', 'textarea', 'employee'],
         required: true,
     },
     is_required: {
@@ -27,6 +27,10 @@ const defaultFieldSchema = new Schema({
         type: Number, // Position of the field for drag-and-drop
         required: true,
     },
+    employees: [{
+        type: Schema.Types.ObjectId,
+        ref: 'Employee'
+    }], // For employee dropdown fields
 });
 
 const customFieldSchema = new Schema({
@@ -36,7 +40,7 @@ const customFieldSchema = new Schema({
     },
     field_type: {
         type: String,
-        enum: ['text', 'email', 'tel', 'number', 'rating', 'textarea'],
+        enum: ['text', 'email', 'tel', 'number', 'rating', 'textarea', 'employee'],
         required: true,
     },
     is_required: {
@@ -57,7 +61,11 @@ const customFieldSchema = new Schema({
     is_new: {
         type: Boolean,
         default: false,
-    }, 
+    },
+    employees: [{
+        type: Schema.Types.ObjectId,
+        ref: 'Employee'
+    }], // For employee dropdown fields 
 });
 
 const formSchema = new Schema({

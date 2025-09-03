@@ -11,7 +11,8 @@ const submissionSchema = new Schema(
         user_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
-            required: true,
+            required: false, // Allow null for public form submissions
+            default: null,
         },
         submissions: {
             type: Map,

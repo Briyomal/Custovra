@@ -14,11 +14,18 @@ const SubmissionPage = () => {
     const { forms, fetchFormsNew } = useFormStore();
 
     const userId = user?._id;
-    const totalSubmissionsCount = useMemo(() => submissions.length, [submissions]);
+    const totalSubmissionsCount = useMemo(() => {
+        return submissions.length;
+    }, [submissions]);
 
     const getSubmissionCountForForm = useMemo(() => {
         return (formId) => {
-            return submissions.filter((submission) => submission.form_id === formId).length;
+            const count = submissions.filter((submission) => {
+                // Handle both populated form_id object and string ID
+                const submissionFormId = submission.form_id?._id || submission.form_id;
+                return submissionFormId === formId;
+            }).length;
+            return count;
         };
     }, [submissions]);
 

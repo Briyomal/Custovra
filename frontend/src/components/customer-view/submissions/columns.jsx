@@ -9,19 +9,112 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox"
 
-export const columns = [
+// Generate dynamic columns based on submission data
+export const generateDynamicColumns = (submissions) => {
+	if (!submissions || submissions.length === 0) {
+		return staticColumns;
+	}
+
+	// Get all possible field names from all submissions
+	const allFields = new Set();
+	submissions.forEach(submission => {
+		if (submission.submissions && typeof submission.submissions === 'object') {
+			Object.keys(submission.submissions)
+				.filter(key => key !== 'cf-turnstile-response' && key !== 'captchaToken')
+				.forEach(key => allFields.add(key));
+		}
+	});
+
+	// Create columns for each field
+	const dynamicColumns = Array.from(allFields).map(fieldName => {
+		if (fieldName === 'rating') {
+			return {
+				id: "rating",
+				header: ({ column }) => (
+					<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+						Rating
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				),
+				accessorKey: "submissions.rating",
+				accessorFn: (row) => parseFloat(row.submissions?.rating) || 0,
+				enableSorting: true,
+				cell: ({ row }) => {
+					const rating = parseFloat(row.original.submissions?.rating) || 0;
+					const maxStars = 5;
+
+					return (
+						<div className="flex items-center">
+							{[...Array(maxStars)].map((_, index) => {
+								if (index + 1 <= rating) {
+									return <Star fill="yellow" key={index} className="h-4 w-4 text-yellow-500" />;
+								} else if (index < rating) {
+									return <StarHalf key={index} className="h-4 w-4 text-yellow-500" />;
+								} else {
+									return <Star key={index} className="h-4 w-4 text-gray-300" />;
+								}
+							})}
+						</div>
+					);
+				},
+			};
+		} else {
+			return {
+				id: fieldName,
+				header: ({ column }) => (
+					<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+						{fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				),
+				accessorKey: `submissions.${fieldName}`,
+				enableSorting: true,
+				cell: ({ row }) => {
+					const value = row.original.submissions?.[fieldName];
+					return <span>{value || 'N/A'}</span>;
+				},
+			};
+		}
+	});
+
+	// Combine with static columns (select, timestamp, actions)
+	return [
+		staticColumns[0], // select checkbox
+		...dynamicColumns,
+		staticColumns[staticColumns.length - 2], // createdAt
+		staticColumns[staticColumns.length - 1], // actions
+	];
+};
+
+// Static columns that don't depend on submission data
+const staticColumns = [
 	{
 		id: "select",
-		header: ({ table }) => (
-			<Checkbox
-				checked={
-					table.getIsAllPageRowsSelected() ||
-					(table.getIsSomePageRowsSelected() && "indeterminate")
-				}
-				onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-				aria-label="Select all"
-			/>
-		),
+		header: ({ table }) => {
+			const totalRowCount = table.getFilteredRowModel().rows.length;
+			const selectedRowCount = table.getFilteredSelectedRowModel().rows.length;
+			const isAllSelected = totalRowCount > 0 && selectedRowCount === totalRowCount;
+			const isIndeterminate = selectedRowCount > 0 && selectedRowCount < totalRowCount;
+			
+			return (
+				<Checkbox
+					checked={isAllSelected}
+					ref={(checkbox) => {
+						if (checkbox) checkbox.indeterminate = isIndeterminate;
+					}}
+					onCheckedChange={(value) => {
+						if (value) {
+							// Select all filtered rows
+							table.getFilteredRowModel().rows.forEach(row => row.toggleSelected(true));
+						} else {
+							// Deselect all rows
+							table.getFilteredRowModel().rows.forEach(row => row.toggleSelected(false));
+						}
+					}}
+					aria-label="Select all"
+				/>
+			);
+		},
 
 		enableSorting: false,
 		enableHiding: false,
@@ -33,77 +126,6 @@ export const columns = [
 			/>
 		),
 
-	},
-	{
-		id: "name",
-		header: ({ column }) => {
-			return (
-				<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-					Name
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			);
-		},
-		accessorKey: "submissions.name",
-		enableSorting: true, // Enable sorting for the name column
-	},
-	{
-		id: "email",
-		header: ({ column }) => {
-			return (
-				<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-					Email
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			);
-		},
-		accessorKey: "submissions.email",
-		enableSorting: true, // Enable sorting for the email column
-	},
-	{
-		id: "phone",
-		header: ({ column }) => {
-			return (
-				<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-					Phone
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			);
-		},
-		accessorKey: "submissions.phone",
-		enableSorting: true, // Enable sorting for the email column
-	},
-	{
-		id: "rating",
-		header: ({ column }) => {
-			return (
-				<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-					Rating
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			);
-		},
-		accessorKey: "submissions.rating",
-		accessorFn: (row) => parseFloat(row.submissions?.rating) || 0, // Ensure 0 is treated as a valid number
-		enableSorting: true,
-		cell: ({ row }) => {
-			const rating = parseFloat(row.original.submissions?.rating) || 0;
-			const maxStars = 5;
-
-			return (
-				<div className="flex items-center">
-					{[...Array(maxStars)].map((_, index) => {
-						if (index + 1 <= rating) {
-							return <Star fill="yellow" key={index} className="h-4 w-4 text-yellow-500" />;
-						} else if (index < rating) {
-							return <StarHalf key={index} className="h-4 w-4 text-yellow-500" />;
-						} else {
-							return <Star key={index} className="h-4 w-4 text-gray-300" />;
-						}
-					})}
-				</div>
-			);
-		},
 	},
 	{
 		id: "createdAt",
@@ -160,14 +182,14 @@ export const columns = [
 			};
 			return (
 				<div>
-					<DropdownMenu>
+					<DropdownMenu modal={false}>
 						<DropdownMenuTrigger asChild>
 							<Button variant="ghost" className="h-8 w-8 p-0">
 								<span className="sr-only">Open menu</span>
 								<MoreHorizontal className="h-4 w-4" />
 							</Button>
 						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
+						<DropdownMenuContent align="end" side="left" className="w-40" sideOffset={8}>
 							<DropdownMenuLabel>Actions</DropdownMenuLabel>
 							<DropdownMenuItem className="cursor-pointer" onClick={() => setIsViewDialogOpen(true)}>
 								<Eye className="h-4 w-4" />
@@ -199,16 +221,18 @@ export const columns = [
 					</AlertDialog>
 
 					<Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-						<DialogContent>
+						<DialogContent className="max-w-2xl">
 							<DialogHeader className="text-left">
 								<DialogTitle>Submission Details</DialogTitle>
 								<DialogDescription>View the details of this submission.</DialogDescription>
 							</DialogHeader> 
 							<Separator />
-							<div className="flex flex-col gap-3">
-								{Object.entries(row.original.submissions).map(([key, value]) => (
-									<div key={key} className="flex items-center gap-2">
-										<span className="font-semibold">{key.charAt(0).toUpperCase() + key.slice(1)}:</span>
+							<div className="flex flex-col gap-3 max-h-96 overflow-y-auto">
+								{Object.entries(row.original.submissions || {})
+									.filter(([key]) => key !== 'cf-turnstile-response' && key !== 'captchaToken') // Filter out unnecessary fields
+									.map(([key, value]) => (
+									<div key={key} className="flex items-start gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded">
+										<span className="font-semibold min-w-32">{key.charAt(0).toUpperCase() + key.slice(1)}:</span>
 										{key === "rating" ? (
 											<div className="flex items-center">
 												{[...Array(5)].map((_, index) => {
@@ -218,16 +242,22 @@ export const columns = [
 														return <Star key={index} className="h-4 w-4 text-gray-300" />;
 													}
 												})}
+												<span className="ml-2 text-sm text-gray-600">{value}/5</span>
 											</div>
 										) : (
-											<span>{value}</span>
+											<span className="flex-1">{value || 'N/A'}</span>
 										)}
 									</div>
 								))}
+								{Object.keys(row.original.submissions || {}).length === 0 && (
+									<div className="text-center py-4 text-gray-500">
+										No submission data available
+									</div>
+								)}
 							</div>
 							<DialogFooter>
-								<Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-									Cancel
+								<Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+									Close
 								</Button>
 							</DialogFooter>
 						</DialogContent>
@@ -237,3 +267,6 @@ export const columns = [
 		},
 	},
 ];
+
+// Export both static columns and dynamic column generator
+export const columns = staticColumns;
