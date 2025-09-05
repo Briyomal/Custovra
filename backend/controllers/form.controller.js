@@ -4,7 +4,8 @@ import { Submission } from "../models/Submission.js";
 import { subscriptionPlans } from "../utils/subscriptionPlans.js";
 import { Payment } from "../models/Payment.js";
 import { User } from "../models/User.js";
-import cloudinary from '../utils/cloudinary.js';
+// Replace Cloudinary with S3 utilities
+import { deleteFileFromS3, getPresignedUrl, uploadFileToS3, generateFormLogoKey } from '../utils/s3.js';
 
 // Get all forms
 export const getAllForms = async (req, res) => {
@@ -27,8 +28,23 @@ export const getAllUserForms = async (req, res) => {
         if (!forms.length) {
             return res.status(404).json({ message: 'No forms found for the user' });
         }
+        
+        // Add presigned URLs for logos
+        const formsWithPresignedUrls = await Promise.all(forms.map(async (form) => {
+            const formObject = form.toObject();
+            if (formObject.logo) {
+                try {
+                    formObject.logo = await getPresignedUrl(formObject.logo);
+                } catch (error) {
+                    console.error("Error generating presigned URL for logo:", error);
+                    // Fallback to stored URL if presigned URL generation fails
+                    formObject.logo = formObject.logo || null;
+                }
+            }
+            return formObject;
+        }));
 
-        res.status(200).json(forms);
+        res.status(200).json(formsWithPresignedUrls);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -52,9 +68,22 @@ export const getFormById = async (req, res) => {
             
         const isLocked = req.isFormLocked;
         
+        // Convert form to object and add presigned URL for logo if it exists
+        const formObject = form.toObject();
+        
+        if (formObject.logo) {
+            try {
+                formObject.logo = await getPresignedUrl(formObject.logo);
+            } catch (error) {
+                console.error("Error generating presigned URL for logo:", error);
+                // Fallback to stored URL if presigned URL generation fails
+                formObject.logo = formObject.logo || null;
+            }
+        }
+        
         // Add lock status to response if form is locked
         const responseData = {
-            ...form.toObject(),
+            ...formObject,
             isLocked,
             lockStatus: isLocked ? {
                 lockedAt: form.lockedAt,
@@ -78,9 +107,115 @@ export const getFormsByUserId = async (req, res) => {
         if (!forms.length) {
             return res.status(404).json({ message: 'No forms found for user', userId });
         }
+        
+        // Add presigned URLs for logos
+        const formsWithPresignedUrls = await Promise.all(forms.map(async (form) => {
+            const formObject = form.toObject();
+            if (formObject.logo) {
+                try {
+                    formObject.logo = await getPresignedUrl(formObject.logo);
+                } catch (error) {
+                    console.error("Error generating presigned URL for logo:", error);
+                    // Fallback to stored URL if presigned URL generation fails
+                    formObject.logo = formObject.logo || null;
+                }
+            }
+            return formObject;
+        }));
 
-        res.status(200).json(forms);
+        res.status(200).json(formsWithPresignedUrls);
     } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Get all forms for admin panel with user data for filtering
+export const getAllFormsForAdmin = async (req, res) => {
+    try {
+        // Fetch all forms and populate user information
+        const forms = await Form.find().populate('user_id', 'name email');
+        
+        // Format forms for admin panel
+        const formattedForms = forms.map(form => {
+            const formObject = form.toObject();
+            return {
+                _id: formObject._id,
+                form_name: formObject.form_name,
+                form_type: formObject.form_type,
+                form_note: formObject.form_note,
+                is_active: formObject.is_active,
+                created_at: formObject.created_at,
+                // Fix the form link to include /forms/view/ path
+                form_link: `/forms/view/${formObject._id}`,
+                user: {
+                    name: formObject.user_id?.name || 'N/A',
+                    email: formObject.user_id?.email || 'N/A'
+                }
+            };
+        });
+
+        res.status(200).json(formattedForms);
+    } catch (error) {
+        console.error("Error fetching forms for admin:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Get a form by ID for admin without access restrictions
+export const getFormByIdAdmin = async (req, res) => {
+    try {
+        const formId = req.params.id;
+        
+        // Fetch the form by ID and populate user information
+        const form = await Form.findById(formId).populate('user_id', 'name email');
+            
+        if (!form) {
+            return res.status(404).json({ message: 'Form not found' });
+        }
+        
+        // Convert form to object and add presigned URL for logo if it exists
+        const formObject = form.toObject();
+        
+        if (formObject.logo) {
+            try {
+                formObject.logo = await getPresignedUrl(formObject.logo);
+            } catch (error) {
+                console.error("Error generating presigned URL for logo:", error);
+                // Fallback to stored URL if presigned URL generation fails
+                formObject.logo = formObject.logo || null;
+            }
+        }
+        
+        // Format form for admin panel
+        const formattedForm = {
+            _id: formObject._id,
+            form_name: formObject.form_name,
+            form_type: formObject.form_type,
+            form_note: formObject.form_note,
+            is_active: formObject.is_active,
+            created_at: formObject.created_at,
+            form_link: `/forms/view/${formObject._id}`,
+            user: {
+                name: formObject.user_id?.name || 'N/A',
+                email: formObject.user_id?.email || 'N/A'
+            }
+        };
+
+        res.status(200).json(formattedForm);
+    } catch (error) {
+        console.error("Error fetching form for admin:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Add this new function to fetch all users for admin forms page
+export const getAllUsersForFormsFilter = async (req, res) => {
+    try {
+        // Fetch all users with only name and email fields
+        const users = await User.find({}, 'name email');
+        res.status(200).json(users);
+    } catch (error) {
+        console.error("Error fetching users for forms filter:", error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -122,14 +257,20 @@ export const createForm = async (req, res) => {
         // Save to generate _id
         await form.save();
 
-        form.form_link = `/view/${form._id}`;
+        // Fix the form link to include /forms/view/ path for consistency
+        form.form_link = `/forms/view/${form._id}`;
 
         // Handle logo upload for new form
         if (req.file) {
             try {
-                form.logo = req.file.path;        // Cloudinary image URL
-                form.logo_id = req.file.filename; // public_id (used for deleting in future)
-                console.log("Logo uploaded for new form:", req.file.path);
+                // Generate consistent key for this form
+                const key = generateFormLogoKey(form._id.toString(), req.file.originalname);
+                
+                // Upload file with the consistent key (this will overwrite if exists)
+                await uploadFileToS3(req.file.buffer, key, req.file.originalname);
+                
+                form.logo = key;     // S3 object key (used for generating presigned URLs)
+                console.log("Logo uploaded for new form:", key);
             } catch (err) {
                 console.error("Error saving logo info:", err);
             }
@@ -156,7 +297,7 @@ export const createForm = async (req, res) => {
         }
 
         // Filter and process default fields vs custom fields properly
-        const defaultFieldNames = ['name', 'email', 'phone', 'rating', 'comment'];
+        const defaultFieldNames = ['name', 'email', 'phone', 'rating', 'comment', 'image'];
         
         const processedDefaultFields = parsedDefaultFields.filter(field => 
             defaultFieldNames.includes(field.label.toLowerCase())
@@ -200,7 +341,6 @@ export const createForm = async (req, res) => {
     }
 };
 
-
 export const updateForm = async (req, res) => {
     try {
         const {
@@ -212,7 +352,8 @@ export const updateForm = async (req, res) => {
             is_active,
             logo,
             default_fields,
-            custom_fields
+            custom_fields,
+            remove_logo
         } = req.body;
 
         if (!form_name || !form_type) {
@@ -221,7 +362,8 @@ export const updateForm = async (req, res) => {
 
         // Form is already loaded and validated by checkFormAccess middleware
         const form = req.form;
-        const formLink = `/view/${form._id}`;
+        // Fix the form link to include /forms/view/ path for consistency
+        const formLink = `/forms/view/${form._id}`;
 
         form.form_name = form_name || form.form_name;
         form.form_note = form_note || "";
@@ -231,33 +373,45 @@ export const updateForm = async (req, res) => {
         form.is_active = is_active !== undefined ? is_active : form.is_active;
         form.form_link = formLink;
 
-        // Handle logo upload with improved error handling
-        if (req.file) {
-            // Delete old logo from Cloudinary if it exists
-            if (form.logo_id) {
-                try {
-                    await cloudinary.uploader.destroy(form.logo_id);
-                    console.log("Old logo removed from Cloudinary:", form.logo_id);
-                } catch (err) {
-                    console.error("Failed to delete old logo from Cloudinary:", err);
-                    // Don't fail the entire operation if old logo deletion fails
-                }
-            }
-
-            // Save new logo info with validation
+        // Handle logo removal
+        if (remove_logo === 'true' && form.logo) {
             try {
-                if (req.file.path && req.file.filename) {
-                    form.logo = req.file.path;        // Cloudinary image URL
-                    form.logo_id = req.file.filename; // public_id (used for deleting in future)
-                    console.log("New logo saved:", {
-                        url: req.file.path,
-                        public_id: req.file.filename
-                    });
-                } else {
-                    console.error("Invalid file data from Cloudinary:", req.file);
-                }
+                // Delete the logo from S3
+                await deleteFileFromS3(form.logo);
+                console.log("Logo deleted from S3:", form.logo);
             } catch (err) {
-                console.error("Error saving new logo info:", err);
+                console.error("Error deleting logo from S3:", err);
+                // Don't fail the operation if we can't delete the logo
+                // Just log the error and continue
+            }
+            
+            // Remove logo reference from form
+            form.logo = "";
+        }
+        // Handle logo upload with improved error handling
+        else if (req.file) {
+            try {
+                // If there's an existing logo, delete it first
+                if (form.logo) {
+                    try {
+                        await deleteFileFromS3(form.logo);
+                        console.log("Old logo deleted from S3:", form.logo);
+                    } catch (err) {
+                        console.error("Error deleting old logo from S3:", err);
+                        // Continue even if old logo deletion fails
+                    }
+                }
+                
+                // Generate consistent key for this form
+                const key = generateFormLogoKey(form._id.toString(), req.file.originalname);
+                
+                // Upload file with the consistent key (this will overwrite the existing file)
+                const s3Result = await uploadFileToS3(req.file.buffer, key, req.file.originalname);
+                
+                form.logo = s3Result.key;     // S3 object key (used for generating presigned URLs)
+                console.log("Logo updated for form:", s3Result.key);
+            } catch (err) {
+                console.error("Error saving logo info:", err);
                 return res.status(400).json({ message: "Failed to save logo. Please try again." });
             }
         }
@@ -316,9 +470,24 @@ export const updateForm = async (req, res) => {
 
         await form.save();
 
+        // Generate presigned URL for the logo if it exists
+        let logoUrl = null;
+        if (form.logo) {
+            try {
+                logoUrl = await getPresignedUrl(form.logo);
+            } catch (error) {
+                console.error("Error generating presigned URL for logo:", error);
+                // Fallback to stored key if presigned URL generation fails
+                logoUrl = form.logo;
+            }
+        }
+
         return res.status(200).json({
             message: "Form updated successfully.",
-            form,
+            form: {
+                ...form.toObject(),
+                logo: logoUrl || form.logo
+            },
         });
     } catch (error) {
         console.error(error);
@@ -326,6 +495,43 @@ export const updateForm = async (req, res) => {
     }
 };
 
+// Delete a form's logo
+export const deleteFormLogo = async (req, res) => {
+    try {
+        // Form is already loaded and validated by checkFormAccess middleware
+        const form = req.form;
+
+        // Check if form has a logo
+        if (!form.logo) {
+            return res.status(404).json({ message: "Form does not have a logo." });
+        }
+
+        // Delete the logo from S3
+        try {
+            await deleteFileFromS3(form.logo);
+            console.log("Logo deleted from S3:", form.logo);
+        } catch (err) {
+            console.error("Error deleting logo from S3:", err);
+            // Don't fail the operation if we can't delete the logo
+            // Just log the error and continue
+        }
+
+        // Remove logo reference from form
+        form.logo = "";
+        await form.save();
+
+        return res.status(200).json({ 
+            message: "Form logo deleted successfully.",
+            form: {
+                ...form.toObject(),
+                logo: null
+            }
+        });
+    } catch (error) {
+        console.error("Error deleting form logo:", error);
+        return res.status(500).json({ message: "An error occurred while deleting the form logo.", error: error.message });
+    }
+};
 
 // Delete a form
 export const deleteForm = async (req, res) => {
@@ -333,14 +539,15 @@ export const deleteForm = async (req, res) => {
         // Form is already loaded and validated by checkFormAccess middleware
         const form = req.form;
 
-        // Delete the logo from Cloudinary if it exists
-        if (form.logo_id) {
+        // Delete the logo from S3 if it exists
+        if (form.logo) {
             try {
-                await cloudinary.uploader.destroy(form.logo_id);
-                console.log("Logo deleted from Cloudinary:", form.logo_id);
+                await deleteFileFromS3(form.logo);
+                console.log("Logo deleted from S3:", form.logo);
             } catch (err) {
-                console.error("Error deleting logo from Cloudinary:", err);
+                console.error("Error deleting logo from S3:", err);
                 // Don't fail the entire operation if logo deletion fails
+                // Just log the error and continue
             }
         }
 
@@ -384,22 +591,35 @@ export const viewForm = async (req, res) => {
             return res.status(404).json({ message: 'Form not found' });
         }
         
+        // Convert form to object and add presigned URL for logo if it exists
+        const formObject = form.toObject();
+        
+        if (formObject.logo) {
+            try {
+                formObject.logo = await getPresignedUrl(formObject.logo);
+            } catch (error) {
+                console.error("Error generating presigned URL for logo:", error);
+                // Fallback to stored URL if presigned URL generation fails
+                formObject.logo = formObject.logo || null;
+            }
+        }
+        
         // Remove sensitive information for public viewing
-        // SECURITY: Never expose user_id, logo_id, or internal form_link to public users
+        // SECURITY: Never expose user_id or internal form_link to public users
         const publicFormData = {
-            _id: form._id,
-            form_name: form.form_name,
-            form_note: form.form_note,
-            form_type: form.form_type,
-            form_description: form.form_description,
-            is_active: form.is_active,
-            logo: form.logo,
-            google_link: form.google_link,
-            default_fields: form.default_fields,
-            custom_fields: form.custom_fields,
-            createdAt: form.createdAt,
-            updatedAt: form.updatedAt
-            // Explicitly exclude: user_id, logo_id, form_link
+            _id: formObject._id,
+            form_name: formObject.form_name,
+            form_note: formObject.form_note,
+            form_type: formObject.form_type,
+            form_description: formObject.form_description,
+            is_active: formObject.is_active,
+            logo: formObject.logo,
+            google_link: formObject.google_link,
+            default_fields: formObject.default_fields,
+            custom_fields: formObject.custom_fields,
+            createdAt: formObject.createdAt,
+            updatedAt: formObject.updatedAt
+            // Explicitly exclude: user_id, form_link
         };
         
         res.status(200).json(publicFormData);
@@ -407,4 +627,3 @@ export const viewForm = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-

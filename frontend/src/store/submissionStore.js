@@ -60,7 +60,17 @@ const useSubmissionStore = create((set) => ({
     submitForm: async (formDetails) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await axios.post(API_URL, formDetails);
+            // Determine if we're sending FormData (for file uploads) or JSON
+            const isFormData = formDetails instanceof FormData;
+            
+            // Set appropriate headers for FormData
+            const config = {
+                headers: {
+                    'Content-Type': isFormData ? 'multipart/form-data' : 'application/json',
+                }
+            };
+            
+            const response = await axios.post(API_URL, formDetails, config);
             set((state) => ({
                 submissions: [...state.submissions, response.data],
                 isLoading: false,

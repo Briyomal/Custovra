@@ -1,24 +1,38 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Mail, Lock, Loader } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import Input from "../components/Input";
 import { useAuthStore } from "../store/authStore";
 import FloatingBackground from "../components/FloatingBackground";
+import TwoFactorAuthDialog from "../components/TwoFactorAuthDialog";
 
 const LoginPage = () => {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
-	const navigate = useNavigate(); // Initialize navigate for redirection
+	const [show2FADialog, setShow2FADialog] = useState(false);
+	const [userId, setUserId] = useState(null);
+	const navigate = useNavigate();
+	const { login, isLoading, error, isAuthenticated, checkAuth } = useAuthStore();
+	
+	// Check if user is authenticated and redirect to dashboard
+	useEffect(() => {
+		if (isAuthenticated) {
+			navigate("/dashboard");
+		}
+	}, [isAuthenticated, navigate]);
 
-	const { login, isLoading, error } = useAuthStore();
 	const handleLogin = async (e) => {
 		e.preventDefault();
 	
 		// Call the login function and get the response
 		const response = await login(email, password);
 	
-		if (response?.isVerified === false) {
+		if (response?.twoFactorRequired) {
+			// 2FA is required, show the 2FA dialog
+			setUserId(response.userId);
+			setShow2FADialog(true);
+		} else if (response?.isVerified === false) {
 			// Show the message to the user
 			console.log("Email not verified. A new verification email has been sent.");
 			
@@ -32,6 +46,14 @@ const LoginPage = () => {
 			console.log(response?.message || "Login failed");
 		}
 	};
+
+	const handle2FAClose = async () => {
+		setShow2FADialog(false);
+		setUserId(null);
+		// After successful 2FA, check auth state and redirect to dashboard if authenticated
+		await checkAuth();
+	};
+
 	return (
 		<FloatingBackground>
 		<motion.div
@@ -69,7 +91,7 @@ const LoginPage = () => {
 							Forgot password?
 						</Link>
 					</div>
-					{error && <p className='text-red-500 font-semibold mb-2'>{error}</p>}
+					{error && !show2FADialog && <p className='text-red-500 font-semibold mb-2'>{error}</p>}
 
 					<motion.button
 						whileHover={{ scale: 1.02 }}
@@ -91,9 +113,13 @@ const LoginPage = () => {
 				</p>
 			</div>
 		</motion.div>
+		
+		<TwoFactorAuthDialog 
+			isOpen={show2FADialog} 
+			onClose={handle2FAClose} 
+			userId={userId} 
+		/>
 		</FloatingBackground>
 	);
-
-
 };
 export default LoginPage;

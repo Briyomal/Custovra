@@ -101,6 +101,14 @@ const useFormStore = create((set) => ({
                 },
             });
     
+            // Update the forms in the store with the updated form data
+            set((state) => ({
+                forms: state.forms.map((form) => 
+                    form._id === formId ? { ...form, ...response.data.form } : form
+                ),
+                isLoading: false,
+            }));
+    
             return response.data;
         } catch (error) {
             console.error("Error updating form:", error.response?.data || error.message);
@@ -110,12 +118,40 @@ const useFormStore = create((set) => ({
                                error.response?.data?.message || 
                                "Failed to update form";
             
-            set({ error: errorMessage });
+            set({ error: errorMessage, isLoading: false });
             
             // Re-throw the original error with all details intact
             throw error;
-        } finally {
-            set({ isLoading: false });
+        }
+    },
+
+    // Delete a form's logo
+    deleteFormLogo: async (formId) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await axios.delete(`${API_URL}/delete-logo/${formId}`);
+            
+            // Update the forms in the store with the updated form data
+            set((state) => ({
+                forms: state.forms.map((form) => 
+                    form._id === formId ? { ...form, ...response.data.form } : form
+                ),
+                isLoading: false,
+            }));
+            
+            return response.data;
+        } catch (error) {
+            console.error("Error deleting form logo:", error.response?.data || error.message);
+            
+            // Store the error for state management
+            const errorMessage = error.response?.data?.error || 
+                               error.response?.data?.message || 
+                               "Failed to delete form logo";
+            
+            set({ error: errorMessage, isLoading: false });
+            
+            // Re-throw the original error with all details intact
+            throw error;
         }
     },
 

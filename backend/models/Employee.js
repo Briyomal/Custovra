@@ -27,7 +27,7 @@ const employeeSchema = new Schema({
             type: String,
             default: ''
         },
-        public_id: {
+        key: {
             type: String,
             default: ''
         }

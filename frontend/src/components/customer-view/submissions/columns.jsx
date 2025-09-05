@@ -58,6 +58,48 @@ export const generateDynamicColumns = (submissions) => {
 					);
 				},
 			};
+		} else if (fieldName.endsWith('.jpg') || fieldName.endsWith('.jpeg') || fieldName.endsWith('.png') || 
+		           fieldName.includes('image') || fieldName.includes('photo') || fieldName.includes('Image') || fieldName.includes('Photo')) {
+			// Handle image fields
+			return {
+				id: fieldName,
+				header: ({ column }) => (
+					<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+						{fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				),
+				accessorKey: `submissions.${fieldName}`,
+				enableSorting: true,
+				cell: ({ row }) => {
+					const value = row.original.submissions?.[fieldName];
+					// Check if the value looks like a URL (presigned URL)
+					if (value && (value.startsWith('http://') || value.startsWith('https://'))) {
+						return (
+							<div className="flex items-center space-x-2">
+								<img 
+									src={value} 
+									alt="Submission" 
+									className="w-16 h-16 object-cover rounded border"
+									onError={(e) => {
+										// If image fails to load, show a fallback
+										e.target.onerror = null;
+										e.target.parentElement.innerHTML = '<span className="text-blue-500 hover:underline">View Image</span>';
+									}}
+								/>
+								<a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-sm">
+									View Full Size
+								</a>
+							</div>
+						);
+					}
+					// If it's an S3 key, show a placeholder
+					else if (value && (value.startsWith('form_submissions/') || value.includes('form_submissions'))) {
+						return <span className="text-blue-500">[Image File]</span>;
+					}
+					return <span>{value || 'N/A'}</span>;
+				},
+			};
 		} else {
 			return {
 				id: fieldName,
@@ -244,6 +286,29 @@ const staticColumns = [
 												})}
 												<span className="ml-2 text-sm text-gray-600">{value}/5</span>
 											</div>
+										) : (key.endsWith('.jpg') || key.endsWith('.jpeg') || key.endsWith('.png') || 
+										     key.includes('image') || key.includes('photo') || key.includes('Image') || key.includes('Photo')) ? (
+											// Handle image fields in the view dialog
+											value && (value.startsWith('http://') || value.startsWith('https://')) ? (
+												<div className="flex flex-col gap-2">
+													<img 
+														src={value} 
+														alt={key} 
+														className="w-32 h-32 object-cover rounded border"
+														onError={(e) => {
+															// If image fails to load, show the URL
+															e.target.onerror = null;
+															e.target.style.display = 'none';
+															e.target.parentElement.innerHTML = `<a href="${value}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${value}</a>`;
+														}}
+													/>
+													<a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-sm">
+														View Full Size
+													</a>
+												</div>
+											) : (
+												<span>{value || 'N/A'}</span>
+											)
 										) : (
 											<span className="flex-1">{value || 'N/A'}</span>
 										)}

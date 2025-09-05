@@ -10,19 +10,14 @@ import {
 import { verifyToken } from '../middleware/verifyToken.js';
 import checkSubscription from '../middleware/checkSubscription.js';
 import multer from 'multer';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
-import { v2 as cloudinary } from 'cloudinary';
+// Replace Cloudinary with S3 storage
+import { s3Storage } from '../utils/s3Storage.js';
 
 const router = express.Router();
 
-// Configure multer with Cloudinary for profile photo uploads
-const storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-        folder: 'employee_profiles_temp',
-        allowed_formats: ['jpg', 'jpeg', 'png'],
-        transformation: [{ width: 300, height: 300, crop: 'limit' }]
-    }
+// Configure multer with S3 for profile photo uploads
+const storage = s3Storage({
+    folder: 'employee_profiles'
 });
 
 const profileUpload = multer({ 

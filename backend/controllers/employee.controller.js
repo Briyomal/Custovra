@@ -1,6 +1,8 @@
 // controllers/EmployeeController.js
 import { Employee } from '../models/Employee.js';
-import { v2 as cloudinary } from 'cloudinary';
+// Replace Cloudinary with S3 utilities
+import { uploadFileToS3, deleteFileFromS3, getPresignedUrl, generateEmployeePhotoKey } from '../utils/s3.js';
+import concat from 'concat-stream';
 
 // Get all employees for authenticated user only
 export const getAllEmployees = async (req, res) => {
@@ -9,10 +11,25 @@ export const getAllEmployees = async (req, res) => {
         
         const employees = await Employee.find({ user_id: userId }).sort({ created_at: -1 });
         
+        // Add presigned URLs for profile photos
+        const employeesWithPresignedUrls = await Promise.all(employees.map(async (employee) => {
+            const employeeObject = employee.toObject();
+            if (employeeObject.profile_photo.key) {
+                try {
+                    employeeObject.profile_photo.url = await getPresignedUrl(employeeObject.profile_photo.key);
+                } catch (error) {
+                    console.error("Error generating presigned URL for profile photo:", error);
+                    // Fallback to stored URL if presigned URL generation fails
+                    employeeObject.profile_photo.url = employeeObject.profile_photo.url || null;
+                }
+            }
+            return employeeObject;
+        }));
+        
         res.status(200).json({
             success: true,
-            data: employees,
-            count: employees.length
+            data: employeesWithPresignedUrls,
+            count: employeesWithPresignedUrls.length
         });
     } catch (error) {
         console.error("Error fetching employees:", error);
@@ -52,44 +69,61 @@ export const createEmployee = async (req, res) => {
             }
         }
         
-        let profilePhotoData = { url: '', public_id: '' };
-        
-        // Handle profile photo upload if provided
-        if (req.file) {
-            try {
-                const result = await cloudinary.uploader.upload(req.file.path, {
-                    folder: 'employee_profiles',
-                    transformation: [
-                        { width: 100, height: 100, crop: 'fill', gravity: 'face' },
-                        { quality: 'auto' }
-                    ]
-                });
-                
-                profilePhotoData = {
-                    url: result.secure_url,
-                    public_id: result.public_id
-                };
-            } catch (uploadError) {
-                console.error('Error uploading profile photo:', uploadError);
-                // Continue without photo if upload fails
-            }
-        }
-        
-        // SECURITY: Ensure employee is created under authenticated user
+        // Create employee first to get the ID
         const newEmployee = new Employee({
             user_id: userId,
             name: name.trim(),
             employee_number: employee_number ? employee_number.trim() : undefined,
             designation: designation.trim(),
-            profile_photo: profilePhotoData
+            profile_photo: { url: '', key: '' }
         });
         
         await newEmployee.save();
         
+        let profilePhotoData = { url: '', key: '' };
+        
+        // Handle profile photo upload if provided
+        if (req.file) {
+            try {
+                // Generate consistent key for this employee
+                const key = generateEmployeePhotoKey(newEmployee._id.toString(), req.file.originalname);
+                
+                // Upload file with the consistent key (this will overwrite if exists)
+                await uploadFileToS3(req.file.buffer, key, req.file.originalname);
+                
+                profilePhotoData = { key };
+            } catch (uploadError) {
+                console.error('Error processing profile photo:', uploadError);
+                // Continue without photo if upload fails
+            }
+        }
+        
+        // Update employee with profile photo data if uploaded
+        if (profilePhotoData.key) {
+            await Employee.findByIdAndUpdate(newEmployee._id, {
+                profile_photo: profilePhotoData
+            });
+        }
+        
+        // Fetch the updated employee
+        const updatedEmployee = await Employee.findById(newEmployee._id);
+        
+        // Add presigned URL for the newly created employee
+        const employeeObject = updatedEmployee.toObject();
+        if (employeeObject.profile_photo.key) {
+            try {
+                employeeObject.profile_photo.url = await getPresignedUrl(employeeObject.profile_photo.key);
+            } catch (error) {
+                console.error("Error generating presigned URL for profile photo:", error);
+                // Fallback to stored URL if presigned URL generation fails
+                employeeObject.profile_photo.url = employeeObject.profile_photo.url || null;
+            }
+        }
+        
         res.status(201).json({
             success: true,
             message: "Employee created successfully.",
-            data: newEmployee
+            data: employeeObject
         });
     } catch (error) {
         console.error("Error creating employee:", error);
@@ -146,32 +180,18 @@ export const updateEmployee = async (req, res) => {
         // Handle profile photo upload if provided
         if (req.file) {
             try {
-                // Delete old photo if exists
-                if (employee.profile_photo.public_id) {
-                    try {
-                        await cloudinary.uploader.destroy(employee.profile_photo.public_id);
-                    } catch (deleteError) {
-                        console.error('Error deleting old profile photo:', deleteError);
-                    }
-                }
+                // Generate consistent key for this employee
+                const key = generateEmployeePhotoKey(employeeId, req.file.originalname);
                 
-                const result = await cloudinary.uploader.upload(req.file.path, {
-                    folder: 'employee_profiles',
-                    transformation: [
-                        { width: 100, height: 100, crop: 'fill', gravity: 'face' },
-                        { quality: 'auto' }
-                    ]
-                });
+                // Upload file with the consistent key (this will overwrite the existing file)
+                await uploadFileToS3(req.file.buffer, key, req.file.originalname);
                 
-                profilePhotoData = {
-                    url: result.secure_url,
-                    public_id: result.public_id
-                };
+                profilePhotoData = { key };
             } catch (uploadError) {
-                console.error('Error uploading new profile photo:', uploadError);
+                console.error('Error processing new profile photo:', uploadError);
                 return res.status(400).json({
                     success: false,
-                    error: "Failed to upload profile photo."
+                    error: "Failed to process profile photo."
                 });
             }
         }
@@ -189,10 +209,22 @@ export const updateEmployee = async (req, res) => {
             { new: true }
         );
         
+        // Add presigned URL for the updated employee
+        const employeeObject = updatedEmployee.toObject();
+        if (employeeObject.profile_photo.key) {
+            try {
+                employeeObject.profile_photo.url = await getPresignedUrl(employeeObject.profile_photo.key);
+            } catch (error) {
+                console.error("Error generating presigned URL for profile photo:", error);
+                // Fallback to stored URL if presigned URL generation fails
+                employeeObject.profile_photo.url = employeeObject.profile_photo.url || null;
+            }
+        }
+        
         res.status(200).json({
             success: true,
             message: "Employee updated successfully.",
-            data: updatedEmployee
+            data: employeeObject
         });
     } catch (error) {
         console.error("Error updating employee:", error);
@@ -219,10 +251,10 @@ export const deleteEmployee = async (req, res) => {
             });
         }
         
-        // Delete profile photo from Cloudinary if exists
-        if (employee.profile_photo.public_id) {
+        // Delete profile photo from S3 if exists
+        if (employee.profile_photo.key) {
             try {
-                await cloudinary.uploader.destroy(employee.profile_photo.public_id);
+                await deleteFileFromS3(employee.profile_photo.key);
             } catch (deleteError) {
                 console.error('Error deleting profile photo:', deleteError);
                 // Continue with employee deletion even if photo deletion fails
@@ -259,9 +291,21 @@ export const getEmployee = async (req, res) => {
             });
         }
         
+        // Add presigned URL for profile photo
+        const employeeObject = employee.toObject();
+        if (employeeObject.profile_photo.key) {
+            try {
+                employeeObject.profile_photo.url = await getPresignedUrl(employeeObject.profile_photo.key);
+            } catch (error) {
+                console.error("Error generating presigned URL for profile photo:", error);
+                // Fallback to stored URL if presigned URL generation fails
+                employeeObject.profile_photo.url = employeeObject.profile_photo.url || null;
+            }
+        }
+        
         res.status(200).json({
             success: true,
-            data: employee
+            data: employeeObject
         });
     } catch (error) {
         console.error("Error fetching employee:", error);

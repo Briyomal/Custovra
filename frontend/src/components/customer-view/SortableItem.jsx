@@ -164,6 +164,7 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
                                             <SelectItem value="textarea">Textarea</SelectItem>
                                             <SelectItem value="rating">Rating</SelectItem>
                                             <SelectItem value="employee">Employee Dropdown</SelectItem>
+                                            <SelectItem value="image">Image Upload</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -253,6 +254,18 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
                             }
                         </Button>
                     )}
+                </div>
+            ) : field.type === "image" ? (
+                <div className="mt-2 space-y-2">
+                    <Input
+                        type="file"
+                        accept="image/*"
+                        disabled={!field.enabled}
+                        className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-100 dark:hover:file:bg-blue-800"
+                    />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {field.placeholder || "Upload an image file"}
+                    </p>
                 </div>
             ) : (
                 <Input

@@ -4,12 +4,12 @@ const Schema = mongoose.Schema;
 const defaultFieldSchema = new Schema({
     field_name: {
         type: String,
-        enum: ['name', 'email', 'phone', 'rating', 'comment'], // Default fields
+        enum: ['name', 'email', 'phone', 'rating', 'comment', 'image'], // Added 'image' as a default field
         required: true,
     },
     field_type: {
         type: String,
-        enum: ['text', 'email', 'tel', 'rating', 'textarea', 'employee'],
+        enum: ['text', 'email', 'tel', 'rating', 'textarea', 'employee', 'image'], // Added 'image' as a field type
         required: true,
     },
     is_required: {
@@ -40,7 +40,7 @@ const customFieldSchema = new Schema({
     },
     field_type: {
         type: String,
-        enum: ['text', 'email', 'tel', 'number', 'rating', 'textarea', 'employee'],
+        enum: ['text', 'email', 'tel', 'number', 'rating', 'textarea', 'employee', 'image'], // Added 'image' as a field type
         required: true,
     },
     is_required: {
@@ -82,9 +82,6 @@ const formSchema = new Schema({
         type: String,
     },
     logo: {
-        type: String,
-    },
-    logo_id: {
         type: String,
     },
     form_description: {

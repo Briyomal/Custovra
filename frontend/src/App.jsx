@@ -9,6 +9,8 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import HomePage from "./pages/front/HomePage";
 import AdminDashboardPage from "./pages/admin/index";
 import UsersPage from "./pages/admin/UsersPage";
+import FormsPage from "./pages/admin/FormsPage";
+import SubmissionsPage from "./pages/admin/SubmissionsPage";
 
 import FormPage from "./pages/customer/FormPage";
 
@@ -183,6 +185,22 @@ function App() {
 					element={
 						<ProtectedRoute role="admin">
 							<UsersPage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/admin/forms"
+					element={
+						<ProtectedRoute role="admin">
+							<FormsPage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/admin/submissions/:formId"
+					element={
+						<ProtectedRoute role="admin">
+							<SubmissionsPage />
 						</ProtectedRoute>
 					}
 				/>

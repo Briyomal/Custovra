@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useSensor, useSensors, MouseSensor, TouchSensor, KeyboardSensor } from "@dnd-kit/core";
-import FormSidebar from "./FormSidebar";
 import FormSkeleton from "./FormSkelton";
 import FormFieldList from "./FormFields";
 import { arrayMove } from "@dnd-kit/sortable";
@@ -9,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 
 // Component for each sortable field
 
-const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect, fields, setFields }) => {
+const FormBuilder = ({ formDetails, fields, setFields }) => {
     const [isLoading, setIsLoading] = useState(true);
 
     console.log("Form details fetched:", formDetails);
@@ -204,11 +203,6 @@ const FormBuilder = ({ formDetails, onFieldUpdate, onFileSelect, fields, setFiel
                     </div>
                 )}
             </div>
-            <FormSidebar
-                formDetails={formDetails}
-                onFieldUpdate={onFieldUpdate}
-                onFileSelect={onFileSelect}
-            />
         </div>
     );
 };

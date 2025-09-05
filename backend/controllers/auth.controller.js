@@ -1,5 +1,6 @@
 import bcryptjs from "bcryptjs";
 import crypto from "crypto";
+import { authenticator } from 'otplib';
 
 import {
 	generateTokenAndSetCookie
@@ -180,10 +181,18 @@ export const login = async (req, res) => {
 			});
 		}
 
-		const payment = await Payment.findOne({
-			user_id: new mongoose.Types.ObjectId(user._id)
-		});
+		// Check if 2FA is enabled for the user
+		if (user.twoFactorEnabled) {
+			// Instead of logging in directly, we'll indicate that 2FA is required
+			return res.status(200).json({
+				success: true,
+				message: "2FA required",
+				twoFactorRequired: true,
+				userId: user._id
+			});
+		}
 
+		// Check if user is verified (existing logic)
 		if (!user.isVerified) {
 			const currentTime = Date.now();
 			const twentyFourHours = 24 * 60 * 60 * 1000;
@@ -223,6 +232,10 @@ export const login = async (req, res) => {
 			});
 		}
 
+		const payment = await Payment.findOne({
+			user_id: new mongoose.Types.ObjectId(user._id)
+		});
+
 		generateTokenAndSetCookie(res, user._id);
 
 		user.lastLogin = new Date();
@@ -246,6 +259,63 @@ export const login = async (req, res) => {
 	}
 };
 
+// New function to verify 2FA token during login
+export const verify2FALogin = async (req, res) => {
+	const { userId, token } = req.body;
+	
+	try {
+		const user = await User.findById(userId);
+		if (!user) {
+			return res.status(400).json({
+				success: false,
+				message: "User not found"
+			});
+		}
+
+		if (!user.twoFactorEnabled || !user.twoFactorSecret) {
+			return res.status(400).json({
+				success: false,
+				message: "2FA is not enabled for this user"
+			});
+		}
+
+		// Verify the token
+		const isValid = authenticator.check(token, user.twoFactorSecret);
+
+		if (!isValid) {
+			return res.status(400).json({
+				success: false,
+				message: "Invalid 2FA token"
+			});
+		}
+
+		// 2FA is valid, proceed with login
+		const payment = await Payment.findOne({
+			user_id: new mongoose.Types.ObjectId(user._id)
+		});
+
+		generateTokenAndSetCookie(res, user._id);
+
+		user.lastLogin = new Date();
+		await user.save();
+
+		res.status(200).json({
+			success: true,
+			message: "Logged in successfully",
+			user: {
+				...user._doc,
+				password: undefined,
+				payment,
+			},
+		});
+	} catch (error) {
+		console.log("Error in verify2FALogin", error);
+		res.status(500).json({
+			success: false,
+			message: error.message
+		});
+	}
+};
 
 export const logout = async (req, res) => {
 	const isProduction = process.env.NODE_ENV === "production";

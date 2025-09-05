@@ -17,7 +17,7 @@ import {
 import { CircleHelp } from "lucide-react";
 
 
-const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect  }) => {
+const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect, onRemoveImage }) => {
     // Fallback for when formDetails is null or undefined
     const isLoading = !formDetails || Object.keys(formDetails).length === 0;
     const [isActive, setIsActive] = useState("");
@@ -153,6 +153,8 @@ const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect  }) => {
                 <ImageUpload  
                     existingImageUrl={formDetails.logo} 
                     onFileSelect={onFileSelect} 
+                    onRemoveImage={onRemoveImage}
+                    showRemoveButton={!!formDetails.logo && !!onRemoveImage}
                 />
             </div>
             <div className="mt-6"> 

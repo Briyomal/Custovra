@@ -78,6 +78,15 @@ const userSchema = new Schema(
 			type: Date,
 			default: Date.now,
 		},
+		// 2FA fields
+		twoFactorSecret: {
+			type: String,
+			required: false,
+		},
+		twoFactorEnabled: {
+			type: Boolean,
+			default: false,
+		},
 	},
 	{
 		timestamps: true,

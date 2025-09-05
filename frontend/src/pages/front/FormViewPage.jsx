@@ -122,6 +122,10 @@ const FormViewPage = () => {
             const fieldValue = typeof value === "string" ? value.trim() : value;
 
             if (fieldValue === null || fieldValue === undefined || fieldValue === "") {
+                // Special handling for image fields - check if it's a File object
+                if (field.field_type === "image" && value instanceof File) {
+                    return null; // File is present, so it's valid
+                }
                 return `${field.field_name} is required.`;
             }
 
@@ -152,7 +156,16 @@ const FormViewPage = () => {
 
 
     const handleChange = (e, field) => {
-        const { name, value } = e.target;
+        let name, value;
+        
+        // Handle file inputs differently
+        if (e.target.type === 'file') {
+            name = e.target.name;
+            value = e.target.files[0]; // Get the file object
+        } else {
+            name = e.target.name;
+            value = e.target.value;
+        }
         
         // Development-only logging
         if (import.meta.env.MODE === 'development') {
@@ -206,7 +219,10 @@ const FormViewPage = () => {
             }
 
             const { submitForm } = useSubmissionStore.getState();
-            const formData = new FormData(e.target);
+            
+            // Use FormData to handle both regular fields and file uploads
+            const formData = new FormData();
+            
             let validationErrors = {};
             let ratingValue = 0; // Store rating value
 
@@ -215,7 +231,7 @@ const FormViewPage = () => {
             const allFields = [...(formDetails.default_fields || []), ...(formDetails.custom_fields || [])];
             
             allFields.forEach((field) => {
-                const value = field.field_type === "rating" ? field.value : formData.get(field.field_name)?.trim();
+                const value = field.field_type === "rating" ? field.value : field.value;
 
                 if (field.is_required) {
                     const error = validateField(field.field_name, value, field);
@@ -224,10 +240,16 @@ const FormViewPage = () => {
                     }
                 }
 
-                // Manually append the rating value to formData and Capture rating value
+                // Handle different field types for FormData
                 if (field.field_type === "rating") {
                     ratingValue = Math.max(ratingValue, field.value || 0); // Use the highest rating for Google prompt
-                    formData.set(field.field_name, field.value || 0);
+                    formData.append(field.field_name, field.value || 0);
+                } else if (field.field_type === "image" && field.value instanceof File) {
+                    // Append file to FormData
+                    formData.append(field.field_name, field.value);
+                } else if (field.value !== undefined && field.value !== null) {
+                    // Append regular fields
+                    formData.append(field.field_name, field.value);
                 }
             });
 
@@ -238,28 +260,22 @@ const FormViewPage = () => {
                 return;
             }
 
-            // Prepare form details for submission
-            const formDataEntries = Object.fromEntries(formData.entries());
+            // Add captcha token to FormData
+            formData.append('captchaToken', captchaToken);
             
-            // Filter out any unwanted fields (like turnstile responses)
-            // eslint-disable-next-line no-unused-vars
-            const { 'cf-turnstile-response': _, ...cleanedSubmissions } = formDataEntries;
-            
-            const submissionDetails = {
-                form_id: formDetails._id,
-                // Don't include user_id for public form submissions
-                // The backend will handle this as a public submission
-                submissions: cleanedSubmissions,
-                captchaToken,
-            };
+            // Add form_id to FormData
+            formData.append('form_id', formDetails._id);
 
             // Development-only logging
             if (import.meta.env.MODE === 'development') {
-                console.log("Submitting form with", Object.keys(submissionDetails.submissions).length, "fields");
+                console.log("Submitting form with", formData.entries().length, "fields");
+                for (let pair of formData.entries()) {
+                    console.log(pair[0] + ':', pair[1]);
+                }
             }
 
-            // Submit the form
-            await submitForm(submissionDetails);
+            // Submit the form with actual FormData, not converted object
+            await submitForm(formData);
             const { error } = useSubmissionStore.getState();
 
             if (error) {
@@ -459,6 +475,56 @@ const FormViewPage = () => {
                                                                         )}
                                                                     </SelectContent>
                                                                 </Select>
+                                                            ) : field.field_type === "image" ? (
+                                                                <div className="space-y-2">
+                                                                    <div className="flex items-center justify-center w-full">
+                                                                        <label 
+                                                                            htmlFor={`file-upload-${field.field_name}`}
+                                                                            className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:border-gray-600 dark:bg-slate-950 dark:hover:bg-slate-800 transition-colors duration-200"
+                                                                        >
+                                                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                                                <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                                                                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                                                                                </svg>
+                                                                                <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                                                                                    <span className="font-semibold">Click to upload</span> or drag and drop
+                                                                                </p>
+                                                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                                    PNG, JPG, JPEG (MAX. 1MB)
+                                                                                </p>
+                                                                            </div>
+                                                                            <Input
+                                                                                id={`file-upload-${field.field_name}`}
+                                                                                name={field.field_name}
+                                                                                type="file"
+                                                                                accept="image/*"
+                                                                                required={field.is_required}
+                                                                                onChange={(e) => handleChange(e, field)}
+                                                                                className="hidden"
+                                                                            />
+                                                                        </label>
+                                                                    </div>
+                                                                    {field.value && typeof field.value === "object" && field.value.name && (
+                                                                        <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900 rounded-md">
+                                                                            <div className="flex items-center">
+                                                                                <svg className="w-5 h-5 text-blue-500 dark:text-blue-400 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 18">
+                                                                                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 3v4l3-3m6 4H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/>
+                                                                                </svg>
+                                                                                <span className="text-sm font-medium text-blue-700 dark:text-blue-300 truncate">
+                                                                                    {field.value.name}
+                                                                                </span>
+                                                                            </div>
+                                                                            <span className="text-xs text-blue-600 dark:text-blue-400">
+                                                                                Selected
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+                                                                    {field.placeholder && (
+                                                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                                            {field.placeholder}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
                                                             ) : (
                                                                 <Input
                                                                     name={field.field_name}
@@ -473,18 +539,17 @@ const FormViewPage = () => {
                                                                 <p className="text-sm text-red-500">{formErrors[field.field_name]}</p>
                                                             )}
                                                         </div>
-                                                    )})}
+                                                    );
+                                                })}
 
-                                                    
-                        <div className="mt-4">
-                            <Turnstile
-                                siteKey={`${import.meta.env.VITE_TURNSTILE_SITE_KEY}`}
-                                onSuccess={(token) => setCaptchaToken(token)}
-                                onExpire={() => setCaptchaToken(null)}
-                                onError={() => setCaptchaToken(null)}
-                            />
-                        </div>
-
+                                                <div className="mt-4">
+                                                    <Turnstile
+                                                        siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                                                        onSuccess={(token) => setCaptchaToken(token)}
+                                                        onExpire={() => setCaptchaToken(null)}
+                                                        onError={() => setCaptchaToken(null)}
+                                                    />
+                                                </div>
 
                                                 <Button
                                                     type="submit"
@@ -501,8 +566,8 @@ const FormViewPage = () => {
                                                 </Button>
                                             </form>
                                         </CardContent>
-
-                                    </>)}
+                                    </>
+                                )}
                             </Card>
                         )}
 

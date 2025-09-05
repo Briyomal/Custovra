@@ -1,17 +1,28 @@
-import { ImageUp } from "lucide-react";
+import { ImageUp, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
-const ImageUpload = ({ existingImageUrl, onFileSelect }) => {
+const ImageUpload = ({ existingImageUrl, onFileSelect, onRemoveImage, showRemoveButton = true }) => {
     const [uploadedImage, setUploadedImage] = useState(existingImageUrl || null);
 
     // Update the state when the existingImageUrl prop changes
     useEffect(() => {
-        if (existingImageUrl && existingImageUrl.startsWith('/public/')) {
-            setUploadedImage(`${import.meta.env.VITE_SERVER_URL}${existingImageUrl}`);
-        } else {
+        // If it's already a full URL (including S3 presigned URLs), use it as is
+        if (existingImageUrl && (existingImageUrl.startsWith('http') || existingImageUrl.startsWith('/public/'))) {
+            if (existingImageUrl.startsWith('/public/')) {
+                setUploadedImage(`${import.meta.env.VITE_SERVER_URL}${existingImageUrl}`);
+            } else {
+                setUploadedImage(existingImageUrl);
+            }
+        } else if (existingImageUrl) {
+            // For S3 keys, we need to generate a presigned URL
+            // In this case, we'll just show the key as a placeholder
+            // The parent component should handle URL generation
             setUploadedImage(existingImageUrl);
+        } else {
+            setUploadedImage(null);
         }
     }, [existingImageUrl]);
 
@@ -22,6 +33,13 @@ const ImageUpload = ({ existingImageUrl, onFileSelect }) => {
             if (onFileSelect) {
                 onFileSelect(file); // Pass the file to the parent component
             }
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setUploadedImage(null);
+        if (onRemoveImage) {
+            onRemoveImage(); // Notify parent component that image should be removed
         }
     };
 
@@ -41,12 +59,23 @@ const ImageUpload = ({ existingImageUrl, onFileSelect }) => {
             <div className="flex flex-col items-center space-y-4 mt-4">
                 {/* Display the preview if an image is uploaded or an existing image is available */}
                 {uploadedImage && (
-                    <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-100 dark:border-gray-600 dark:bg-slate-950">
+                    <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-100 dark:border-gray-600 dark:bg-slate-950 relative">
                         <img
                             src={uploadedImage}
                             alt="Uploaded"
-                            className="mt-1 w-full h-auto rounded-md "
+                            className="mt-1 w-full h-auto rounded-md"
                         />
+                        {showRemoveButton && (
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="absolute top-2 right-2"
+                                onClick={handleRemoveImage}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        )}
                     </div>
                 )}
 

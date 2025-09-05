@@ -27,12 +27,18 @@ export const useAuthStore = create((set) => ({
 		set({ isLoading: true, error: null });
 		try {
 			const response = await axios.post(`${API_URL}/login`, { email, password });
-			set({
-				isAuthenticated: true,
-				user: response.data.user,
-				error: null,
-				isLoading: false,
-			});
+			// Note: We're not setting isAuthenticated here if 2FA is required
+			// The component will handle the 2FA flow
+			if (!response.data.twoFactorRequired) {
+				set({
+					isAuthenticated: true,
+					user: response.data.user,
+					error: null,
+					isLoading: false,
+				});
+			} else {
+				set({ isLoading: false });
+			}
 			return response.data; // Return successful response
 		} catch (error) {
 			const errorMessage = error.response?.data?.message || "Error logging in";

@@ -12,6 +12,7 @@ import FormPreview from "@/components/customer-view/FormPreview";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import FormPreviewSkelton from "@/components/customer-view/FormPreviewSkelton";
 import ShareDialog from "@/components/customer-view/ShareDialog";
+import FormSidebar from "@/components/customer-view/FormSidebar";
 
 const FormCreatePage = () => {
 	const [formDetails, setFormDetails] = useState({}); // State for form details
@@ -23,6 +24,8 @@ const FormCreatePage = () => {
 	const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 	const [error, setError] = useState(null);
 	const [fields, setFields] = useState([]);
+	const [selectedImage, setSelectedImage] = useState(null);
+	const [removeLogo, setRemoveLogo] = useState(false);
 
 	const { updateForm } = useFormStore();
 
@@ -49,6 +52,7 @@ const FormCreatePage = () => {
 						{ field_name: "Phone", field_type: "tel", is_required: false, enabled: true, position: 3, placeholder: "+123456789" },
 						{ field_name: "Rating", field_type: "rating", is_required: false, enabled: true, position: 4, placeholder: "" },
 						{ field_name: "Comment", field_type: "textarea", is_required: false, enabled: true, position: 5, placeholder: "Write your review" },
+						{ field_name: "Image", field_type: "image", is_required: false, enabled: true, position: 6, placeholder: "Upload an image" },
 					];
 				}
 				console.log("Fetched form details main:", fetchedDetails);
@@ -90,8 +94,6 @@ const FormCreatePage = () => {
 		}));
 	};
 
-	const [selectedImage, setSelectedImage] = useState(null);
-
 	const handleFileSelect = (file) => {
 		if (!file) return;
 
@@ -109,7 +111,13 @@ const FormCreatePage = () => {
 		}
 
 		setSelectedImage(file);
+		setRemoveLogo(false); // Reset remove logo flag when selecting a new image
 		console.log("Selected Image:", file);
+	};
+
+	const handleRemoveLogo = () => {
+		setSelectedImage(null);
+		setRemoveLogo(true);
 	};
 
 	const handlePublish = async () => {
@@ -141,6 +149,7 @@ const FormCreatePage = () => {
 					{ label: "Phone", type: "tel", is_required: false, enabled: true, position: 3, placeholder: "+123456789" },
 					{ label: "Rating", type: "rating", is_required: true, enabled: true, position: 4, placeholder: "" },
 					{ label: "Comment", type: "textarea", is_required: false, enabled: true, position: 5, placeholder: "Write your review" },
+					{ label: "Image", type: "image", is_required: false, enabled: true, position: 6, placeholder: "Upload an image" },
 				];
 			}
 			// Ensure at least one field is enabled and required
@@ -206,6 +215,12 @@ const FormCreatePage = () => {
 				}
 			}
 
+			// Handle logo removal
+			if (removeLogo) {
+				formData.append("remove_logo", "true");
+			}
+
+			// Handle image upload
 			if (selectedImage) {
 				formData.append("image", selectedImage);
 			}
@@ -222,6 +237,19 @@ const FormCreatePage = () => {
 			await updateForm(formDetails._id, formData);
 
 			toast.success("Form saved successfully!");
+			
+			// Reset logo states after successful save
+			setRemoveLogo(false);
+			setSelectedImage(null);
+			
+			// Refresh form details to get updated logo info
+			try {
+				const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/forms/${formId}`);
+				const fetchedDetails = response.data;
+				setFormDetails(fetchedDetails);
+			} catch (error) {
+				console.error("Error refreshing form details:", error);
+			}
 		} catch (error) {
 			console.error("Error publishing form:", error);
 			
@@ -333,7 +361,19 @@ const FormCreatePage = () => {
 						</div>
 					</div>
 					<div className="flex w-full flex-grow items-center justify-center relative overflow-y-auto h-[80vh]">
-						<FormBuilder formDetails={formDetails} onFieldUpdate={handleFieldUpdate} onFileSelect={handleFileSelect} fields={fields} setFields={setFields} />
+						<FormBuilder 
+							formDetails={formDetails} 
+							onFieldUpdate={handleFieldUpdate} 
+							onFileSelect={handleFileSelect} 
+							fields={fields} 
+							setFields={setFields} 
+						/>
+						<FormSidebar 
+							formDetails={formDetails} 
+							onFieldUpdate={handleFieldUpdate} 
+							onFileSelect={handleFileSelect}
+							onRemoveImage={handleRemoveLogo}
+						/>
 					</div>
 				</>
 			)}
