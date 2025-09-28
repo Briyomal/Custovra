@@ -166,18 +166,20 @@ const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect, onRemoveImage }
                     placeholder="Write short description of the form" 
                 />
             </div>
-            <div className="mt-2"> 
-                <Label>Google Review Link</Label>
-                <Input 
-                    className="mt-2" 
-                    type="url"
-                    value={formGoogleLink}
-                    onChange={handleGoogleReviewLinkChange}   
-                    placeholder="Enter your google review link" 
-                    required
-                />
-                {errorLink && <p className="text-red-500 text-sm">{errorLink}</p>}
-            </div>
+            {formDetails.form_type === "Review" && (
+                <div className="mt-2"> 
+                    <Label>Google Review Link</Label>
+                    <Input 
+                        className="mt-2" 
+                        type="url"
+                        value={formGoogleLink}
+                        onChange={handleGoogleReviewLinkChange}   
+                        placeholder="Enter your google review link" 
+                        required
+                    />
+                    {errorLink && <p className="text-red-500 text-sm">{errorLink}</p>}
+                </div>
+            )}
             <Separator className="my-4" />
             <h4 className="text-md font-medium">Form Details</h4>
             <div className="mt-2"> 

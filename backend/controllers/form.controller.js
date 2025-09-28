@@ -327,7 +327,7 @@ export const createForm = async (req, res) => {
         form.default_fields = processedDefaultFields;
         form.custom_fields = processedCustomFields;
 
-        // Save updated form
+        // Save updated form with correct form_link
         await form.save();
 
         return res.status(201).json({

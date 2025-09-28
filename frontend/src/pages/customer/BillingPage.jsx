@@ -264,6 +264,34 @@ function BillingPage() {
         });
     };
 
+    // Helper function to determine if a plan is an upgrade or downgrade
+    const getPlanChangeType = (currentPlan, targetPlan) => {
+        if (!currentPlan || !targetPlan) return 'upgrade';
+        
+        // Normalize plan names for comparison
+        const normalizePlanName = (name) => {
+            if (!name) return 'basic';
+            return name.toLowerCase().replace(/\s*plan\s*$/i, '').trim();
+        };
+        
+        const currentPlanName = normalizePlanName(currentPlan.name);
+        const targetPlanName = normalizePlanName(targetPlan.name);
+        
+        // Define plan hierarchy (basic < standard < premium)
+        const planHierarchy = {
+            'basic': 1,
+            'standard': 2,
+            'premium': 3
+        };
+        
+        const currentLevel = planHierarchy[currentPlanName] || 1;
+        const targetLevel = planHierarchy[targetPlanName] || 1;
+        
+        if (targetLevel > currentLevel) return 'upgrade';
+        if (targetLevel < currentLevel) return 'downgrade';
+        return 'same'; // Same plan level
+    };
+
     // Filter plans by interval
     const monthlyPlans = availablePlans.filter(plan => plan.interval === 'month');
     const yearlyPlans = availablePlans.filter(plan => plan.interval === 'year');
@@ -468,23 +496,23 @@ function BillingPage() {
                             </h3>
                             <div className="flex items-center gap-2">
                                 <span className="text-sm text-gray-500">Billing:</span>
-                                <div className="flex bg-gray-100 rounded-lg p-1">
+                                <div className="flex bg-slate-200 dark:bg-slate-800 rounded-lg p-2">
                                     <button
                                         onClick={() => setPlanInterval('monthly')}
-                                        className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                                        className={`px-4 py-2 text-sm rounded-md transition-colors ${
                                             planInterval === 'monthly'
-                                                ? 'bg-white shadow-sm text-gray-900'
-                                                : 'text-gray-600 hover:text-gray-900'
+                                                ? 'bg-white dark:bg-slate-950 shadow-sm  dark:text-gray-300'
+                                                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
                                         }`}
                                     >
                                         Monthly
                                     </button>
                                     <button
                                         onClick={() => setPlanInterval('yearly')}
-                                        className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                                        className={`px-4 py-2 text-sm rounded-md transition-colors ${
                                             planInterval === 'yearly'
-                                                ? 'bg-white shadow-sm text-gray-900'
-                                                : 'text-gray-600 hover:text-gray-900'
+                                                ? 'bg-white dark:bg-slate-950 shadow-sm dark:text-gray-300'
+                                                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
                                         }`}
                                     >
                                         Yearly
@@ -507,7 +535,7 @@ function BillingPage() {
                                 
                                 return (
                                     <Card key={plan.priceId} className={`relative ${
-                                        isCurrentPlan ? 'ring-2 ring-blue-500 bg-blue-50/50' : ''
+                                        isCurrentPlan ? 'ring-2 ring-blue-500 bg-slate-900' : ''
                                     }`}>
                                         {isCurrentPlan && (
                                             <div className="absolute -top-2 -right-2">
@@ -548,7 +576,7 @@ function BillingPage() {
                                                 </ul>
                                             )}
                                             <Button 
-                                                className={`w-full ${
+                                                className={`w-full text-white ${
                                                     isCurrentPlan 
                                                         ? 'bg-blue-600 hover:bg-blue-700' 
                                                         : 'bg-indigo-600 hover:bg-indigo-700'
@@ -566,7 +594,10 @@ function BillingPage() {
                                                 ) : hasNoSubscription ? (
                                                     'Choose Plan'
                                                 ) : (
-                                                    'Upgrade to This Plan'
+                                                    // Determine button text based on plan comparison
+                                                    getPlanChangeType(subscriptionDetails?.plan, plan) === 'downgrade' 
+                                                        ? 'Downgrade to This Plan' 
+                                                        : 'Upgrade to This Plan'
                                                 )}
                                             </Button>
                                         </CardContent>

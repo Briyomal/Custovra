@@ -11,6 +11,7 @@ import AdminDashboardPage from "./pages/admin/index";
 import UsersPage from "./pages/admin/UsersPage";
 import FormsPage from "./pages/admin/FormsPage";
 import SubmissionsPage from "./pages/admin/SubmissionsPage";
+import AdminReportPage from "./pages/admin/Reportpage";
 
 import FormPage from "./pages/customer/FormPage";
 
@@ -201,6 +202,14 @@ function App() {
 					element={
 						<ProtectedRoute role="admin">
 							<SubmissionsPage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/admin/reports"
+					element={
+						<ProtectedRoute role="admin">
+							<AdminReportPage />
 						</ProtectedRoute>
 					}
 				/>
