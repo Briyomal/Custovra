@@ -81,6 +81,11 @@ const EmployeeSelectionDialog = ({
         });
     };
 
+    // New handler to stop event propagation
+    const handleCheckboxClick = (e) => {
+        e.stopPropagation();
+    };
+
     const handleSave = () => {
         onEmployeesSelect(localSelectedEmployees);
         onClose();
@@ -152,8 +157,8 @@ const EmployeeSelectionDialog = ({
                                             <div className="flex items-center gap-3">
                                                 <Checkbox
                                                     checked={!!isSelected}
-                                                    onChange={() => handleEmployeeToggle(employee)}
-                                                    onClick={(e) => e.stopPropagation()}
+                                                    onCheckedChange={() => handleEmployeeToggle(employee)}
+                                                    onClick={handleCheckboxClick}
                                                 />
                                                 <Avatar className="h-10 w-10">
                                                     <AvatarImage 

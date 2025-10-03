@@ -49,6 +49,7 @@ export const getSubscriptionDetails = async (req, res) => {
       return res.status(401).json({ error: 'User not authenticated.' });
     }
 
+    console.log('Getting subscription details for user:', userId);
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
@@ -56,6 +57,7 @@ export const getSubscriptionDetails = async (req, res) => {
 
     // Get current plan limits and details
     const { error, limits, planName, activePayment } = await getUserPlanLimits(userId);
+    console.log('Plan limits result:', { error, planName, hasLimits: !!limits });
     
     if (error) {
       return res.status(400).json({ error });
@@ -88,6 +90,24 @@ export const getSubscriptionDetails = async (req, res) => {
       }
     }
 
+    // Get user's most recent payment to determine previous plan
+    let previousPlan = null;
+    try {
+      const recentPayments = await Payment.find({ user_id: userId })
+        .sort({ payment_date: -1 })
+        .limit(1);
+      
+      if (recentPayments.length > 0 && recentPayments[0]) {
+        previousPlan = {
+          plan: recentPayments[0].plan || 'Unknown',
+          subscription_id: recentPayments[0].subscription_id || null,
+          subscription_expiry: recentPayments[0].subscription_expiry || null
+        };
+      }
+    } catch (err) {
+      console.warn('Could not retrieve previous plan:', err.message);
+    }
+
     const subscriptionDetails = {
       plan: {
         name: planName,
@@ -114,13 +134,15 @@ export const getSubscriptionDetails = async (req, res) => {
           exp_year: paymentMethod.card.exp_year
         } : null
       } : null,
-      activePayment
+      activePayment,
+      previousPlan: previousPlan || null
     };
 
+    console.log('Sending subscription details response');
     res.json({ success: true, data: subscriptionDetails });
   } catch (error) {
     console.error('Error getting subscription details:', error);
-    res.status(500).json({ error: 'Failed to get subscription details.' });
+    res.status(500).json({ error: 'Failed to get subscription details: ' + error.message });
   }
 };
 
@@ -132,11 +154,6 @@ export const getPaymentHistory = async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated.' });
     }
-
-    // Get payments from our database
-    const payments = await Payment.find({ user_id: userId })
-      .sort({ payment_date: -1 })
-      .limit(50); // Last 50 payments
 
     const user = await User.findById(userId);
     let stripeInvoices = [];
@@ -154,40 +171,25 @@ export const getPaymentHistory = async (req, res) => {
       }
     }
 
-    // Combine and format payment history
-    const paymentHistory = [
-      // From our database
-      ...payments.map(payment => ({
-        id: payment._id,
-        source: 'database',
-        amount: payment.amount,
-        currency: 'usd',
-        status: 'succeeded',
-        date: payment.payment_date,
-        plan: payment.plan,
-        subscription_expiry: payment.subscription_expiry,
-        description: `${payment.plan} Plan Subscription`
-      })),
-      // From Stripe
-      ...stripeInvoices.map(invoice => ({
-        id: invoice.id,
-        source: 'stripe',
-        amount: invoice.amount_paid / 100, // Convert cents to dollars
-        currency: invoice.currency,
-        status: invoice.status,
-        date: new Date(invoice.created * 1000),
-        plan: invoice.lines?.data[0]?.description || 'Subscription',
-        description: invoice.description || invoice.lines?.data[0]?.description || 'Subscription Payment',
-        invoice_url: invoice.hosted_invoice_url
-      }))
-    ];
+    // Format payment history from Stripe only
+    const paymentHistory = stripeInvoices.map(invoice => ({
+      id: invoice.id,
+      source: 'stripe',
+      amount: invoice.amount_paid / 100, // Convert cents to dollars
+      currency: invoice.currency,
+      status: invoice.status,
+      date: new Date(invoice.created * 1000),
+      plan: invoice.lines?.data[0]?.description || 'Subscription',
+      description: invoice.description || invoice.lines?.data[0]?.description || 'Subscription Payment',
+      invoice_url: invoice.hosted_invoice_url
+    }));
 
-    // Sort by date (newest first) and remove duplicates
-    const uniquePayments = paymentHistory
+    // Sort by date (newest first)
+    const sortedPayments = paymentHistory
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, 20); // Limit to 20 most recent
 
-    res.json({ success: true, data: uniquePayments });
+    res.json({ success: true, data: sortedPayments });
   } catch (error) {
     console.error('Error getting payment history:', error);
     res.status(500).json({ error: 'Failed to get payment history.' });

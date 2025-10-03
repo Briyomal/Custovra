@@ -40,7 +40,31 @@ export const columns = [
 			);
 		},
 		accessorKey: "form_type",
-		enableSorting: true, // Enable sorting for the email column
+		enableSorting: true,
+		cell: ({ getValue }) => {
+			const formType = getValue();
+			
+			if (formType === 'Review') {
+				return (
+					<Badge className="rounded-sm bg-yellow-400 text-black hover:bg-yellow-500">
+						{formType}
+					</Badge>
+				);
+			} else if (formType === 'Complaint') {
+				return (
+					<Badge className="rounded-sm bg-red-600 text-white hover:bg-red-700">
+						{formType}
+					</Badge>
+				);
+			}
+			
+			// Default badge for any other form types
+			return (
+				<Badge className="rounded-sm bg-gray-500 text-white hover:bg-gray-600">
+					{formType}
+				</Badge>
+			);
+		},
 	},
 	{
 		id: "is_active",

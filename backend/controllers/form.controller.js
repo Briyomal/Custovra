@@ -25,8 +25,9 @@ export const getAllUserForms = async (req, res) => {
         // Fetch all forms related to the logged-in user
         const forms = await Form.find({ user_id: userId }).populate('user_id');
 
+        // Remove the 404 error when no forms are found - return empty array instead
         if (!forms.length) {
-            return res.status(404).json({ message: 'No forms found for the user' });
+            return res.status(200).json([]); // Return empty array instead of 404
         }
         
         // Add presigned URLs for logos
@@ -104,8 +105,9 @@ export const getFormsByUserId = async (req, res) => {
         const userId = req.params.id; // Extract the `id` field from req.params
         const forms = await Form.find({ user_id: userId }); // Query using userId
 
+        // Remove the 404 error when no forms are found - return empty array instead
         if (!forms.length) {
-            return res.status(404).json({ message: 'No forms found for user', userId });
+            return res.status(200).json([]); // Return empty array instead of 404
         }
         
         // Add presigned URLs for logos

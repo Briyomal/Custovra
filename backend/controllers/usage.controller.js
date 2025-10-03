@@ -20,9 +20,12 @@ export const getUserUsage = async (req, res) => {
             });
         }
         
+        console.log('Getting usage stats for user:', userId);
         const { error, stats } = await getUserUsageStats(userId);
+        console.log('Usage stats result:', { error, stats: !!stats });
         
         if (error) {
+            console.error('Error getting user usage stats:', error);
             return res.status(400).json({
                 success: false,
                 error
@@ -38,7 +41,7 @@ export const getUserUsage = async (req, res) => {
         console.error('Error getting user usage:', error);
         res.status(500).json({
             success: false,
-            error: 'Server error while fetching usage statistics'
+            error: 'Server error while fetching usage statistics: ' + error.message
         });
     }
 };

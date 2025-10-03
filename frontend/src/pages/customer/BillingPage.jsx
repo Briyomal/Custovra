@@ -38,6 +38,7 @@ function BillingPage() {
     const [planInterval, setPlanInterval] = useState("yearly");
     const [showDowngradeDialog, setShowDowngradeDialog] = useState(false);
     const [downgradeData, setDowngradeData] = useState(null);
+    const [togglingAutoRenewal, setTogglingAutoRenewal] = useState(false);
     
     // Plan downgrade state is now managed locally in handlePlanChange
     
@@ -292,6 +293,90 @@ function BillingPage() {
         return 'same'; // Same plan level
     };
 
+    // Toggle auto-renewal for subscription
+    const handleToggleAutoRenewal = async () => {
+        try {
+            setTogglingAutoRenewal(true);
+            const response = await axios.post(
+                `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/toggle-auto-renewal`,
+                {},
+                { withCredentials: true }
+            );
+            
+            if (response.data.success) {
+                // Refresh subscription details
+                await fetchBillingData();
+                toast.success(response.data.message);
+            }
+        } catch (err) {
+            console.error('Error toggling auto-renewal:', err);
+            const errorMessage = err.response?.data?.error || 'Failed to toggle auto-renewal';
+            
+            // Check if the error is because no payment method is set
+            if (err.response?.data?.requiresPaymentMethod) {
+                toast.error(errorMessage, {
+                    duration: 6000,
+                    icon: '💳'
+                });
+                // Optionally switch to the payment methods tab to prompt user to add one
+                setActiveTab("payment-methods");
+            } else {
+                toast.error(errorMessage);
+            }
+        } finally {
+            setTogglingAutoRenewal(false);
+        }
+    };
+
+    // Renew previous subscription plan
+    const handleRenewPreviousPlan = async () => {
+        try {
+            setLoadingPlanId('renew_previous');
+            
+            // First check if user has a payment method
+            if (!paymentMethods || paymentMethods.length === 0) {
+                toast.error('Please add a payment method before renewing your plan.', {
+                    duration: 6000,
+                    icon: '💳'
+                });
+                setActiveTab("payment-methods");
+                return;
+            }
+            
+            // Call backend to create a new subscription based on previous plan
+            const response = await axios.post(
+                `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/renew-previous-plan`,
+                { previousPlan: subscriptionDetails.previousPlan },
+                { withCredentials: true }
+            );
+            
+            if (response.data.success) {
+                if (response.data.redirectUrl) {
+                    // Redirect to Stripe checkout
+                    window.location.href = response.data.redirectUrl;
+                } else {
+                    // Refresh billing data for completed updates
+                    await fetchBillingData();
+                    toast.success('Plan renewed successfully!');
+                    
+                    // Update global user payment data to refresh header
+                    try {
+                        const updatedUser = await updateUserPayment();
+                        console.log('✅ Global user payment data updated:', updatedUser?.payment?.plan);
+                    } catch (updateError) {
+                        console.warn('Failed to update global user data:', updateError);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Error renewing previous plan:', err);
+            const errorMessage = err.response?.data?.error || 'Failed to renew previous plan';
+            toast.error(errorMessage);
+        } finally {
+            setLoadingPlanId(null);
+        }
+    };
+
     // Filter plans by interval
     const monthlyPlans = availablePlans.filter(plan => plan.interval === 'month');
     const yearlyPlans = availablePlans.filter(plan => plan.interval === 'year');
@@ -304,10 +389,10 @@ function BillingPage() {
 
     const getStatusBadge = (status) => {
         const statusConfig = {
-            active: { color: 'bg-green-100 text-green-800', icon: CheckCircle, text: 'Active' },
-            past_due: { color: 'bg-yellow-100 text-yellow-800', icon: AlertCircle, text: 'Past Due' },
-            canceled: { color: 'bg-red-100 text-red-800', icon: XCircle, text: 'Canceled' },
-            inactive: { color: 'bg-gray-100 text-gray-800', icon: XCircle, text: 'Inactive' },
+            active: { color: 'w-fit bg-green-100 text-green-800', icon: CheckCircle, text: 'Active' },
+            past_due: { color: 'w-fit bg-yellow-100 text-yellow-800', icon: AlertCircle, text: 'Past Due' },
+            canceled: { color: 'w-fit bg-red-100 text-red-800', icon: XCircle, text: 'Canceled' },
+            inactive: { color: 'w-fit bg-gray-100 text-gray-800', icon: XCircle, text: 'Inactive' },
         };
         
         const config = statusConfig[status] || statusConfig.inactive;
@@ -468,9 +553,29 @@ function BillingPage() {
                                             </div>
                                             <div>
                                                 <p className="text-sm text-gray-600">Auto Renewal</p>
-                                                <p className="text-lg font-semibold">
-                                                    {subscriptionDetails.subscription.cancel_at_period_end ? 'Disabled' : 'Enabled'}
-                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-lg font-semibold">
+                                                        {subscriptionDetails.subscription.cancel_at_period_end ? 'Disabled' : 'Enabled'}
+                                                    </p>
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        onClick={handleToggleAutoRenewal}
+                                                        disabled={togglingAutoRenewal}
+                                                        className="h-8 px-2"
+                                                    >
+                                                        {togglingAutoRenewal ? (
+                                                            <div className="flex items-center gap-1">
+                                                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-900"></div>
+                                                                <span>...</span>
+                                                            </div>
+                                                        ) : subscriptionDetails.subscription.cancel_at_period_end ? (
+                                                            'Enable'
+                                                        ) : (
+                                                            'Disable'
+                                                        )}
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     </CardContent>
@@ -523,6 +628,44 @@ function BillingPage() {
                                 </div>
                             </div>
                         </div>
+                        
+                        {/* Previous Plan Renewal Option */}
+                        {hasNoSubscription && subscriptionDetails?.previousPlan && (
+                            <Card className="border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                                        <Star className="h-5 w-5" />
+                                        Renew Your Previous Plan
+                                    </CardTitle>
+                                    <CardDescription>
+                                        You previously had the {subscriptionDetails.previousPlan.plan} plan. 
+                                        Renew it with your existing payment method.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="flex flex-wrap items-center gap-4 text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className="h-4 w-4 text-gray-500" />
+                                            <span>Expired: {formatDate(subscriptionDetails.previousPlan.subscription_expiry)}</span>
+                                        </div>
+                                    </div>
+                                    <Button 
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                                        onClick={() => handleRenewPreviousPlan()}
+                                        disabled={loadingPlanId === 'renew_previous'}
+                                    >
+                                        {loadingPlanId === 'renew_previous' ? (
+                                            <div className="flex items-center gap-2">
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                                <span>Processing...</span>
+                                            </div>
+                                        ) : (
+                                            'Renew Previous Plan'
+                                        )}
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {currentPlans.map((plan) => {
@@ -591,6 +734,19 @@ function BillingPage() {
                                                     </div>
                                                 ) : isCurrentPlan ? (
                                                     'Current Plan'
+                                                ) : hasNoSubscription && subscriptionDetails?.previousPlan ? (
+                                                    // User had a previous plan, check if this is the same plan
+                                                    (subscriptionDetails.previousPlan.plan.toLowerCase().includes(plan.name.toLowerCase()) || 
+                                                     plan.name.toLowerCase().includes(subscriptionDetails.previousPlan.plan.toLowerCase())) ? (
+                                                        'Renew Plan'
+                                                    ) : getPlanChangeType(
+                                                        { name: subscriptionDetails.previousPlan.plan }, 
+                                                        plan
+                                                    ) === 'downgrade' ? (
+                                                        'Downgrade to This Plan'
+                                                    ) : (
+                                                        'Upgrade to This Plan'
+                                                    )
                                                 ) : hasNoSubscription ? (
                                                     'Choose Plan'
                                                 ) : (
@@ -693,7 +849,7 @@ function BillingPage() {
                                                     <div>
                                                         <p className="font-medium">{payment.description}</p>
                                                         <p className="text-sm text-gray-500">
-                                                            {formatDate(payment.date)} • {payment.source}
+                                                            {formatDate(payment.date)}
                                                         </p>
                                                     </div>
                                                 </div>

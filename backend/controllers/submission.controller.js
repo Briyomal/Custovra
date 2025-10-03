@@ -369,3 +369,95 @@ export const deleteSubmission = async (req, res) => {
         res.status(500).json({ message: "Server error. Unable to delete submission." });
     }
 };
+
+// New function to get count of unread submissions for a user
+export const getUnreadSubmissionsCount = async (req, res) => {
+    const { id: userId } = req.params;
+
+    try {
+        // First, get all forms owned by this user
+        const userForms = await Form.find({ user_id: userId }).select('_id');
+        const formIds = userForms.map(form => form._id);
+
+        // Then, get count of unread submissions for these forms
+        const unreadCount = await Submission.countDocuments({ 
+            form_id: { $in: formIds },
+            is_read: false
+        });
+
+        res.status(200).json({ count: unreadCount });
+    } catch (error) {
+        res.status(500).json({ message: "Server error. Unable to fetch unread submissions count." });
+    }
+};
+
+// New function to mark submissions as read
+export const markSubmissionsAsRead = async (req, res) => {
+    const { id: userId } = req.params;
+
+    try {
+        // First, get all forms owned by this user
+        const userForms = await Form.find({ user_id: userId }).select('_id');
+        const formIds = userForms.map(form => form._id);
+
+        // Then, mark all submissions for these forms as read
+        const result = await Submission.updateMany(
+            { 
+                form_id: { $in: formIds },
+                is_read: false
+            },
+            { 
+                $set: { is_read: true }
+            }
+        );
+
+        res.status(200).json({ 
+            message: `${result.modifiedCount} submissions marked as read.`,
+            modifiedCount: result.modifiedCount
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Server error. Unable to mark submissions as read." });
+    }
+};
+
+// New function to get count of unread submissions for a specific form
+export const getUnreadSubmissionsCountByForm = async (req, res) => {
+    const { formId } = req.params;
+
+    try {
+        // Get count of unread submissions for this specific form
+        const unreadCount = await Submission.countDocuments({ 
+            form_id: formId,
+            is_read: false
+        });
+
+        res.status(200).json({ count: unreadCount });
+    } catch (error) {
+        res.status(500).json({ message: "Server error. Unable to fetch unread submissions count." });
+    }
+};
+
+// New function to mark submissions as read for a specific form
+export const markSubmissionsAsReadByForm = async (req, res) => {
+    const { formId } = req.params;
+
+    try {
+        // Mark all submissions for this form as read
+        const result = await Submission.updateMany(
+            { 
+                form_id: formId,
+                is_read: false
+            },
+            { 
+                $set: { is_read: true }
+            }
+        );
+
+        res.status(200).json({ 
+            message: `${result.modifiedCount} submissions marked as read.`,
+            modifiedCount: result.modifiedCount
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Server error. Unable to mark submissions as read." });
+    }
+};

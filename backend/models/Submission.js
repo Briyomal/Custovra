@@ -19,6 +19,10 @@ const submissionSchema = new Schema(
             of: String,
             required: true,
         },
+        is_read: {
+            type: Boolean,
+            default: false,
+        },
     },
     { timestamps: true }
 );

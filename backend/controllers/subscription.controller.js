@@ -668,3 +668,179 @@ export const selectPlan = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+// Toggle auto-renewal for subscription
+export const toggleAutoRenewal = async (req, res) => {
+    try {
+        if (!req.userId) {
+            return res.status(401).json({ error: "User not authenticated" });
+        }
+
+        const userIdString = req.userId.toString();
+        const user = await User.findById(userIdString);
+        
+        if (!user.stripeCustomerId) {
+            return res.status(400).json({ error: "User has no Stripe customer ID" });
+        }
+
+        // Check if user has an existing active subscription
+        const subscriptions = await stripe.subscriptions.list({
+            customer: user.stripeCustomerId,
+            status: 'active',
+            limit: 1
+        });
+
+        if (subscriptions.data.length === 0) {
+            return res.status(400).json({ error: "No active subscription found" });
+        }
+
+        const currentSubscription = subscriptions.data[0];
+        
+        // Check if trying to ENABLE auto-renewal (cancelAtPeriodEnd will be false)
+        const enablingAutoRenewal = currentSubscription.cancel_at_period_end;
+        
+        if (enablingAutoRenewal) {
+            // Check if user has a default payment method
+            try {
+                const customer = await stripe.customers.retrieve(user.stripeCustomerId);
+                const hasDefaultPaymentMethod = customer.invoice_settings?.default_payment_method || customer.default_source;
+                
+                if (!hasDefaultPaymentMethod) {
+                    return res.status(400).json({ 
+                        error: "A default payment method is required to enable auto-renewal. Please add a payment method first.",
+                        requiresPaymentMethod: true
+                    });
+                }
+            } catch (customerError) {
+                console.warn('Could not retrieve customer payment method info:', customerError.message);
+                // Continue with the operation even if we can't verify payment method
+            }
+        }
+        
+        // Toggle the cancel_at_period_end flag
+        const cancelAtPeriodEnd = !currentSubscription.cancel_at_period_end;
+        
+        // Update the subscription
+        const updatedSubscription = await stripe.subscriptions.update(
+            currentSubscription.id,
+            {
+                cancel_at_period_end: cancelAtPeriodEnd
+            }
+        );
+
+        // Update user record
+        await User.findByIdAndUpdate(userIdString, {
+            subscription_status: cancelAtPeriodEnd ? 'canceling' : 'active'
+        });
+
+        res.status(200).json({
+            success: true,
+            cancelAtPeriodEnd: updatedSubscription.cancel_at_period_end,
+            message: cancelAtPeriodEnd 
+                ? "Auto-renewal has been disabled. Your subscription will end at the end of the current period." 
+                : "Auto-renewal has been enabled."
+        });
+
+    } catch (error) {
+        console.error("Error toggling auto-renewal:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Renew previous subscription plan
+export const renewPreviousPlan = async (req, res) => {
+    try {
+        const { previousPlan } = req.body;
+        console.log("Renewing previous plan:", previousPlan);
+
+        if (!previousPlan) {
+            return res.status(400).json({ error: "Previous plan information is required" });
+        }
+
+        if (!req.userId) {
+            return res.status(401).json({ error: "User not authenticated" });
+        }
+
+        const userIdString = req.userId.toString();
+        const user = await User.findById(userIdString);
+        
+        if (!user.stripeCustomerId) {
+            return res.status(400).json({ error: "User has no Stripe customer ID" });
+        }
+
+        // Get available plans from Stripe
+        const products = await stripe.products.list({
+            active: true,
+        });
+
+        const prices = await stripe.prices.list({
+            active: true,
+            expand: ['data.product'],
+        });
+
+        // Find a price that matches the previous plan name
+        // We'll look for a plan with a similar name and the same interval if available
+        let matchingPrice = null;
+        
+        // First try to find an exact match by plan name
+        for (const price of prices.data) {
+            if (price.product.name.toLowerCase().includes(previousPlan.plan.toLowerCase()) && 
+                price.type === 'recurring') {
+                matchingPrice = price;
+                break;
+            }
+        }
+        
+        // If no exact match, find any recurring plan
+        if (!matchingPrice) {
+            matchingPrice = prices.data.find(price => price.type === 'recurring');
+        }
+        
+        if (!matchingPrice) {
+            return res.status(400).json({ error: "No available subscription plans found" });
+        }
+
+        // Check if user has a payment method
+        const paymentMethods = await stripe.paymentMethods.list({
+            customer: user.stripeCustomerId,
+            type: 'card',
+        });
+
+        if (paymentMethods.data.length === 0) {
+            return res.status(400).json({ 
+                error: "Please add a payment method before renewing your plan.",
+                requiresPaymentMethod: true
+            });
+        }
+
+        // Create checkout session for the matching plan
+        const session = await stripe.checkout.sessions.create({
+            mode: 'subscription',
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price: matchingPrice.id,
+                    quantity: 1,
+                },
+            ],
+            customer: user.stripeCustomerId,
+            success_url: `${process.env.CLIENT_URL}/billing?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.CLIENT_URL}/billing`,
+            metadata: {
+                userId: userIdString,
+                planName: matchingPrice.product.name,
+                isRenewal: true
+            }
+        });
+
+        res.status(200).json({ 
+            success: true,
+            redirectUrl: session.url,
+            message: "Redirecting to payment..."
+        });
+
+    } catch (error) {
+        console.error("Error renewing previous plan:", error);
+        res.status(500).json({ error: error.message });
+    }
+};

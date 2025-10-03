@@ -4,6 +4,7 @@ import { Response } from '../models/Response.js';
 import { Form } from '../models/Form.js';
 import { Submission } from '../models/Submission.js';
 import { User } from '../models/User.js';
+import { Payment } from '../models/Payment.js';
 
 // Generate and save a report for a form (only if user owns the form)
 export const generateReport = async (req, res) => {
@@ -163,12 +164,31 @@ export const getAdminStats = async (req, res) => {
 
         const averageRating = ratingCount > 0 ? (totalRating / ratingCount).toFixed(1) : "0.0";
 
+        // Get revenue information
+        const payments = await Payment.find({}, 'amount payment_date');
+        
+        // Calculate total revenue
+        const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
+        
+        // Calculate this month's revenue
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const thisMonthPayments = payments.filter(payment => payment.payment_date >= startOfMonth);
+        const thisMonthRevenue = thisMonthPayments.reduce((sum, payment) => sum + payment.amount, 0);
+        
+        // Get new users this month
+        const newUsers = await User.find({ createdAt: { $gte: startOfMonth } });
+        const newUsersCount = newUsers.length;
+
         res.status(200).json({
             totalUsers,
             totalForms,
             totalSubmissions,
             formTypeCounts,
-            averageRating
+            averageRating,
+            totalRevenue,
+            thisMonthRevenue,
+            newUsersCount
         });
     } catch (error) {
         console.error("Error fetching admin stats:", error);

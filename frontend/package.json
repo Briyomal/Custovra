@@ -52,7 +52,7 @@
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.27.0",
     "react-star-ratings": "^2.3.0",
-    "recharts": "^2.15.1",
+    "recharts": "^2.15.4",
     "review-app": "file:..",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",

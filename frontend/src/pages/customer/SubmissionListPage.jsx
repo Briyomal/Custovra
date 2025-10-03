@@ -1,80 +1,85 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
 import CustomerLayoutPage from "./LayoutPage";
-import { useAuthStore } from "@/store/authStore";
 import { useEffect, useMemo, useState } from "react";
-import useSubmissionStore from "@/store/submissionStore";
-import useFormStore from "@/store/formStore";
+import axios from "axios";
 import DataTable from "@/components/customer-view/submissions/DataTable";
 import { generateDynamicColumns } from "@/components/customer-view/submissions/columns";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuthStore } from "@/store/authStore";
 
 const SubmissionListPage = () => {
-	const { user, isAuthenticated } = useAuthStore();
 	const { formId } = useParams();
-	const { fetchSubmissionsByForm } = useSubmissionStore();
-	const [localSubmissions, setLocalSubmissions] = useState([]);
-	const [isloading, setIsLoading] = useState(true);
-
-	const { forms, fetchFormsByUser } = useFormStore();
-
+	const navigate = useNavigate();
+	const { toast } = useToast();
 	const [formData, setFormData] = useState(null);
+	const [isloading, setIsLoading] = useState(true);
+	const [localSubmissions, setLocalSubmissions] = useState([]);
+	const { user } = useAuthStore();
 
 	const userId = user?._id;
 
 	useEffect(() => {
-		if (forms && formId) {
-			// Find the form data for the current form ID
-			const currentForm = forms.find((form) => {
-				const compareId = form._id || form.id;
-				return compareId === formId;
-			});
-			setFormData(currentForm); // Set the current form data
-		}
-	}, [forms, formId]);
+		const fetchData = async () => {
+			if (!formId) return;
 
-	useEffect(() => {
-		const loadSubmissions = async () => {
-			if (isAuthenticated && formId) {
-				try {
-					// Fetch forms first, then submissions
-					await fetchFormsByUser(userId);
-					const data = await fetchSubmissionsByForm(formId);
-					setLocalSubmissions(data);
-					setIsLoading(false)
-				} catch (err) {
-					console.error("Error fetching submissions:", err);
-					setIsLoading(false);
+			try {
+				// Fetch form information
+				const formResponse = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/forms/${formId}`, {
+					withCredentials: true
+				});
+				setFormData(formResponse.data);
+
+				// Fetch submissions for this form
+				const submissionResponse = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/submissions/form/${formId}`, {
+					withCredentials: true
+				});
+				setLocalSubmissions(submissionResponse.data);
+				
+				// Mark submissions as read when user visits the page
+				if (userId) {
+					// Mark submissions as read for this specific form
+					await axios.post(`${import.meta.env.VITE_SERVER_URL}/api/submissions/mark-as-read/form/${formId}`, {}, {
+						withCredentials: true
+					});
 				}
+			} catch (error) {
+				console.error("Error fetching data:", error);
+				toast({
+					title: "Error",
+					description: "Failed to fetch form data. Please try again.",
+					variant: "destructive",
+				});
+			} finally {
+				setIsLoading(false);
 			}
 		};
 
-		loadSubmissions();
+		fetchData();
+	}, [formId, toast, userId]);
 
-		// Cleanup function
-		return () => {
-			setLocalSubmissions([]);
-		};
-	}, [isAuthenticated, formId, fetchSubmissionsByForm, userId, fetchFormsByUser]);
+	const filteredSubmissions = useMemo(() => {
+		return localSubmissions.map((submission) => ({
+			...submission,
+			// Add a displayId field for easier identification
+			displayId: submission._id.slice(-6),
+		}));
+	}, [localSubmissions]);
 
-	// Use localSubmissions instead of filtering the store's submissions
-	const filteredSubmissions = localSubmissions.filter((submission) => {
-		// Handle both populated form_id object and string ID
-		const submissionFormId = submission.form_id?._id || submission.form_id;
-		return submissionFormId === formId;
-	});
-
+	const memoizedColumns = useMemo(() => generateDynamicColumns(filteredSubmissions), [filteredSubmissions]);
 	const memoizedSubmissions = useMemo(() => filteredSubmissions, [filteredSubmissions]);
-	const memoizedColumns = useMemo(() => {
-		// Generate dynamic columns based on actual submission data
-		return generateDynamicColumns(filteredSubmissions);
-	}, [filteredSubmissions]);
 	const totalSubmissionsCount = memoizedSubmissions.length;
 
 	const updateSetSubmissions = (newData) => {
 		setLocalSubmissions(newData); // Set the state
 	};
 
+	const handleGoBack = () => {
+		navigate("/submissions");
+	};
 
 	if (isloading) {
 		return <LoadingSpinner />;
@@ -84,6 +89,10 @@ const SubmissionListPage = () => {
 		<CustomerLayoutPage>
 			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
 				<div className="my-4 P-4">
+					<Button variant="outline" onClick={handleGoBack} className="mb-4">
+						<ArrowLeft className="h-4 w-4 mr-2" />
+						Back to Forms
+					</Button>
 					{formData && (
 						<div className="flex flex-col">
 							<h2 className="text-lg  font-semibold">

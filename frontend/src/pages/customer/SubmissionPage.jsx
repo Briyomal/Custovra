@@ -80,6 +80,7 @@ const SubmissionPage = () => {
             <FormsGrid
                 forms={forms}
                 getSubmissionCountForForm={getSubmissionCountForForm}
+                submissions={submissions}
             />
         </CustomerLayoutPage>
     );

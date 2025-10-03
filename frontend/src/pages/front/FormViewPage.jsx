@@ -208,9 +208,7 @@ const FormViewPage = () => {
             return;
         }
 
-
         setSubmitLoading(true);
-        
 
         try {
             // Development-only logging
@@ -220,15 +218,18 @@ const FormViewPage = () => {
 
             const { submitForm } = useSubmissionStore.getState();
             
-            // Use FormData to handle both regular fields and file uploads
-            const formData = new FormData();
-            
             let validationErrors = {};
             let ratingValue = 0; // Store rating value
 
             // Validate and ensure all required fields are included
             // Process both default_fields and custom_fields
             const allFields = [...(formDetails.default_fields || []), ...(formDetails.custom_fields || [])];
+            
+            // Create a submissions object to match backend expectations
+            const submissions = {};
+            
+            // Track if we have any file uploads
+            let hasFileUploads = false;
             
             allFields.forEach((field) => {
                 const value = field.field_type === "rating" ? field.value : field.value;
@@ -240,16 +241,16 @@ const FormViewPage = () => {
                     }
                 }
 
-                // Handle different field types for FormData
+                // Handle different field types
                 if (field.field_type === "rating") {
                     ratingValue = Math.max(ratingValue, field.value || 0); // Use the highest rating for Google prompt
-                    formData.append(field.field_name, field.value || 0);
+                    submissions[field.field_name] = field.value?.toString() || "0";
                 } else if (field.field_type === "image" && field.value instanceof File) {
-                    // Append file to FormData
-                    formData.append(field.field_name, field.value);
+                    // We have a file upload
+                    hasFileUploads = true;
                 } else if (field.value !== undefined && field.value !== null) {
-                    // Append regular fields
-                    formData.append(field.field_name, field.value);
+                    // Add regular fields to submissions object
+                    submissions[field.field_name] = field.value.toString();
                 }
             });
 
@@ -257,30 +258,64 @@ const FormViewPage = () => {
             if (Object.keys(validationErrors).length > 0) {
                 setFormErrors(validationErrors);
                 console.log("Validation Errors:", validationErrors);
+                setSubmitLoading(false);
                 return;
             }
 
-            // Add captcha token to FormData
-            formData.append('captchaToken', captchaToken);
-            
-            // Add form_id to FormData
-            formData.append('form_id', formDetails._id);
+            // Handle submission based on whether we have file uploads
+            if (hasFileUploads) {
+                // Use FormData for submissions with file uploads
+                const formData = new FormData();
+                
+                // Add form_id and captchaToken to FormData
+                formData.append('form_id', formDetails._id);
+                formData.append('captchaToken', captchaToken);
+                
+                // Add all non-file fields to FormData
+                Object.entries(submissions).forEach(([key, value]) => {
+                    formData.append(key, value);
+                });
+                
+                // Add file fields to FormData
+                allFields.forEach((field) => {
+                    if (field.field_type === "image" && field.value instanceof File) {
+                        formData.append(field.field_name, field.value);
+                    }
+                });
 
-            // Development-only logging
-            if (import.meta.env.MODE === 'development') {
-                console.log("Submitting form with", formData.entries().length, "fields");
-                for (let pair of formData.entries()) {
-                    console.log(pair[0] + ':', pair[1]);
+                // Development-only logging
+                if (import.meta.env.MODE === 'development') {
+                    console.log("Submitting form with file uploads");
+                    for (let pair of formData.entries()) {
+                        console.log(pair[0] + ':', pair[1]);
+                    }
                 }
+
+                // Submit the form with FormData
+                await submitForm(formData);
+            } else {
+                // Use JSON for submissions without file uploads
+                const jsonData = {
+                    form_id: formDetails._id,
+                    captchaToken: captchaToken,
+                    submissions: submissions
+                };
+
+                // Development-only logging
+                if (import.meta.env.MODE === 'development') {
+                    console.log("Submitting form without file uploads:", jsonData);
+                }
+
+                // Submit the form with JSON data
+                await submitForm(jsonData);
             }
 
-            // Submit the form with actual FormData, not converted object
-            await submitForm(formData);
             const { error } = useSubmissionStore.getState();
 
             if (error) {
                 toast.error("Form submission failed.");
                 console.log("Submission Error:", error);
+                setSubmitLoading(false);
                 return;
             } else {
                 toast.success("Form submitted successfully!");

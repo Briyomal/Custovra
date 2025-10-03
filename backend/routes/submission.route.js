@@ -1,6 +1,6 @@
 // routes/responseRoutes.js
 import express from 'express';
-import { createSubmission, deleteSubmission, getSubmissionByUserId, getSubmissionsByFormId, getSubmissionsByFormOwner, getSubmissionsByFormIdAdmin } from '../controllers/submission.controller.js';
+import { createSubmission, deleteSubmission, getSubmissionByUserId, getSubmissionsByFormId, getSubmissionsByFormOwner, getSubmissionsByFormIdAdmin, getUnreadSubmissionsCount, markSubmissionsAsRead, getUnreadSubmissionsCountByForm, markSubmissionsAsReadByForm } from '../controllers/submission.controller.js';
 import checkSubscription from '../middleware/checkSubscription.js';
 import { verifyToken, adminRoute } from '../middleware/verifyToken.js';
 import { checkSubmissionLimit } from '../middleware/checkSubscriptionLimits.js';
@@ -31,9 +31,13 @@ const submissionUpload = multer({
 const router = express.Router();
 
 router.get('/admin/form/:formId', verifyToken, adminRoute, getSubmissionsByFormIdAdmin); // Admin route for form submissions
+router.get('/unread/:id', verifyToken, checkSubscription, getUnreadSubmissionsCount); // Get unread submissions count for user
+router.get('/unread/form/:formId', verifyToken, checkSubscription, getUnreadSubmissionsCountByForm); // Get unread submissions count for form
 router.get('/:id', verifyToken, checkSubscription, getSubmissionByUserId);
 router.get('/owner/:id', verifyToken, checkSubscription, getSubmissionsByFormOwner); // New route for form owner submissions
 router.get('/form/:formId', verifyToken, checkSubscription, getSubmissionsByFormId);
+router.post('/mark-as-read/:id', verifyToken, checkSubscription, markSubmissionsAsRead); // Mark submissions as read for user
+router.post('/mark-as-read/form/:formId', verifyToken, checkSubscription, markSubmissionsAsReadByForm); // Mark submissions as read for form
 // Note: Submission creation endpoint needs special handling as it might be public
 // Add checkSubmissionLimit middleware if you want to enforce limits on form submissions
 router.post('/', submissionUpload.any(), checkSubmissionLimit, createSubmission);

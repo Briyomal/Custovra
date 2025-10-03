@@ -40,6 +40,7 @@ export const getUserPlanLimits = async (userId) => {
 
         const limits = subscriptionPlans[planName];
         if (!limits) {
+            console.error(`Invalid subscription plan: ${planName}`);
             return { error: "Invalid subscription plan", limits: null };
         }
 
@@ -52,7 +53,7 @@ export const getUserPlanLimits = async (userId) => {
         };
     } catch (error) {
         console.error("Error getting user plan limits:", error);
-        return { error: "Database error", limits: null };
+        return { error: "Database error: " + error.message, limits: null };
     }
 };
 
@@ -180,10 +181,14 @@ export const checkSubmissionLimit = async (req, res, next) => {
         // Get current month's submission count for the form owner
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999); // End of month
 
-        // Count submissions to all forms owned by the form owner this month
-        const formOwnerForms = await Form.find({ user_id: formOwnerId }).select('_id');
+        // Count submissions to all ACTIVE forms owned by the form owner this month
+        const formOwnerForms = await Form.find({ 
+            user_id: formOwnerId,
+            is_active: true 
+        }).select('_id');
+        
         const formOwnerFormIds = formOwnerForms.map(f => f._id);
 
         const currentSubmissionCount = await Submission.countDocuments({
@@ -231,28 +236,33 @@ export const checkSubmissionLimit = async (req, res, next) => {
 // Utility function to get current usage stats for a user
 export const getUserUsageStats = async (userId) => {
     try {
-        const { error, limits, planName } = await getUserPlanLimits(userId);
+        const { error, limits, planName, user } = await getUserPlanLimits(userId);
         
         if (error) {
+            console.error('Error in getUserPlanLimits:', error);
             return { error, stats: null };
         }
 
-        // Get form count
+        // Get form count (only active forms)
         const formCount = await Form.countDocuments({ 
             user_id: userId,
             is_active: true 
         });
 
-        // Get current month's submission count for all forms owned by this user
+        // Get current month's submission count for all ACTIVE forms owned by this user
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999); // End of month
 
-        // Get all forms owned by this user
-        const userForms = await Form.find({ user_id: userId }).select('_id');
+        // Get all ACTIVE forms owned by this user
+        const userForms = await Form.find({ 
+            user_id: userId,
+            is_active: true 
+        }).select('_id');
+        
         const userFormIds = userForms.map(f => f._id);
 
-        // Count submissions to all forms owned by this user this month
+        // Count submissions to all ACTIVE forms owned by this user this month
         const submissionCount = await Submission.countDocuments({
             form_id: { $in: userFormIds },
             createdAt: {
@@ -283,6 +293,6 @@ export const getUserUsageStats = async (userId) => {
 
     } catch (error) {
         console.error("Error getting user usage stats:", error);
-        return { error: "Database error", stats: null };
+        return { error: "Database error: " + error.message, stats: null };
     }
 };

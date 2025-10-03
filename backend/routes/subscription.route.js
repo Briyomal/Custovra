@@ -16,6 +16,8 @@ import {
     updateSubscriptionPlan,
     completeSubscriptionUpdate,
     checkPlanChangeRequirements,
+    toggleAutoRenewal,
+    renewPreviousPlan
 } from '../controllers/subscription.controller.js';
 import checkSubscription from '../middleware/checkSubscription.js';
 
@@ -39,6 +41,12 @@ router.post('/check-plan-change', verifyToken, checkPlanChangeRequirements);
 // Update/modify existing subscription plan
 router.post('/update-plan', verifyToken, updateSubscriptionPlan);
 
+// Toggle auto-renewal for subscription
+router.post('/toggle-auto-renewal', verifyToken, toggleAutoRenewal);
+
+// Renew previous subscription plan
+router.post('/renew-previous-plan', verifyToken, renewPreviousPlan);
+
 // Complete subscription update after form selection (for downgrades)
 router.post('/complete-update', verifyToken, completeSubscriptionUpdate);
 
@@ -46,4 +54,3 @@ router.post('/complete-update', verifyToken, completeSubscriptionUpdate);
 router.use(checkSubscription);
  
 export default router;
-
