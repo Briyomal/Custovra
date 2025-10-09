@@ -113,7 +113,8 @@ export const columns = [
 		accessorKey: "created_at",
 		enableSorting: true,
 		cell: ({ row }) => {
-			const dateValue = row.original.created_at;
+			// Support both createdAt (new format) and created_at (old format)
+			const dateValue = row.original.createdAt || row.original.created_at;
 			if (!dateValue) {
 				return <span className="text-sm text-gray-600">N/A</span>;
 			}

@@ -678,7 +678,7 @@ function BillingPage() {
                                 
                                 return (
                                     <Card key={plan.priceId} className={`relative ${
-                                        isCurrentPlan ? 'ring-2 ring-blue-500 bg-slate-900' : ''
+                                        isCurrentPlan ? 'ring-2 ring-blue-500 bg-slate-200 dark:bg-slate-900' : ''
                                     }`}>
                                         {isCurrentPlan && (
                                             <div className="absolute -top-2 -right-2">

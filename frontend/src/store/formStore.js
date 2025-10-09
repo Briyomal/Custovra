@@ -81,16 +81,23 @@ const useFormStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             // Log FormData for debugging
-            console.log("FormData keys:", [...formData.keys()]);
-            console.log("FormData values:", [...formData.entries()]);
+            console.log("FormStore: FormData keys:", [...formData.keys()]);
+            console.log("FormStore: FormData values:", [...formData.entries()]);
             for (let [key, value] of formData.entries()) {
                 if (key === "custom_fields") {
                   try {
-                    console.log("🛠 Custom Fields Received in updateForm:", JSON.parse(value));
+                    console.log("FormStore: 🛠 Custom Fields Received in updateForm:", JSON.parse(value));
                   } catch (err) {
-                    console.log("❌ Could not parse custom_fields", err);
+                    console.log("FormStore: ❌ Could not parse custom_fields", err);
                   }
                 }
+                if (key === "default_fields") {
+                    try {
+                      console.log("FormStore: 🛠 Default Fields Received in updateForm:", JSON.parse(value));
+                    } catch (err) {
+                      console.log("FormStore: ❌ Could not parse default_fields", err);
+                    }
+                  }
               }
               
     
@@ -100,6 +107,8 @@ const useFormStore = create((set) => ({
                     "Content-Type": "multipart/form-data",
                 },
             });
+    
+            console.log("FormStore: Response from updateForm:", response.data);
     
             // Update the forms in the store with the updated form data
             set((state) => ({
@@ -111,7 +120,7 @@ const useFormStore = create((set) => ({
     
             return response.data;
         } catch (error) {
-            console.error("Error updating form:", error.response?.data || error.message);
+            console.error("FormStore: Error updating form:", error.response?.data || error.message);
             
             // Store the error for state management
             const errorMessage = error.response?.data?.error || 

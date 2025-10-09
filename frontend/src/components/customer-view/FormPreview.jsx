@@ -91,42 +91,55 @@ const FormPreview = (formPreview) => {
                                             ))}
                                         </div>
                                     ) : field.type === "employee" || field.field_type === "employee" ? (
-                                        <Select
-                                            name={field.label || field.field_name}
-                                            defaultValue=""
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder={field.placeholder || "Select an employee"} />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {field.employees && field.employees.length > 0 ? (
-                                                    field.employees.map(employee => (
-                                                        <SelectItem key={employee._id} value={employee._id}>
-                                                            <div className="flex items-center gap-3">
-                                                                <Avatar className="h-8 w-8">
-                                                                    <AvatarImage 
-                                                                        src={employee.profile_photo?.url} 
-                                                                        alt={employee.name}
-                                                                        className="object-cover"
-                                                                    />
-                                                                    <AvatarFallback className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-                                                                        {getInitials(employee.name)}
-                                                                    </AvatarFallback>
-                                                                </Avatar>
-                                                                <div className="flex flex-col">
-                                                                    <span className="font-medium text-sm">{employee.name}</span>
-                                                                    <span className="text-xs text-gray-500">{employee.designation}</span>
+                                        <div className="space-y-4">
+                                            <Select
+                                                name={field.label || field.field_name}
+                                                defaultValue=""
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder={field.placeholder || "Select an employee"} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {field.employees && field.employees.length > 0 ? (
+                                                        field.employees.map(employee => (
+                                                            <SelectItem key={employee._id} value={employee._id}>
+                                                                <div className="flex items-center gap-3">
+                                                                    <Avatar className="h-8 w-8">
+                                                                        <AvatarImage 
+                                                                            src={employee.profile_photo?.url} 
+                                                                            alt={employee.name}
+                                                                            className="object-cover"
+                                                                        />
+                                                                        <AvatarFallback className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                                                                            {getInitials(employee.name)}
+                                                                        </AvatarFallback>
+                                                                    </Avatar>
+                                                                    <div className="flex flex-col">
+                                                                        <span className="font-medium text-sm">{employee.name}</span>
+                                                                        <span className="text-xs text-gray-500">{employee.designation}</span>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
+                                                            </SelectItem>
+                                                        ))
+                                                    ) : (
+                                                        <SelectItem value="no-employees" disabled>
+                                                            No employees available
                                                         </SelectItem>
-                                                    ))
-                                                ) : (
-                                                    <SelectItem value="no-employees" disabled>
-                                                        No employees available
-                                                    </SelectItem>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                            {/* Employee Rating Field */}
+                                            {field.hasEmployeeRating && (
+                                                <div className="space-y-2">
+                                                    <Label className="text-sm font-medium">Rate this employee</Label>
+                                                    <div className="flex space-x-1">
+                                                        {Array.from({ length: 5 }).map((_, i) => (
+                                                            <Star key={i} className="w-5 h-5 text-gray-400 cursor-pointer hover:text-yellow-500" />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     ) : field.type === "image" || field.field_type === "image" ? (
                                         <div className="space-y-2">
                                             <div className="flex items-center justify-center w-full">

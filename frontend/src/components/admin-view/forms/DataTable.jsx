@@ -103,7 +103,9 @@ const DataTable = ({ data, columns, users }) => {
     // Apply date range filter
     if (dateRangeValue?.from || dateRangeValue?.to) {
       filtered = filtered.filter(item => {
-        const itemDate = new Date(item.created_at);
+        // Support both createdAt (new format) and created_at (old format)
+        const itemDateValue = item.createdAt || item.created_at;
+        const itemDate = new Date(itemDateValue);
         const fromDate = dateRangeValue.from ? new Date(dateRangeValue.from) : null;
         const toDate = dateRangeValue.to ? new Date(dateRangeValue.to) : null;
         

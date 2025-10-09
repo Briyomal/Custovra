@@ -103,8 +103,9 @@ const FormsPage = () => {
       header: "Created Date",
       accessorKey: "created_at",
       cell: ({ row }) => {
-        const date = row.original.created_at;
-        return date ? format(new Date(date), "MMM dd, yyyy") : "N/A";
+        // Support both createdAt (new format) and created_at (old format)
+        const dateValue = row.original.createdAt || row.original.created_at;
+        return dateValue ? format(new Date(dateValue), "MMM dd, yyyy") : "N/A";
       }
     },
     {

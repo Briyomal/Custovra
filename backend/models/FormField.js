@@ -13,7 +13,7 @@ const formFieldSchema = new Schema({
     },
     field_type: {
         type: String,
-        enum: ['text', 'email', 'phone', 'rating', 'textarea', 'employee'],
+        enum: ['text', 'email', 'phone', 'rating', 'textarea', 'employee', 'image'],
         required: true,
     },
     placeholder: {
@@ -39,6 +39,10 @@ const formFieldSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Employee'
     }], // For employee dropdown fields
+    hasEmployeeRating: {
+        type: Boolean,
+        default: false,
+    }, // For employee rating toggle
     created_at: {
         type: Date,
         default: Date.now,

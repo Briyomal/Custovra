@@ -177,7 +177,7 @@ export const checkPlanChangeRequirements = async (req, res) => {
                         form_name: form.form_name,
                         form_note: form.form_note,
                         form_type: form.form_type,
-                        created_at: form.created_at,
+                        created_at: form.createdAt || form.created_at,
                         submissionCount: form.submissionCount || 0
                     })),
                     message: requiresAction ? 

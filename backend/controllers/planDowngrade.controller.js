@@ -68,7 +68,8 @@ export const checkDowngradeImpact = async (req, res) => {
                     form_name: form.form_name,
                     form_note: form.form_note,
                     form_type: form.form_type,
-                    created_at: form.created_at,
+                    // Support both createdAt (new format) and created_at (old format)
+                    created_at: form.createdAt || form.created_at,
                     submissionCount: form.submission_count || 0
                 })),
                 message: `Your ${planName} plan allows only ${newPlanLimit} active form(s). You currently have ${currentFormCount}. Please select which ${newPlanLimit} form(s) to keep active.`
@@ -252,7 +253,8 @@ export const autoHandleDowngrade = async (req, res) => {
                 keptForms: formsToKeep.map(form => ({
                     _id: form._id,
                     form_name: form.form_name,
-                    created_at: form.created_at
+                    // Support both createdAt (new format) and created_at (old format)
+                    created_at: form.createdAt || form.created_at
                 }))
             }
         });
@@ -291,7 +293,8 @@ export const getLockedForms = async (req, res) => {
                     _id: form._id,
                     form_name: form.form_name,
                     form_type: form.form_type,
-                    created_at: form.created_at,
+                    // Support both createdAt (new format) and created_at (old format)
+                    created_at: form.createdAt || form.created_at,
                     lockedAt: form.lockedAt,
                     lockReason: form.lockReason
                 })),

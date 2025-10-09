@@ -131,7 +131,7 @@ const FormCreatePage = () => {
 				return;
 			}
 
-			console.log("Form details before update:", formDetails);
+			console.log("FormCreatePage: Form details before update:", formDetails);
 			
 			// Validate essential form fields
 			if (!formDetails.form_name || !formDetails.form_type) {
@@ -162,29 +162,39 @@ const FormCreatePage = () => {
 			// Separate default and custom fields
 			const defaultFields = allFields
 				.filter((field) => !field.isNew)
-				.map((field) => ({
-					label: field.label,
-					type: field.type,
-					isRequired: field.is_required,
-					enabled: field.enabled,
-					position: field.position,
-					placeholder: field.placeholder || "",
-					employees: field.employees || []
-				}));
+				.map((field) => {
+					const processedField = {
+						label: field.label,
+						type: field.type,
+						isRequired: field.is_required,
+						enabled: field.enabled,
+						position: field.position,
+						placeholder: field.placeholder || "",
+						employees: field.employees || [],
+						hasEmployeeRating: field.hasEmployeeRating !== undefined ? field.hasEmployeeRating : false
+					};
+					console.log("FormCreatePage: Processing default field for submit:", field.label, processedField);
+					return processedField;
+				});
 
 			const customFieldPayloads = allFields
 				.filter((field) => field.isNew)
-				.map((field) => ({
-					//form_id: formDetails._id,
-					label: field.label,
-					type: field.type,
-					isRequired: field.is_required,
-					enabled: field.enabled,
-					position: field.position,
-					placeholder: field.placeholder || "",
-					is_new: true,
-					employees: field.employees || []
-				}));
+				.map((field) => {
+					const processedField = {
+						//form_id: formDetails._id,
+						label: field.label,
+						type: field.type,
+						isRequired: field.is_required,
+						enabled: field.enabled,
+						position: field.position,
+						placeholder: field.placeholder || "",
+						is_new: true,
+						employees: field.employees || [],
+						hasEmployeeRating: field.hasEmployeeRating !== undefined ? field.hasEmployeeRating : false
+					};
+					console.log("FormCreatePage: Processing custom field for submit:", field.label, processedField);
+					return processedField;
+				});
 
 			// Prepare form payload with proper validation and defaults
 			const formPayload = {
@@ -228,10 +238,10 @@ const FormCreatePage = () => {
 			// Save the form
 			formData.append("custom_fields", JSON.stringify(customFieldPayloads));
 			
-			console.log("🚀 FormData (before sending):");
-			console.log("📋 Form Payload:", formPayload);
+			console.log("FormCreatePage: 🚀 FormData (before sending):");
+			console.log("FormCreatePage: 📋 Form Payload:", formPayload);
 			for (let pair of formData.entries()) {
-				console.log(`${pair[0]}:`, pair[1]);
+				console.log(`FormCreatePage: ${pair[0]}:`, pair[1]);
 			}
 			
 			await updateForm(formDetails._id, formData);
@@ -246,12 +256,13 @@ const FormCreatePage = () => {
 			try {
 				const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/forms/${formId}`);
 				const fetchedDetails = response.data;
+				console.log("FormCreatePage: Form details after refresh:", fetchedDetails);
 				setFormDetails(fetchedDetails);
 			} catch (error) {
-				console.error("Error refreshing form details:", error);
+				console.error("FormCreatePage: Error refreshing form details:", error);
 			}
 		} catch (error) {
-			console.error("Error publishing form:", error);
+			console.error("FormCreatePage: Error publishing form:", error);
 			
 			// Handle locked form errors specifically
 			if (error.response?.status === 403 && error.response?.data?.locked) {

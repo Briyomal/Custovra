@@ -178,7 +178,8 @@ export const handlePlanChangeProtection = async (userId, previousPlanName = null
                         form_name: form.form_name,
                         form_note: form.form_note,
                         form_type: form.form_type,
-                        created_at: form.created_at,
+                        // Support both createdAt (new format) and created_at (old format)
+                        created_at: form.createdAt || form.created_at,
                         submissionCount: form.submissionCount || 0
                     })),
                     message: `Your ${planName} plan allows only ${newPlanLimit} active form(s). You currently have ${currentFormCount}. Please select which forms to keep active.`

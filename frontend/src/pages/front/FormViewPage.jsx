@@ -63,7 +63,8 @@ const FormViewPage = () => {
                     const initializeFields = (fields) => {
                         return fields ? fields.map(field => ({
                             ...field,
-                            value: field.field_type === 'rating' ? (field.value || 0) : (field.value || '')
+                            value: field.field_type === 'rating' ? (field.value || 0) : (field.value || ''),
+                            employeeRatingValue: field.field_type === 'employee' && field.hasEmployeeRating ? (field.employeeRatingValue || 0) : undefined
                         })) : [];
                     };
                     
@@ -189,15 +190,33 @@ const FormViewPage = () => {
         });
 
         // Update the value in both default_fields and custom_fields
-        setFormDetails((prevDetails) => ({
-            ...prevDetails,
-            default_fields: prevDetails.default_fields.map((f) =>
-                f.field_name === name ? { ...f, value } : f
-            ),
-            custom_fields: prevDetails.custom_fields ? prevDetails.custom_fields.map((f) =>
-                f.field_name === name ? { ...f, value } : f
-            ) : [],
-        }));
+        setFormDetails((prevDetails) => {
+            // Special handling for employee rating fields
+            if (name.endsWith('_rating') && field.field_type === "employee" && field.hasEmployeeRating) {
+                // This is an employee rating field, update the employeeRatingValue property
+                const employeeFieldName = name.replace('_rating', '');
+                return {
+                    ...prevDetails,
+                    default_fields: prevDetails.default_fields.map((f) =>
+                        f.field_name === employeeFieldName ? { ...f, employeeRatingValue: value } : f
+                    ),
+                    custom_fields: prevDetails.custom_fields ? prevDetails.custom_fields.map((f) =>
+                        f.field_name === employeeFieldName ? { ...f, employeeRatingValue: value } : f
+                    ) : [],
+                };
+            } else {
+                // Regular field update
+                return {
+                    ...prevDetails,
+                    default_fields: prevDetails.default_fields.map((f) =>
+                        f.field_name === name ? { ...f, value } : f
+                    ),
+                    custom_fields: prevDetails.custom_fields ? prevDetails.custom_fields.map((f) =>
+                        f.field_name === name ? { ...f, value } : f
+                    ) : [],
+                };
+            }
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -232,25 +251,48 @@ const FormViewPage = () => {
             let hasFileUploads = false;
             
             allFields.forEach((field) => {
-                const value = field.field_type === "rating" ? field.value : field.value;
-
-                if (field.is_required) {
-                    const error = validateField(field.field_name, value, field);
-                    if (error) {
-                        validationErrors[field.field_name] = error;
+                // Handle employee rating field
+                if (field.field_type === "employee" && field.hasEmployeeRating) {
+                    // Add both employee selection and rating to submissions
+                    if (field.value !== undefined && field.value !== null) {
+                        submissions[field.field_name] = field.value.toString();
                     }
-                }
-
-                // Handle different field types
-                if (field.field_type === "rating") {
+                    if (field.employeeRatingValue !== undefined && field.employeeRatingValue !== null) {
+                        submissions[`${field.field_name}_rating`] = field.employeeRatingValue.toString();
+                    }
+                } 
+                // Handle rating fields
+                else if (field.field_type === "rating") {
                     ratingValue = Math.max(ratingValue, field.value || 0); // Use the highest rating for Google prompt
                     submissions[field.field_name] = field.value?.toString() || "0";
-                } else if (field.field_type === "image" && field.value instanceof File) {
+                } 
+                // Handle image fields
+                else if (field.field_type === "image" && field.value instanceof File) {
                     // We have a file upload
                     hasFileUploads = true;
-                } else if (field.value !== undefined && field.value !== null) {
+                } 
+                // Handle regular fields
+                else if (field.value !== undefined && field.value !== null) {
                     // Add regular fields to submissions object
                     submissions[field.field_name] = field.value.toString();
+                }
+                
+                // Validate required fields
+                if (field.is_required) {
+                    // Special validation for employee fields with rating
+                    if (field.field_type === "employee" && field.hasEmployeeRating) {
+                        // Both employee selection and rating might be required
+                        if (!field.value) {
+                            validationErrors[field.field_name] = `${field.field_name} is required.`;
+                        }
+                        // Note: We're not making the rating required even if the field is marked as required
+                        // This is because the rating is a separate component and might be optional per the requirements
+                    } else {
+                        const error = validateField(field.field_name, field.value, field);
+                        if (error) {
+                            validationErrors[field.field_name] = error;
+                        }
+                    }
                 }
             });
 
@@ -471,45 +513,60 @@ const FormViewPage = () => {
                                                                     }
                                                                 />
                                                             ) : field.field_type === "employee" ? (
-                                                                <Select
-                                                                    name={field.field_name}
-                                                                    required={field.is_required}
-                                                                    onValueChange={(value) =>
-                                                                        handleChange({ target: { name: field.field_name, value } }, field)
-                                                                    }
-                                                                >
-                                                                    <SelectTrigger>
-                                                                        <SelectValue placeholder={field.placeholder || "Select an employee"} />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        {field.employees && field.employees.length > 0 ? (
-                                                                            field.employees.map(employee => (
-                                                                                <SelectItem key={employee._id} value={employee._id}>
-                                                                                    <div className="flex items-center gap-3">
-                                                                                        <Avatar className="h-8 w-8">
-                                                                                            <AvatarImage 
-                                                                                                src={employee.profile_photo?.url} 
-                                                                                                alt={employee.name}
-                                                                                                className="object-cover"
-                                                                                            />
-                                                                                            <AvatarFallback className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-                                                                                                {getInitials(employee.name)}
-                                                                                            </AvatarFallback>
-                                                                                        </Avatar>
-                                                                                        <div className="flex flex-col">
-                                                                                            <span className="font-medium text-sm">{employee.name}</span>
-                                                                                            <span className="text-xs text-gray-500">{employee.designation}</span>
+                                                                <div className="space-y-4">
+                                                                    <Select
+                                                                        name={field.field_name}
+                                                                        required={field.is_required}
+                                                                        onValueChange={(value) =>
+                                                                            handleChange({ target: { name: field.field_name, value } }, field)
+                                                                        }
+                                                                    >
+                                                                        <SelectTrigger>
+                                                                            <SelectValue placeholder={field.placeholder || "Select an employee"} />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {field.employees && field.employees.length > 0 ? (
+                                                                                field.employees.map(employee => (
+                                                                                    <SelectItem key={employee._id} value={employee._id}>
+                                                                                        <div className="flex items-center gap-3">
+                                                                                            <Avatar className="h-8 w-8">
+                                                                                                <AvatarImage 
+                                                                                                    src={employee.profile_photo?.url} 
+                                                                                                    alt={employee.name}
+                                                                                                    className="object-cover"
+                                                                                                />
+                                                                                                <AvatarFallback className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                                                                                                    {getInitials(employee.name)}
+                                                                                                </AvatarFallback>
+                                                                                            </Avatar>
+                                                                                            <div className="flex flex-col">
+                                                                                                <span className="font-medium text-sm">{employee.name}</span>
+                                                                                                <span className="text-xs text-gray-500">{employee.designation}</span>
+                                                                                            </div>
                                                                                         </div>
-                                                                                    </div>
+                                                                                    </SelectItem>
+                                                                                ))
+                                                                            ) : (
+                                                                                <SelectItem value="no-employees" disabled>
+                                                                                    No employees available
                                                                                 </SelectItem>
-                                                                            ))
-                                                                        ) : (
-                                                                            <SelectItem value="no-employees" disabled>
-                                                                                No employees available
-                                                                            </SelectItem>
-                                                                        )}
-                                                                    </SelectContent>
-                                                                </Select>
+                                                                            )}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    {/* Employee Rating Field */}
+                                                                    {field.hasEmployeeRating && (
+                                                                        <div className="flex flex-col space-y-2">
+                                                                            <Label className="text-sm font-medium">Rate this employee</Label>
+                                                                            <StarRating
+                                                                                key={`employee-rating-${fieldKey}`}
+                                                                                rating={field.employeeRatingValue || 0}
+                                                                                onChange={(value) =>
+                                                                                    handleChange({ target: { name: `${field.field_name}_rating`, value } }, field)
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             ) : field.field_type === "image" ? (
                                                                 <div className="space-y-2">
                                                                     <div className="flex items-center justify-center w-full">
@@ -518,8 +575,8 @@ const FormViewPage = () => {
                                                                             className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:border-gray-600 dark:bg-slate-950 dark:hover:bg-slate-800 transition-colors duration-200"
                                                                         >
                                                                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                                                <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                                                                                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                                                                                <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 18">
+                                                                                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 3v4l3-3m6 4H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/>
                                                                                 </svg>
                                                                                 <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                                                                                     <span className="font-semibold">Click to upload</span> or drag and drop

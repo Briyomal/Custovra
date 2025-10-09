@@ -262,8 +262,8 @@ const PlanDowngradeDialog = ({ isOpen, onClose, onComplete, initialDowngradeData
                                                                 key={form._id} 
                                                                 className={`cursor-pointer transition-colors ${
                                                                     isSelected 
-                                                                        ? 'ring-2 ring-blue-500 bg-blue-50' 
-                                                                        : 'hover:bg-gray-50'
+                                                                        ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-slate-900' 
+                                                                        : 'hover:bg-slate-100 dark:hover:bg-slate-900'
                                                                 }`}
                                                                 onClick={() => handleFormToggle(form._id)}
                                                             >
@@ -287,7 +287,7 @@ const PlanDowngradeDialog = ({ isOpen, onClose, onComplete, initialDowngradeData
                                                                                         </Badge>
                                                                                         <span className="flex items-center gap-1">
                                                                                             <Calendar className="h-3 w-3" />
-                                                                                            {formatDate(form.created_at)}
+                                                                                            {formatDate(form.createdAt || form.created_at)}
                                                                                         </span>
                                                                                     </div>
                                                                                 </div>
@@ -349,7 +349,7 @@ const PlanDowngradeDialog = ({ isOpen, onClose, onComplete, initialDowngradeData
                                                                                     </Badge>
                                                                                     <span className="flex items-center gap-1">
                                                                                         <Calendar className="h-3 w-3" />
-                                                                                        {formatDate(form.created_at)}
+                                                                                        {formatDate(form.createdAt || form.created_at)}
                                                                                     </span>
                                                                                 </div>
                                                                             </div>

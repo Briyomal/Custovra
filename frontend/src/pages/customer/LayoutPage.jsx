@@ -14,13 +14,37 @@ import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
 import UsageIndicators from "@/components/ui/usage-indicators";
 import { useLocation } from "react-router-dom";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
+import axios from "axios";
 
 function CustomerLayoutPage({ children }) {
 	const { user } = useAuthStore();
 	const location = useLocation();
+	const [formNames, setFormNames] = useState({});
 
 	const { setTheme } = useTheme();
+
+	// Fetch form names when paths change
+	useEffect(() => {
+		const paths = location.pathname.split('/').filter(Boolean);
+		const formIds = paths.filter(path => path.length === 24); // MongoDB ObjectId length
+		
+		formIds.forEach(async (formId) => {
+			if (!formNames[formId]) {
+				try {
+					const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/forms/${formId}`, {
+						withCredentials: true
+					});
+					setFormNames(prev => ({
+						...prev,
+						[formId]: response.data.form_name
+					}));
+				} catch (error) {
+					console.error(`Error fetching form name for ID ${formId}:`, error);
+				}
+			}
+		});
+	}, [location.pathname]);
 
 	// Define breadcrumb mappings
 	const breadcrumbMappings = useMemo(() => {
@@ -28,7 +52,6 @@ function CustomerLayoutPage({ children }) {
 		
 		// Define route to breadcrumb mapping
 		const routeMap = {
-			'dashboard': 'Dashboard',
 			'forms': 'Forms',
 			'submissions': 'Submissions',
 			'employees': 'Employees',
@@ -41,10 +64,7 @@ function CustomerLayoutPage({ children }) {
 		// Build breadcrumb items
 		const breadcrumbs = [];
 		
-		// Always start with Dashboard
-		breadcrumbs.push({ name: 'Dashboard', path: '/dashboard' });
-		
-		// Add intermediate paths
+		// Add intermediate paths (without Dashboard as requested)
 		let currentPath = '';
 		paths.forEach((path, index) => {
 			currentPath += `/${path}`;
@@ -52,8 +72,16 @@ function CustomerLayoutPage({ children }) {
 			// Skip empty paths
 			if (!path) return;
 			
+			// Special handling for create-form to show "Create Form" instead of "Create-form"
+			if (path === 'create-form') {
+				breadcrumbs.push({ name: 'Create Form', path: currentPath });
+			}
+			// Check if it's a form ID and we have the form name
+			else if (path.length === 24 && formNames[path]) {
+				breadcrumbs.push({ name: formNames[path], path: currentPath });
+			}
 			// Check if it's a form submission detail page (has form ID)
-			if (paths[index - 1] === 'submissions' && path.length === 24) {
+			else if (paths[index - 1] === 'submissions' && path.length === 24) {
 				breadcrumbs.push({ name: 'Form Submissions', path: currentPath });
 			} else {
 				const name = routeMap[path] || path.charAt(0).toUpperCase() + path.slice(1);
@@ -62,7 +90,7 @@ function CustomerLayoutPage({ children }) {
 		});
 
 		return breadcrumbs;
-	}, [location.pathname]);
+	}, [location.pathname, formNames]);
 
 	return (
 		<div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,11 @@ import {
 } from "@/components/ui/select";
 import EmployeeSelectionDialog from "./EmployeeSelectionDialog";
 
+// Create a context to pass form type to SortableItem
+export const FormTypeContext = React.createContext();
+
 const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
+    const formType = useContext(FormTypeContext);
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
         id: field.id,
     });
@@ -70,6 +74,14 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
         const updates = { enabled: value };
         if (!value) updates.is_required = false;
         onFieldUpdate(field.id, updates);
+    };
+
+    // Handle employee rating toggle for employee fields
+    const handleEmployeeRatingChange = (value) => {
+        // Only allow employee rating for Review forms
+        if (formType === "Review") {
+            onFieldUpdate(field.id, { hasEmployeeRating: value });
+        }
     };
 
     const handleDialogSave = () => {
@@ -162,7 +174,10 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
                                             <SelectItem value="number">Number</SelectItem>
                                             <SelectItem value="tel">Phone</SelectItem>
                                             <SelectItem value="textarea">Textarea</SelectItem>
-                                            <SelectItem value="rating">Rating</SelectItem>
+                                            {/* Only show rating option for Review forms */}
+                                            {formType === "Review" && (
+                                                <SelectItem value="rating">Rating</SelectItem>
+                                            )}
                                             <SelectItem value="employee">Employee Dropdown</SelectItem>
                                             <SelectItem value="image">Image Upload</SelectItem>
                                         </SelectContent>
@@ -253,6 +268,34 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
                                 : 'Select Employees'
                             }
                         </Button>
+                    )}
+                    {/* Employee Rating Toggle - only for Review forms */}
+                    {formType === "Review" && field.enabled && (
+                        <div className="flex items-center space-x-2 pt-2">
+                            <Switch
+                                id="employee-rating"
+                                checked={field.hasEmployeeRating}
+                                onCheckedChange={handleEmployeeRatingChange}
+                            />
+                            <Label htmlFor="employee-rating" className="text-sm">
+                                Enable Employee Rating
+                            </Label>
+                        </div>
+                    )}
+                    {/* Preview of Employee Rating Field - only for Review forms */}
+                    {formType === "Review" && field.hasEmployeeRating && field.enabled && (
+                        <div className="mt-3 p-3 bg-gray-100 dark:bg-gray-800 rounded-md">
+                            <Label className="text-sm font-medium">Employee Rating</Label>
+                            <div className="flex space-x-1 mt-2">
+                                {Array.from({ length: 5 }).map((_, index) => (
+                                    <Star
+                                        key={index}
+                                        className="w-4 h-4 text-yellow-500"
+                                        fill="yellow"
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     )}
                 </div>
             ) : field.type === "image" ? (

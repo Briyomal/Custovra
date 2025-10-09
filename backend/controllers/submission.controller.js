@@ -82,6 +82,11 @@ export const getSubmissionsByFormOwner = async (req, res) => {
                             // If it's not a valid employee ID, keep the original value
                         }
                     }
+                    // Check if this field is an employee rating field
+                    else if (key.toLowerCase().includes('employee') && key.toLowerCase().includes('rating')) {
+                        // This is an employee rating field, keep the value as is
+                        // It will be a numeric rating value
+                    }
                     // Check if this field is an image field and contains an S3 key
                     else if ((key.toLowerCase().includes('image') || key.toLowerCase().includes('photo') || 
                              key.endsWith('.jpg') || key.endsWith('.jpeg') || key.endsWith('.png')) && 
@@ -152,6 +157,11 @@ export const getSubmissionsByFormId = async (req, res) => {
                         } catch (err) {
                             // If it's not a valid employee ID, keep the original value
                         }
+                    }
+                    // Check if this field is an employee rating field
+                    else if (key.toLowerCase().includes('employee') && key.toLowerCase().includes('rating')) {
+                        // This is an employee rating field, keep the value as is
+                        // It will be a numeric rating value
                     }
                     // Check if this field is an image field and contains an S3 key
                     else if ((key.toLowerCase().includes('image') || key.toLowerCase().includes('photo') || 
@@ -224,6 +234,11 @@ export const getSubmissionsByFormIdAdmin = async (req, res) => {
                         } catch (err) {
                             // If it's not a valid employee ID, keep the original value
                         }
+                    }
+                    // Check if this field is an employee rating field
+                    else if (key.toLowerCase().includes('employee') && key.toLowerCase().includes('rating')) {
+                        // This is an employee rating field, keep the value as is
+                        // It will be a numeric rating value
                     }
                     // Check if this field is an image field and contains an S3 key
                     else if ((key.toLowerCase().includes('image') || key.toLowerCase().includes('photo') || 

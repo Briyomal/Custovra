@@ -31,6 +31,10 @@ const defaultFieldSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Employee'
     }], // For employee dropdown fields
+    hasEmployeeRating: {
+        type: Boolean,
+        default: false,
+    }, // For employee rating toggle
 });
 
 const customFieldSchema = new Schema({
@@ -65,7 +69,11 @@ const customFieldSchema = new Schema({
     employees: [{
         type: Schema.Types.ObjectId,
         ref: 'Employee'
-    }], // For employee dropdown fields 
+    }], // For employee dropdown fields
+    hasEmployeeRating: {
+        type: Boolean,
+        default: false,
+    }, // For employee rating toggle
 });
 
 const formSchema = new Schema({
@@ -111,28 +119,8 @@ const formSchema = new Schema({
     },
     is_active: {
         type: Boolean,
-        default: false,
+        default: true,
     },
-    lockedAt: {
-        type: Date,
-    },
-    lockReason: {
-        type: String,
-    },
-    created_at: {
-        type: Date,
-        default: Date.now,
-    },
-    updated_at: {
-        type: Date,
-        default: Date.now,
-    }
-});
+}, { timestamps: true });
 
-// Middleware to update `updated_at` before saving
-formSchema.pre('save', function (next) {
-    this.updated_at = Date.now();
-    next();
-});
-
-export const Form = mongoose.model("Form", formSchema);
+export const Form = mongoose.model('Form', formSchema);
