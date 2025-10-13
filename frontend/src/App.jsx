@@ -27,7 +27,8 @@ import FormViewPage from "./pages/front/FormViewPage";
 import SubmissionPage from "./pages/customer/SubmissionPage";
 import SubmissionListPage from "./pages/customer/SubmissionListPage";
 import ReportPage from "./pages/customer/ReportPage";
-import ProfilePage from "./pages/customer/ProfilePage";
+import CustomerProfilePage from "./pages/customer/ProfilePage";
+import AdminProfilePage from "./pages/admin/ProfilePage";
 import BillingPage from "./pages/customer/BillingPage";
 import EmployeePage from "./pages/customer/EmployeePage";
 
@@ -149,7 +150,7 @@ function App() {
 					path="/profile"
 					element={
 						<ProtectedRoute role="customer">
-							<ProfilePage />
+							<CustomerProfilePage />
 						</ProtectedRoute>
 					}
 				/>
@@ -217,7 +218,7 @@ function App() {
 					path="/admin/profile"
 					element={
 						<ProtectedRoute role="admin">
-							<ProfilePage />
+							<AdminProfilePage />
 						</ProtectedRoute>
 					}
 				/>

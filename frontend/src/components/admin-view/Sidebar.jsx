@@ -3,6 +3,7 @@ import { Home, Users, FileText, BarChart3 } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { NavUser } from "@/components/nav-user";
 import { useAuthStore } from "@/store/authStore";
+import { useLocation } from "react-router-dom";
 import sidebarLogo from "../../assets/Logo.png";
 // Menu items.
 
@@ -15,6 +16,8 @@ const items = [
 
 export function AdminSidebar() {
 	const { user } = useAuthStore();
+	const location = useLocation();
+	const currentPath = location.pathname;
 
 	return (
 		<Sidebar collapsible="icon">
@@ -36,7 +39,10 @@ export function AdminSidebar() {
 						<SidebarMenu>
 							{items.map((item) => (
 								<SidebarMenuItem key={item.title}>
-									<SidebarMenuButton asChild>
+									<SidebarMenuButton
+										asChild
+										className={`${(item.url === '/admin' && currentPath === '/admin') || (item.url !== '/admin' && currentPath.startsWith(item.url)) ? "bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-700 text-white font-medium" : ""}`}
+									>
 										<a href={item.url}>
 											<item.icon />
 											<span>{item.title}</span>

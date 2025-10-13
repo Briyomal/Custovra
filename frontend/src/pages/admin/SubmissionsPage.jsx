@@ -23,7 +23,7 @@ const SubmissionsPage = () => {
             if (!formId) return;
 
             try {
-                // Fetch form information using admin endpoint
+                // Fetch form information using admin endpoint for security
                 const formResponse = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/forms/admin/${formId}`, {
                     withCredentials: true
                 });
@@ -55,9 +55,9 @@ const SubmissionsPage = () => {
 
     const memoizedSubmissions = useMemo(() => submissions, [submissions]);
     const memoizedColumns = useMemo(() => {
-        // Generate dynamic columns based on actual submission data
-        return generateDynamicColumns(submissions);
-    }, [submissions]);
+        // Generate dynamic columns based on actual submission data and form information
+        return generateDynamicColumns(submissions, formInfo);
+    }, [submissions, formInfo]);
 
     const totalSubmissionsCount = memoizedSubmissions.length;
 
@@ -94,7 +94,7 @@ const SubmissionsPage = () => {
                             No Submissions Yet!
                         </h1>
                         <p className="text-lg text-gray-400 max-w-md text-center">
-                            It looks like this form hasn't received any submissions yet.
+                            It looks like this form hasn&#39;t received any submissions yet.
                         </p>
                     </div>
                 ) : (

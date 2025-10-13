@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Ban, Check, Loader } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import StarRating from "@/components/customer-view/StarRating";
 import FormPreviewSkelton from "@/components/customer-view/FormPreviewSkelton";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -271,7 +272,7 @@ const FormViewPage = () => {
                     // We have a file upload
                     hasFileUploads = true;
                 } 
-                // Handle regular fields
+                // Handle regular fields (including dropdown and radio)
                 else if (field.value !== undefined && field.value !== null) {
                     // Add regular fields to submissions object
                     submissions[field.field_name] = field.value.toString();
@@ -617,6 +618,54 @@ const FormViewPage = () => {
                                                                         </p>
                                                                     )}
                                                                 </div>
+                                                            ) : field.field_type === "dropdown" ? (
+                                                                <Select
+                                                                    name={field.field_name}
+                                                                    required={field.is_required}
+                                                                    onValueChange={(value) =>
+                                                                        handleChange({ target: { name: field.field_name, value } }, field)
+                                                                    }
+                                                                >
+                                                                    <SelectTrigger>
+                                                                        <SelectValue placeholder={field.placeholder || "Select an option"} />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {field.options && field.options.length > 0 ? (
+                                                                            field.options
+                                                                                .filter(option => option && option.trim() !== "") // Filter out empty options
+                                                                                .map((option, index) => (
+                                                                                    <SelectItem key={index} value={option}>
+                                                                                        {option}
+                                                                                    </SelectItem>
+                                                                                ))
+                                                                        ) : (
+                                                                            <SelectItem value="" disabled>
+                                                                                No options available
+                                                                            </SelectItem>
+                                                                        )}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            ) : field.field_type === "radio" ? (
+                                                                <RadioGroup
+                                                                    name={field.field_name}
+                                                                    required={field.is_required}
+                                                                    onValueChange={(value) =>
+                                                                        handleChange({ target: { name: field.field_name, value } }, field)
+                                                                    }
+                                                                >
+                                                                    {field.options && field.options.length > 0 ? (
+                                                                        field.options
+                                                                            .filter(option => option && option.trim() !== "") // Filter out empty options
+                                                                            .map((option, index) => (
+                                                                                <div key={index} className="flex items-center space-x-2">
+                                                                                    <RadioGroupItem value={option} id={`${field.field_name}-${index}`} />
+                                                                                    <Label htmlFor={`${field.field_name}-${index}`}>{option}</Label>
+                                                                                </div>
+                                                                            ))
+                                                                    ) : (
+                                                                        <p className="text-sm text-gray-500">No options available</p>
+                                                                    )}
+                                                                </RadioGroup>
                                                             ) : (
                                                                 <Input
                                                                     name={field.field_name}

@@ -35,6 +35,9 @@ const defaultFieldSchema = new Schema({
         type: Boolean,
         default: false,
     }, // For employee rating toggle
+    options: [{
+        type: String
+    }] // For dropdown and radio fields
 });
 
 const customFieldSchema = new Schema({
@@ -44,7 +47,7 @@ const customFieldSchema = new Schema({
     },
     field_type: {
         type: String,
-        enum: ['text', 'email', 'tel', 'number', 'rating', 'textarea', 'employee', 'image'], // Added 'image' as a field type
+        enum: ['text', 'email', 'tel', 'number', 'rating', 'textarea', 'employee', 'image', 'dropdown', 'radio'], // Added 'dropdown' and 'radio' as field types
         required: true,
     },
     is_required: {
@@ -74,6 +77,9 @@ const customFieldSchema = new Schema({
         type: Boolean,
         default: false,
     }, // For employee rating toggle
+    options: [{
+        type: String
+    }] // For dropdown and radio fields
 });
 
 const formSchema = new Schema({

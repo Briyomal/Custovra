@@ -93,7 +93,7 @@ export function NavUser({ user }) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/profile")}>
+              <DropdownMenuItem className="cursor-pointer" onClick={() => navigate(user?.role === "admin" ? "/admin/profile" : "/profile")}>
                   <BadgeCheck />
                   Account
               </DropdownMenuItem>

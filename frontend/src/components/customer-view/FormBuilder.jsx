@@ -33,11 +33,12 @@ const FormBuilder = ({ formDetails, fields, setFields }) => {
                         placeholder: field.placeholder || "",
                         isNew: false, // Set as false since it's not a new field
                         employees: field.employees || [], // Load existing employee data
+                        // Filter out empty options
+                        options: field.options ? field.options.filter(option => option && option.trim() !== "") : [],
                         // For employee fields, check if there's an associated rating field
                         hasEmployeeRating: field.hasEmployeeRating !== undefined ? field.hasEmployeeRating : false
                     };
                     
-                    console.log("FormBuilder: Processed default field:", field.field_name, "hasEmployeeRating:", processedField.hasEmployeeRating);
                     return processedField;
                 })
                 .filter(field => field !== null);
@@ -53,11 +54,12 @@ const FormBuilder = ({ formDetails, fields, setFields }) => {
                     placeholder: field.placeholder || "",
                     isNew: true, // Custom fields are not new
                     employees: field.employees || [], // Load existing employee data
+                    // Filter out empty options
+                    options: field.options ? field.options.filter(option => option && option.trim() !== "") : [],
                     // For employee fields, check if there's an associated rating field
                     hasEmployeeRating: field.hasEmployeeRating !== undefined ? field.hasEmployeeRating : false
                 };
                 
-                console.log("FormBuilder: Processed custom field:", field.field_name, "hasEmployeeRating:", processedField.hasEmployeeRating);
                 return processedField;
             });
 

@@ -39,6 +39,10 @@ const DataTable = ({ data, columns, setLocalSubmissions }) => {
 		pageIndex: 0,
 		pageSize: 10,
 	});
+	const [confirmationText, setConfirmationText] = useState("");
+	const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+	
+	const isConfirmed = confirmationText.trim().toLowerCase() === "delete";
 
 	const updateData = (newData) => {
 		setLocalSubmissions(newData);
@@ -174,6 +178,8 @@ const DataTable = ({ data, columns, setLocalSubmissions }) => {
 
 				// Clear selection
 				setRowSelection({});
+				// Reset confirmation text
+				setConfirmationText("");
 			})(),
 			{
 				loading: `Deleting ${selectedCount} submission${selectedCount > 1 ? 's' : ''}...`,
@@ -449,7 +455,7 @@ const exportToCSV = () => {
 				</div>
 				<div className="flex items-center gap-2">
 					{selectedCount > 0 && (
-						<AlertDialog>
+						<AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
 							<AlertDialogTrigger asChild>
 								<Button
 									variant="destructive"
@@ -467,11 +473,29 @@ const exportToCSV = () => {
 										Are you sure you want to delete {selectedCount} selected submission{selectedCount > 1 ? 's' : ''}? This action cannot be undone.
 									</AlertDialogDescription>
 								</AlertDialogHeader>
+								<div className="my-4">
+									<label className="text-sm mb-1 block">
+										To confirm, type <span className="font-bold text-destructive">delete</span> below:
+									</label>
+									<Input
+										type="text"
+										placeholder="Type 'delete' to confirm"
+										value={confirmationText}
+										onChange={(e) => setConfirmationText(e.target.value)}
+									/>
+								</div>
 								<AlertDialogFooter>
-									<Button variant="outline" onClick={() => {}}>
+									<Button variant="outline" onClick={() => {
+										setConfirmationText("");
+										setIsBulkDeleteDialogOpen(false);
+									}}>
 										Cancel
 									</Button>
-									<Button variant="destructive" onClick={handleBulkDelete}>
+									<Button 
+										variant="destructive" 
+										onClick={handleBulkDelete}
+										disabled={!isConfirmed}
+									>
 										Delete {selectedCount} item{selectedCount > 1 ? 's' : ''}
 									</Button>
 								</AlertDialogFooter>

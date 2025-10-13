@@ -9,123 +9,243 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox"
 
-// Generate dynamic columns based on submission data
-export const generateDynamicColumns = (submissions) => {
+// Generate dynamic columns based on submission data and form field definitions
+export const generateDynamicColumns = (submissions, formData = null) => {
 	if (!submissions || submissions.length === 0) {
 		return staticColumns;
 	}
 
-	// Get all possible field names from all submissions
-	const allFields = new Set();
-	submissions.forEach(submission => {
-		if (submission.submissions && typeof submission.submissions === 'object') {
-			Object.keys(submission.submissions)
-				.filter(key => key !== 'cf-turnstile-response' && key !== 'captchaToken')
-				.forEach(key => allFields.add(key));
+	// If we have form data, use the current field definitions to determine columns
+	if (formData) {
+		// Create arrays to maintain order
+		const orderedFields = [];
+		const employeeFieldsWithRating = new Map(); // Map to track employee fields with their rating fields
+		
+		// Process default fields
+		if (formData.default_fields && Array.isArray(formData.default_fields)) {
+			formData.default_fields.forEach(field => {
+				if (field.enabled) {
+					orderedFields.push(field.field_name);
+					// If this is an employee field with rating enabled, track it
+					if (field.field_type === 'employee' && field.hasEmployeeRating) {
+						employeeFieldsWithRating.set(field.field_name, `${field.field_name}_rating`);
+					}
+				}
+			});
 		}
-	});
+		
+		// Process custom fields
+		if (formData.custom_fields && Array.isArray(formData.custom_fields)) {
+			formData.custom_fields.forEach(field => {
+				if (field.enabled) {
+					orderedFields.push(field.field_name);
+					// If this is an employee field with rating enabled, track it
+					if (field.field_type === 'employee' && field.hasEmployeeRating) {
+						employeeFieldsWithRating.set(field.field_name, `${field.field_name}_rating`);
+					}
+				}
+			});
+		}
+		
+		// Create columns in the proper order
+		const dynamicColumns = [];
+		orderedFields.forEach(fieldName => {
+			// Add the main field column
+			dynamicColumns.push(createColumnForField(fieldName));
+			
+			// If this is an employee field with rating, add the rating column right after
+			if (employeeFieldsWithRating.has(fieldName)) {
+				const ratingFieldName = employeeFieldsWithRating.get(fieldName);
+				dynamicColumns.push(createEmployeeRatingColumn(ratingFieldName));
+			}
+		});
+		
+		// Combine with static columns
+		return [
+			staticColumns[0], // select checkbox
+			...dynamicColumns,
+			staticColumns[staticColumns.length - 2], // createdAt
+			staticColumns[staticColumns.length - 1], // actions
+		];
+	} else {
+		// Fallback to original behavior if no form data is provided
+		// Get all possible field names from all submissions
+		const allFields = new Set();
+		submissions.forEach(submission => {
+			if (submission.submissions && typeof submission.submissions === 'object') {
+				Object.keys(submission.submissions)
+					.filter(key => key !== 'cf-turnstile-response' && key !== 'captchaToken')
+					.forEach(key => allFields.add(key));
+			}
+		});
 
-	// Create columns for each field
-	const dynamicColumns = Array.from(allFields).map(fieldName => {
-		if (fieldName === 'rating') {
-			return {
-				id: "rating",
-				header: ({ column }) => (
-					<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-						Rating
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
-				accessorKey: "submissions.rating",
-				accessorFn: (row) => parseFloat(row.submissions?.rating) || 0,
-				enableSorting: true,
-				cell: ({ row }) => {
-					const rating = parseFloat(row.original.submissions?.rating) || 0;
-					const maxStars = 5;
+		// Convert to array and sort to group employee fields with their ratings
+		const fieldArray = Array.from(allFields);
+		
+		// Separate regular fields from rating fields
+		const regularFields = fieldArray.filter(field => !field.endsWith('_rating'));
+		const ratingFields = fieldArray.filter(field => field.endsWith('_rating'));
+		
+		// Create columns, placing rating fields right after their corresponding employee fields
+		const dynamicColumns = [];
+		regularFields.forEach(fieldName => {
+			// Add the main field column
+			dynamicColumns.push(createColumnForField(fieldName));
+			
+			// Check if there's a corresponding rating field and add it right after
+			const correspondingRatingField = `${fieldName}_rating`;
+			if (ratingFields.includes(correspondingRatingField)) {
+				dynamicColumns.push(createEmployeeRatingColumn(correspondingRatingField));
+			}
+		});
+		
+		// Add any remaining rating fields that don't have a corresponding employee field
+		ratingFields.forEach(fieldName => {
+			const employeeFieldName = fieldName.replace(/_rating$/, '');
+			if (!regularFields.includes(employeeFieldName)) {
+				dynamicColumns.push(createEmployeeRatingColumn(fieldName));
+			}
+		});
 
+		// Combine with static columns
+		return [
+			staticColumns[0], // select checkbox
+			...dynamicColumns,
+			staticColumns[staticColumns.length - 2], // createdAt
+			staticColumns[staticColumns.length - 1], // actions
+		];
+	}
+};
+
+// Helper function to create a column for a specific field
+const createColumnForField = (fieldName) => {
+	if (fieldName === 'rating') {
+		return {
+			id: "rating",
+			header: ({ column }) => (
+				<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+					Rating
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+			accessorKey: "submissions.rating",
+			accessorFn: (row) => parseFloat(row.submissions?.rating) || 0,
+			enableSorting: true,
+			cell: ({ row }) => {
+				const rating = parseFloat(row.original.submissions?.rating) || 0;
+				const maxStars = 5;
+
+				return (
+					<div className="flex items-center">
+						{[...Array(maxStars)].map((_, index) => {
+							if (index + 1 <= rating) {
+								return <Star fill="yellow" key={index} className="h-4 w-4 text-yellow-500" />;
+							} else if (index < rating) {
+								return <StarHalf key={index} className="h-4 w-4 text-yellow-500" />;
+							} else {
+								return <Star key={index} className="h-4 w-4 text-gray-300" />;
+							}
+						})}
+					</div>
+				);
+			},
+		};
+	} else if (fieldName.endsWith('.jpg') || fieldName.endsWith('.jpeg') || fieldName.endsWith('.png') || 
+	           fieldName.includes('image') || fieldName.includes('photo') || fieldName.includes('Image') || fieldName.includes('Photo')) {
+		// Handle image fields
+		return {
+			id: fieldName,
+			header: ({ column }) => (
+				<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+					{fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+			accessorKey: `submissions.${fieldName}`,
+			enableSorting: true,
+			cell: ({ row }) => {
+				const value = row.original.submissions?.[fieldName];
+				// Check if the value looks like a URL (presigned URL)
+				if (value && (value.startsWith('http://') || value.startsWith('https://'))) {
 					return (
-						<div className="flex items-center">
-							{[...Array(maxStars)].map((_, index) => {
-								if (index + 1 <= rating) {
-									return <Star fill="yellow" key={index} className="h-4 w-4 text-yellow-500" />;
-								} else if (index < rating) {
-									return <StarHalf key={index} className="h-4 w-4 text-yellow-500" />;
-								} else {
-									return <Star key={index} className="h-4 w-4 text-gray-300" />;
-								}
-							})}
+						<div className="flex items-center space-x-2">
+							<img 
+								src={value} 
+								alt="Submission" 
+								className="w-16 h-16 object-cover rounded border"
+								onError={(e) => {
+									// If image fails to load, show a fallback
+									e.target.onerror = null;
+									e.target.parentElement.innerHTML = '<span className="text-blue-500 hover:underline">View Image</span>';
+								}}
+							/>
+							<a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-sm">
+								View Full Size
+							</a>
 						</div>
 					);
-				},
-			};
-		} else if (fieldName.endsWith('.jpg') || fieldName.endsWith('.jpeg') || fieldName.endsWith('.png') || 
-		           fieldName.includes('image') || fieldName.includes('photo') || fieldName.includes('Image') || fieldName.includes('Photo')) {
-			// Handle image fields
-			return {
-				id: fieldName,
-				header: ({ column }) => (
-					<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-						{fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
-				accessorKey: `submissions.${fieldName}`,
-				enableSorting: true,
-				cell: ({ row }) => {
-					const value = row.original.submissions?.[fieldName];
-					// Check if the value looks like a URL (presigned URL)
-					if (value && (value.startsWith('http://') || value.startsWith('https://'))) {
-						return (
-							<div className="flex items-center space-x-2">
-								<img 
-									src={value} 
-									alt="Submission" 
-									className="w-16 h-16 object-cover rounded border"
-									onError={(e) => {
-										// If image fails to load, show a fallback
-										e.target.onerror = null;
-										e.target.parentElement.innerHTML = '<span className="text-blue-500 hover:underline">View Image</span>';
-									}}
-								/>
-								<a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-sm">
-									View Full Size
-								</a>
-							</div>
-						);
-					}
-					// If it's an S3 key, show a placeholder
-					else if (value && (value.startsWith('form_submissions/') || value.includes('form_submissions'))) {
-						return <span className="text-blue-500">[Image File]</span>;
-					}
-					return <span>{value || 'N/A'}</span>;
-				},
-			};
-		} else {
-			return {
-				id: fieldName,
-				header: ({ column }) => (
-					<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-						{fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
-				accessorKey: `submissions.${fieldName}`,
-				enableSorting: true,
-				cell: ({ row }) => {
-					const value = row.original.submissions?.[fieldName];
-					return <span>{value || 'N/A'}</span>;
-				},
-			};
-		}
-	});
+				}
+				// If it's an S3 key, show a placeholder
+				else if (value && (value.startsWith('form_submissions/') || value.includes('form_submissions'))) {
+					return <span className="text-blue-500">[Image File]</span>;
+				}
+				return <span>{value || 'N/A'}</span>;
+			},
+		};
+	} else {
+		return {
+			id: fieldName,
+			header: ({ column }) => (
+				<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+					{fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+			accessorKey: `submissions.${fieldName}`,
+			enableSorting: true,
+			cell: ({ row }) => {
+				const value = row.original.submissions?.[fieldName];
+				return <span>{value || 'N/A'}</span>;
+			},
+		};
+	}
+};
 
-	// Combine with static columns (select, timestamp, actions)
-	return [
-		staticColumns[0], // select checkbox
-		...dynamicColumns,
-		staticColumns[staticColumns.length - 2], // createdAt
-		staticColumns[staticColumns.length - 1], // actions
-	];
+// Helper function to create a column for employee rating fields
+const createEmployeeRatingColumn = (fieldName) => {
+	// Extract the employee field name (remove _rating suffix)
+	const employeeFieldName = fieldName.replace(/_rating$/, '');
+	
+	return {
+		id: fieldName,
+		header: ({ column }) => (
+			<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+				{employeeFieldName.charAt(0).toUpperCase() + employeeFieldName.slice(1)} Rating
+				<ArrowUpDown className="ml-2 h-4 w-4" />
+			</Button>
+		),
+		accessorKey: `submissions.${fieldName}`,
+		accessorFn: (row) => parseFloat(row.submissions?.[fieldName]) || 0,
+		enableSorting: true,
+		cell: ({ row }) => {
+			const rating = parseFloat(row.original.submissions?.[fieldName]) || 0;
+			const maxStars = 5;
+
+			return (
+				<div className="flex items-center">
+					{[...Array(maxStars)].map((_, index) => {
+						if (index + 1 <= rating) {
+							return <Star fill="yellow" key={index} className="h-4 w-4 text-yellow-500" />;
+						} else if (index < rating) {
+							return <StarHalf key={index} className="h-4 w-4 text-yellow-500" />;
+						} else {
+							return <Star key={index} className="h-4 w-4 text-gray-300" />;
+						}
+					})}
+				</div>
+			);
+		},
+	};
 };
 
 // Static columns that don't depend on submission data

@@ -294,9 +294,10 @@ const PlanDowngradeDialog = ({ isOpen, onClose, onComplete, initialDowngradeData
                                                                             </div>
                                                                         </div>
                                                                         <div className="text-right">
+                                                                            {/* 
                                                                             <p className="text-sm text-gray-600">
                                                                                 {form.submissionCount || 0} submissions
-                                                                            </p>
+                                                                            </p> */}
                                                                             {isSelected && (
                                                                                 <div className="flex items-center gap-1 text-green-600 text-sm mt-1">
                                                                                     <CheckCircle className="h-3 w-3" />

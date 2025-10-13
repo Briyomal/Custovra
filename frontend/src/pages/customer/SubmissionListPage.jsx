@@ -69,7 +69,7 @@ const SubmissionListPage = () => {
 		}));
 	}, [localSubmissions]);
 
-	const memoizedColumns = useMemo(() => generateDynamicColumns(filteredSubmissions), [filteredSubmissions]);
+	const memoizedColumns = useMemo(() => generateDynamicColumns(filteredSubmissions, formData), [filteredSubmissions, formData]);
 	const memoizedSubmissions = useMemo(() => filteredSubmissions, [filteredSubmissions]);
 	const totalSubmissionsCount = memoizedSubmissions.length;
 

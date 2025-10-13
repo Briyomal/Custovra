@@ -117,41 +117,23 @@ const AdminDashboard = () => {
 
       {/* Charts */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4 shadow-sm">
-          <CardHeader>
-            <CardTitle>Form Distribution</CardTitle>
-            <p className="text-sm text-muted-foreground">Breakdown of form types</p>
-          </CardHeader>
-          <CardContent className="h-80">
-            {formTypeData.length > 0 ? (
-              <OverviewChart 
-                data={formTypeData} 
-                type="pie" 
-                title="Form Distribution" 
-                description="Breakdown of form types" 
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <p>No data available</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="col-span-4">
+          <OverviewChart 
+            data={formTypeData} 
+            type="pie" 
+            title="Form Distribution" 
+            description="Breakdown of form types" 
+          />
+        </div>
         
-        <Card className="col-span-3 shadow-sm">
-          <CardHeader>
-            <CardTitle>Revenue Overview</CardTitle>
-            <p className="text-sm text-muted-foreground">Total vs current month</p>
-          </CardHeader>
-          <CardContent className="h-80">
-            <OverviewChart 
-              data={revenueData} 
-              type="bar" 
-              title="Revenue Overview" 
-              description="Total vs current month" 
-            />
-          </CardContent>
-        </Card>
+        <div className="col-span-3">
+          <OverviewChart 
+            data={revenueData} 
+            type="bar" 
+            title="Revenue Overview" 
+            description="Total vs current month" 
+          />
+        </div>
       </div>
 
       {/* Additional Stats */}

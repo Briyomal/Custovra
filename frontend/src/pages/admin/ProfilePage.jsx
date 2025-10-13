@@ -1,6 +1,6 @@
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import CustomerLayoutPage from "./LayoutPage"
+import AdminLayoutPage from "./LayoutPage"
 import { useState, useEffect } from "react";
 import useProfileStore from "@/store/profileStore";
 import { useAuthStore } from "@/store/authStore";
@@ -10,10 +10,11 @@ import toast from "react-hot-toast";
 import { Loader } from "lucide-react";
 import PasswordStrengthMeter from "@/components/PasswordStrengthMeter";
 import { formatDate } from "../../utils/date";
-import { User, Building, Mail, Phone, Calendar, LogIn, BadgeInfo, Key, Shield, Lock, QrCode, CheckCircle, XCircle } from "lucide-react";
+import { User, Building, Mail, Phone, Calendar, LogIn, BadgeInfo, Key, Shield, Lock, QrCode, CheckCircle, XCircle, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import axios from "axios";
 
 function ProfilePage() {
     const { user, isAuthenticated } = useAuthStore();
@@ -48,6 +49,14 @@ function ProfilePage() {
     const [token, setToken] = useState("");
     const [is2FALoading, setIs2FALoading] = useState(false);
     const [showQRCode, setShowQRCode] = useState(false);
+
+    // Admin security features
+    const [adminPassword, setAdminPassword] = useState("");
+    const [showAdminPassword, setShowAdminPassword] = useState(false);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [adminActionLoading, setAdminActionLoading] = useState(false);
+    const [adminVerificationRequired, setAdminVerificationRequired] = useState(false);
+    const [adminAction, setAdminAction] = useState(null);
 
 
     const handleSubmit = async (e) => {
@@ -176,6 +185,54 @@ function ProfilePage() {
         }
     };
     
+    // Admin security functions
+    const requireAdminVerification = (action) => {
+        setAdminAction(action);
+        setAdminVerificationRequired(true);
+    };
+
+    const handleAdminVerification = async () => {
+        if (!adminPassword) {
+            toast.error("Admin password is required");
+            return;
+        }
+
+        setAdminActionLoading(true);
+        try {
+            // Verify admin password
+            await axios.post(`${import.meta.env.VITE_SERVER_URL}/api/auth/verify-admin`, {
+                password: adminPassword
+            }, { withCredentials: true });
+
+            // Execute the requested action
+            switch (adminAction) {
+                case 'enable2FA':
+                    await handleEnable2FA();
+                    break;
+                case 'disable2FA':
+                    await handleDisable2FA();
+                    break;
+                default:
+                    toast.error("Unknown admin action");
+            }
+            
+            setAdminVerificationRequired(false);
+            setAdminPassword("");
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Admin verification failed");
+        } finally {
+            setAdminActionLoading(false);
+        }
+    };
+
+    const handleSecure2FAEnable = () => {
+        requireAdminVerification('enable2FA');
+    };
+
+    const handleSecure2FADisable = () => {
+        requireAdminVerification('disable2FA');
+    };
+    
     useEffect(() => {
         if (isAuthenticated && userId) {
             fetchProfile(userId);
@@ -201,15 +258,15 @@ function ProfilePage() {
     }, [profile]);
 
     return (
-        <CustomerLayoutPage>
+        <AdminLayoutPage>
             <div className="container mx-auto py-6">
                 <div className="mb-8">
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
                         <User className="h-6 w-6 text-blue-600" />
-                        Profile Settings
+                        Admin Profile Settings
                     </h1>
                     <p className="text-gray-600 dark:text-gray-400 mt-2">
-                        Manage your profile information and account settings
+                        Manage your admin profile information and enhanced security settings
                     </p>
                 </div>
 
@@ -328,6 +385,16 @@ function ProfilePage() {
                                                 </div>
                                             </div>
                                         </div>
+                                        <div className="flex items-start gap-3">
+                                            <AlertTriangle className="h-5 w-5 text-gray-500 mt-0.5" />
+                                            <div>
+                                                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Admin Privileges</h3>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                                    <span className="text-green-600 dark:text-green-400">Active</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -436,14 +503,25 @@ function ProfilePage() {
                                     <div className="space-y-4">
                                         <div className="space-y-2">
                                             <Label htmlFor="current_password">Current Password</Label>
-                                            <Input
-                                                id="current_password"
-                                                type="password"
-                                                placeholder="Current Password"
-                                                value={currentPassword}
-                                                onChange={(e) => setCurrentPassword(e.target.value)}
-                                                required
-                                            />
+                                            <div className="relative">
+                                                <Input
+                                                    id="current_password"
+                                                    type={showCurrentPassword ? "text" : "password"}
+                                                    placeholder="Current Password"
+                                                    value={currentPassword}
+                                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                                    required
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                                >
+                                                    {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                </Button>
+                                            </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -529,9 +607,9 @@ function ProfilePage() {
                                             checked={is2FAEnabled}
                                             onCheckedChange={(checked) => {
                                                 if (checked) {
-                                                    handleEnable2FA();
+                                                    handleSecure2FAEnable();
                                                 } else {
-                                                    handleDisable2FA();
+                                                    handleSecure2FADisable();
                                                 }
                                             }}
                                             disabled={is2FALoading}
@@ -550,7 +628,7 @@ function ProfilePage() {
                                             <Button
                                                 variant="outline"
                                                 className="mt-3 text-red-600 border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                                onClick={handleDisable2FA}
+                                                onClick={handleSecure2FADisable}
                                                 disabled={is2FALoading}
                                             >
                                                 {is2FALoading ? (
@@ -618,13 +696,71 @@ function ProfilePage() {
                                             </div>
                                         </DialogContent>
                                     </Dialog>
+                                    
+                                    {/* Admin Verification Dialog */}
+                                    <Dialog open={adminVerificationRequired} onOpenChange={setAdminVerificationRequired}>
+                                        <DialogContent className="sm:max-w-md">
+                                            <DialogHeader>
+                                                <DialogTitle>Admin Verification Required</DialogTitle>
+                                                <DialogDescription>
+                                                    Please enter your admin password to proceed with this security action
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="admin_password">Admin Password</Label>
+                                                    <div className="relative">
+                                                        <Input
+                                                            id="admin_password"
+                                                            type={showAdminPassword ? "text" : "password"}
+                                                            placeholder="Enter admin password"
+                                                            value={adminPassword}
+                                                            onChange={(e) => setAdminPassword(e.target.value)}
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                                                            onClick={() => setShowAdminPassword(!showAdminPassword)}
+                                                        >
+                                                            {showAdminPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setAdminVerificationRequired(false);
+                                                            setAdminPassword("");
+                                                        }}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button
+                                                        onClick={handleAdminVerification}
+                                                        disabled={adminActionLoading}
+                                                    >
+                                                        {adminActionLoading ? (
+                                                            <>
+                                                                <Loader className="mr-2 h-4 w-4 animate-spin" /> Verifying...
+                                                            </>
+                                                        ) : (
+                                                            "Verify"
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
                                 </div>
                             </CardContent>
                         </Card>
                     </TabsContent>
                 </Tabs>
             </div>
-        </CustomerLayoutPage>
+        </AdminLayoutPage>
     )
 }
 

@@ -55,11 +55,8 @@ const FormCreatePage = () => {
 						{ field_name: "Image", field_type: "image", is_required: false, enabled: true, position: 6, placeholder: "Upload an image" },
 					];
 				}
-				console.log("Fetched form details main:", fetchedDetails);
 				setFormDetails(fetchedDetails); // Set updated form details
 			} catch (error) {
-				console.error("Error fetching form details:", error);
-				
 				// Handle locked form errors specifically
 				if (error.response?.status === 403 && error.response?.data?.locked) {
 					setError(`🔒 This form is locked due to plan restrictions. ${error.response.data.lockReason || 'Upgrade your plan to access it.'}`);
@@ -112,7 +109,6 @@ const FormCreatePage = () => {
 
 		setSelectedImage(file);
 		setRemoveLogo(false); // Reset remove logo flag when selecting a new image
-		console.log("Selected Image:", file);
 	};
 
 	const handleRemoveLogo = () => {
@@ -130,8 +126,6 @@ const FormCreatePage = () => {
 				setLoadingForm(false);
 				return;
 			}
-
-			console.log("FormCreatePage: Form details before update:", formDetails);
 			
 			// Validate essential form fields
 			if (!formDetails.form_name || !formDetails.form_type) {
@@ -171,9 +165,10 @@ const FormCreatePage = () => {
 						position: field.position,
 						placeholder: field.placeholder || "",
 						employees: field.employees || [],
+						// Filter out empty options
+						options: field.options ? field.options.filter(option => option && option.trim() !== "") : [],
 						hasEmployeeRating: field.hasEmployeeRating !== undefined ? field.hasEmployeeRating : false
 					};
-					console.log("FormCreatePage: Processing default field for submit:", field.label, processedField);
 					return processedField;
 				});
 
@@ -190,9 +185,10 @@ const FormCreatePage = () => {
 						placeholder: field.placeholder || "",
 						is_new: true,
 						employees: field.employees || [],
+						// Filter out empty options
+						options: field.options ? field.options.filter(option => option && option.trim() !== "") : [],
 						hasEmployeeRating: field.hasEmployeeRating !== undefined ? field.hasEmployeeRating : false
 					};
-					console.log("FormCreatePage: Processing custom field for submit:", field.label, processedField);
 					return processedField;
 				});
 
@@ -238,12 +234,6 @@ const FormCreatePage = () => {
 			// Save the form
 			formData.append("custom_fields", JSON.stringify(customFieldPayloads));
 			
-			console.log("FormCreatePage: 🚀 FormData (before sending):");
-			console.log("FormCreatePage: 📋 Form Payload:", formPayload);
-			for (let pair of formData.entries()) {
-				console.log(`FormCreatePage: ${pair[0]}:`, pair[1]);
-			}
-			
 			await updateForm(formDetails._id, formData);
 
 			toast.success("Form saved successfully!");
@@ -256,14 +246,11 @@ const FormCreatePage = () => {
 			try {
 				const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/forms/${formId}`);
 				const fetchedDetails = response.data;
-				console.log("FormCreatePage: Form details after refresh:", fetchedDetails);
 				setFormDetails(fetchedDetails);
 			} catch (error) {
 				console.error("FormCreatePage: Error refreshing form details:", error);
 			}
 		} catch (error) {
-			console.error("FormCreatePage: Error publishing form:", error);
-			
 			// Handle locked form errors specifically
 			if (error.response?.status === 403 && error.response?.data?.locked) {
 				toast.error(`🔒 ${error.response.data.message}`);
@@ -275,18 +262,6 @@ const FormCreatePage = () => {
 		}
 	};
 
-	/*
-        const handleShare = async () => {      try {
-            setPreviewLoading(true);
-            const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/forms/${formId}`);
-            setPreviewDetails(response.data);
-        } catch (error) {
-            console.error("Error fetching preview details:", error);
-        } finally {
-            setPreviewLoading(false);
-        }
-        }
-        */
 	return (
 		<CustomerLayoutPage>
 			{error ? (

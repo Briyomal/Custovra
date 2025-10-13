@@ -65,8 +65,21 @@ export const columns = (refreshUsers) => [
 		accessorKey: "role",
 		cell: ({ row }) => {
 			const role = row.original.role;
+			
+			// Define color classes for different roles
+			const getRoleClass = (roleName) => {
+				switch (roleName) {
+					case 'admin':
+						return 'bg-red-500 hover:bg-red-600 text-white';
+					case 'customer':
+						return 'bg-blue-500 hover:bg-blue-600 text-white';
+					default:
+						return 'bg-gray-500 hover:bg-gray-600 text-white';
+				}
+			};
+			
 			return (
-				<Badge variant={role === "admin" ? "default" : "secondary"}>
+				<Badge className={getRoleClass(role)}>
 					{role}
 				</Badge>
 			);
@@ -85,15 +98,24 @@ export const columns = (refreshUsers) => [
 		accessorKey: "subscription_plan",
 		cell: ({ row }) => {
 			const plan = row.original.subscription_plan;
-			const status = row.original.subscription_status;
 			
-			let variant = "secondary";
-			if (status === "active") variant = "default";
-			else if (status === "past_due") variant = "destructive";
+			// Define gradient classes for different plans
+			const getPlanGradientClass = (planName) => {
+				switch (planName) {
+					case 'Premium':
+						return 'bg-gradient-to-r from-green-700 to-lime-500 border-lime-300 dark:border-green-700 text-white';
+					case 'Standard':
+						return 'bg-gradient-to-r from-purple-700 to-fuchsia-500 border-fuchsia-300 dark:border-purple-700 text-white';
+					case 'Basic':
+						return 'bg-gradient-to-r from-blue-700 to-cyan-500 border-cyan-300 dark:border-blue-700 text-white';
+					default:
+						return 'bg-gradient-to-r from-stone-700 to-gray-500 border-gray-300 dark:border-stone-700 text-white';
+				}
+			};
 			
 			return (
-				<Badge variant={variant}>
-					{plan}
+				<Badge className={`${getPlanGradientClass(plan)} border`}>
+					{plan || 'Free'}
 				</Badge>
 			);
 		}
@@ -105,6 +127,40 @@ export const columns = (refreshUsers) => [
 		cell: ({ row }) => {
 			const expiryDate = row.original.subscription_expiry;
 			return expiryDate ? format(new Date(expiryDate), "MMM dd, yyyy") : "N/A";
+		}
+	},
+	{
+		id: "subscription_status",
+		header: "Status",
+		accessorKey: "subscription_status",
+		cell: ({ row }) => {
+			const status = row.original.subscription_status;
+			
+			// Define color classes for different statuses
+			const getStatusClass = (statusName) => {
+				switch (statusName) {
+					case 'active':
+						return 'bg-green-600 hover:bg-green-700 text-white';
+					case 'past_due':
+						return 'bg-red-500 hover:bg-red-600 text-white';
+					case 'canceled':
+						return 'bg-gray-500 hover:bg-gray-600 text-white';
+					case 'incomplete':
+						return 'bg-yellow-500 hover:bg-yellow-600 text-white';
+					case 'trialing':
+						return 'bg-blue-400 hover:bg-blue-500 text-white';
+					default:
+						return 'bg-gray-200 hover:bg-gray-300 text-gray-800';
+				}
+			};
+			
+			const formattedStatus = status ? status.replace('_', ' ') : 'N/A';
+			
+			return (
+				<Badge className={getStatusClass(status)}>
+					{formattedStatus}
+				</Badge>
+			);
 		}
 	},
 	{
@@ -120,8 +176,22 @@ export const columns = (refreshUsers) => [
 		accessorKey: "formCount",
 		cell: ({ row }) => {
 			const count = row.original.formCount;
+			
+			// Define color classes based on count
+			const getCountClass = (countValue) => {
+				if (countValue > 50) {
+					return 'bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-blue-100';
+				} else if (countValue > 20) {
+					return 'bg-green-100 hover:bg-green-200 text-green-800 dark:bg-green-900 dark:hover:bg-green-800 dark:text-green-100';
+				} else if (countValue > 5) {
+					return 'bg-yellow-100 hover:bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:hover:bg-yellow-800 dark:text-yellow-100';
+				} else {
+					return 'bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100';
+				}
+			};
+			
 			return (
-				<Badge variant="outline">
+				<Badge className={`${getCountClass(count)} font-bold`}>
 					{count}
 				</Badge>
 			);
@@ -140,8 +210,22 @@ export const columns = (refreshUsers) => [
 		accessorKey: "submissionCount",
 		cell: ({ row }) => {
 			const count = row.original.submissionCount;
+			
+			// Define color classes based on count
+			const getCountClass = (countValue) => {
+				if (countValue > 500) {
+					return 'bg-purple-100 hover:bg-purple-200 text-purple-800 dark:bg-purple-900 dark:hover:bg-purple-800 dark:text-purple-100';
+				} else if (countValue > 100) {
+					return 'bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-blue-100';
+				} else if (countValue > 20) {
+					return 'bg-green-100 hover:bg-green-200 text-green-800 dark:bg-green-900 dark:hover:bg-green-800 dark:text-green-100';
+				} else {
+					return 'bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100';
+				}
+			};
+			
 			return (
-				<Badge variant="outline">
+				<Badge className={`${getCountClass(count)} font-bold`}>
 					{count}
 				</Badge>
 			);

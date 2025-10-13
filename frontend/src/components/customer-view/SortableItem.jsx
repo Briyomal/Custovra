@@ -24,6 +24,7 @@ import {
     SelectContent,
     SelectItem,
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import EmployeeSelectionDialog from "./EmployeeSelectionDialog";
 
 // Create a context to pass form type to SortableItem
@@ -41,8 +42,10 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
         label: field.label,
         type: field.type,
         placeholder: field.placeholder || "",
+        options: field.options || [], // For dropdown and radio fields
     });
     const [selectedEmployees, setSelectedEmployees] = useState(field.employees || []);
+    const [newOption, setNewOption] = useState(""); // For adding new options
 
     // Helper function to get initials for avatar fallback
     const getInitials = (name) => {
@@ -56,7 +59,6 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
 
     // Update selectedEmployees when field.employees changes
     useEffect(() => {
-        console.log('SortableItem field.employees updated:', field.employees);
         setSelectedEmployees(field.employees || []);
     }, [field.employees]);
 
@@ -84,12 +86,32 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
         }
     };
 
+    // Handle adding a new option for dropdown/radio fields
+    const handleAddOption = () => {
+        if (newOption.trim() !== "") {
+            const updatedOptions = [...editValues.options, newOption.trim()];
+            setEditValues({ ...editValues, options: updatedOptions });
+            setNewOption("");
+        }
+    };
+
+    // Handle removing an option
+    const handleRemoveOption = (index) => {
+        const updatedOptions = editValues.options.filter((_, i) => i !== index);
+        setEditValues({ ...editValues, options: updatedOptions });
+    };
+
     const handleDialogSave = () => {
         const updates = {
             label: editValues.label,
             type: editValues.type,
             placeholder: editValues.placeholder,
         };
+        
+        // Include options for dropdown and radio fields
+        if (editValues.type === 'dropdown' || editValues.type === 'radio') {
+            updates.options = editValues.options;
+        }
         
         // Include employees data for employee field type
         if (editValues.type === 'employee') {
@@ -123,7 +145,6 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
             listeners?.onKeyDown?.(event);
         }
     };
-
 
     return (
         <div
@@ -180,9 +201,44 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
                                             )}
                                             <SelectItem value="employee">Employee Dropdown</SelectItem>
                                             <SelectItem value="image">Image Upload</SelectItem>
+                                            <SelectItem value="dropdown">Dropdown</SelectItem>
+                                            <SelectItem value="radio">Radio Buttons</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
+
+                                {/* Options section for dropdown and radio fields */}
+                                {(editValues.type === "dropdown" || editValues.type === "radio") && (
+                                    <div className="space-y-2">
+                                        <Label>Options</Label>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                value={newOption}
+                                                onChange={(e) => setNewOption(e.target.value)}
+                                                placeholder="Add an option"
+                                                onKeyPress={(e) => e.key === 'Enter' && handleAddOption()}
+                                            />
+                                            <Button onClick={handleAddOption} type="button">Add</Button>
+                                        </div>
+                                        <div className="mt-2 max-h-40 overflow-y-auto">
+                                            {editValues.options
+                                                .filter(option => option && option.trim() !== "") // Filter out empty options
+                                                .map((option, index) => (
+                                                    <div key={index} className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded mb-1">
+                                                        <span>{option}</span>
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm"
+                                                            onClick={() => handleRemoveOption(index)}
+                                                        >
+                                                            Remove
+                                                        </Button>
+                                                    </div>
+                                                ))
+                                            }
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div>
                                     <Label>Placeholder</Label>
@@ -309,6 +365,52 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                         {field.placeholder || "Upload an image file"}
                     </p>
+                </div>
+            ) : field.type === "dropdown" ? (
+                <div className="mt-2">
+                    <Select disabled={!field.enabled}>
+                        <SelectTrigger>
+                            <SelectValue placeholder={field.placeholder || "Select an option"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {field.options && field.options.length > 0 ? (
+                                field.options.map((option, index) => (
+                                    // Only render SelectItem if option is not empty
+                                    option ? (
+                                        <SelectItem key={index} value={option}>
+                                            {option}
+                                        </SelectItem>
+                                    ) : null
+                                ))
+                                // Filter out any null items
+                                .filter(item => item !== null)
+                            ) : (
+                                <SelectItem value="" disabled>
+                                    No options available
+                                </SelectItem>
+                            )}
+                        </SelectContent>
+                    </Select>
+                </div>
+            ) : field.type === "radio" ? (
+                <div className="mt-2 space-y-2">
+                    <RadioGroup disabled={!field.enabled}>
+                        {field.options && field.options.length > 0 ? (
+                            field.options.map((option, index) => (
+                                // Only render radio items if option is not empty
+                                option ? (
+                                    <div key={index} className="flex items-center space-x-2">
+                                        <RadioGroupItem value={option} id={`${field.id}-option-${index}`} />
+                                        <Label htmlFor={`${field.id}-option-${index}`}>{option}</Label>
+                                    </div>
+                                ) : null
+                            ))
+                            // Filter out any null items
+                            .filter(item => item !== null)
+                        ) : (
+                            <p className="text-sm text-gray-500">No options available</p>
+                        )}
+                    </RadioGroup>
                 </div>
             ) : (
                 <Input
