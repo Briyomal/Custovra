@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Star } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const FormPreview = (formPreview) => {
     const { default_fields = [], custom_fields = [] } = formPreview.formPreview || {}
@@ -170,6 +171,48 @@ const FormPreview = (formPreview) => {
                                                 </p>
                                             )}
                                         </div>
+                                    ) : field.type === "radio" || field.field_type === "radio" ? (
+                                        <RadioGroup 
+                                            name={field.label || field.field_name}
+                                            defaultValue={field.value || ""}
+                                        >
+                                            {field.options && field.options.length > 0 ? (
+                                                field.options
+                                                    .filter(option => option && option.trim() !== "") // Filter out empty options
+                                                    .map((option, index) => (
+                                                        <div key={index} className="flex items-center space-x-2">
+                                                            <RadioGroupItem value={option} id={`${field._id || field.field_name}-${index}`} />
+                                                            <Label htmlFor={`${field._id || field.field_name}-${index}`}>{option}</Label>
+                                                        </div>
+                                                    ))
+                                            ) : (
+                                                <p className="text-sm text-gray-500">No options available</p>
+                                            )}
+                                        </RadioGroup>
+                                    ) : field.type === "dropdown" || field.field_type === "dropdown" ? (
+                                        <Select 
+                                            name={field.label || field.field_name}
+                                            defaultValue=""
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={field.placeholder || "Select an option"} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {field.options && field.options.length > 0 ? (
+                                                    field.options
+                                                        .filter(option => option && option.trim() !== "") // Filter out empty options
+                                                        .map((option, index) => (
+                                                            <SelectItem key={index} value={option}>
+                                                                {option}
+                                                            </SelectItem>
+                                                        ))
+                                                ) : (
+                                                    <SelectItem value="" disabled>
+                                                        No options available
+                                                    </SelectItem>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
                                     ) : (
                                         <Input
                                             name={field.label || field.field_name}

@@ -103,10 +103,10 @@ function EmployeePage() {
                 return;
             }
 
-            // Validate file type
-            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            // Validate file type - Updated to include WebP
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
             if (!allowedTypes.includes(file.type)) {
-                toast.error('Only JPEG and PNG files are allowed');
+                toast.error('Only JPEG, PNG, and WebP files are allowed');
                 return;
             }
 
@@ -291,7 +291,7 @@ function EmployeePage() {
                                             onChange={handlePhotoChange}
                                             className="cursor-pointer"
                                         />
-                                        <p className="text-xs text-gray-500">Max 1MB, JPEG/PNG only</p>
+                                        <p className="text-xs text-gray-500">Max 1MB, JPEG/PNG/WebP only</p>
                                     </div>
                                 </div>
 

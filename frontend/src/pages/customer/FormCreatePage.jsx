@@ -94,11 +94,12 @@ const FormCreatePage = () => {
 	const handleFileSelect = (file) => {
 		if (!file) return;
 
-		const validTypes = ["image/jpeg", "image/jpg", "image/png"];
+		// Updated to include WebP files
+		const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 		const maxSize = 1024 * 1024; // 1MB
 
 		if (!validTypes.includes(file.type)) {
-			toast.error("Only JPG, JPEG, and PNG files are allowed.");
+			toast.error("Only JPG, JPEG, PNG, and WebP files are allowed.");
 			return;
 		}
 

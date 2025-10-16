@@ -423,11 +423,11 @@ export const updateForm = async (req, res) => {
             const image = req.file;
             
             // Validate file type and size
-            const validTypes = ["image/jpeg", "image/jpg", "image/png"];
+            const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
             const maxSize = 1024 * 1024; // 1MB
 
             if (!validTypes.includes(image.mimetype)) {
-                return res.status(400).json({ message: "Only JPG, JPEG, and PNG files are allowed." });
+                return res.status(400).json({ message: "Only JPG, JPEG, PNG, and WebP files are allowed." });
             }
 
             if (image.size > maxSize) {

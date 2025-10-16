@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import CustomerLayoutPage from "./LayoutPage";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { useAuthStore } from "@/store/authStore";
 import {
@@ -18,11 +18,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import useFormStore from "@/store/formStore";
 import useSubmissionStore from "@/store/submissionStore";
-import { ChevronDown, Loader, Download, Calendar as CalendarIcon } from "lucide-react";
-import jsPDF from "jspdf";
+import { ChevronDown, Loader, Calendar as CalendarIcon, User, FileText, Star, CalendarRange, FormInput } from "lucide-react";
+import ReportExport from "@/components/customer-view/ReportExport";
 
 import { format } from "date-fns";
-import html2canvas from "html2canvas";
 import { cn } from "@/lib/utils";
 
 const PIE_COLORS = ["#bedcfe", "#a3c8f7", "#7aaff7", "#5197f7", "#3b86f7", "#2563eb"];
@@ -32,10 +31,12 @@ function ReportPage() {
     const { fetchFormsNew, forms } = useFormStore();
     const { fetchSubmissions, submissions } = useSubmissionStore();
     const [loading, setLoading] = useState(true);
+    const [employees, setEmployees] = useState([]);
+    const [selectedEmployee, setSelectedEmployee] = useState(""); // Change default to empty string instead of "all"
 
     const userId = user?._id;
     const [filter, setFilter] = useState("all");
-    const [selectedForm, setSelectedForm] = useState("all");
+    const [selectedForm, setSelectedForm] = useState("all"); // Add missing state
     
     // Date range selection states
     const [customDateRange, setCustomDateRange] = useState({
@@ -47,50 +48,79 @@ function ReportPage() {
     // PDF export states
     const [isExporting, setIsExporting] = useState(false);
 
+    // Fetch employees
+    const fetchEmployees = useCallback(async () => {
+        try {
+            const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/employees`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    setEmployees(result.data || []);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching employees:', error);
+        }
+    }, []);
+
     // **Fetch Data Once When Component Mounts**
     useEffect(() => {
         if (isAuthenticated && userId) {
             setLoading(true);
-            Promise.all([fetchFormsNew(userId), fetchSubmissions(userId)])
+            Promise.all([
+                fetchFormsNew(userId), 
+                fetchSubmissions(userId),
+                fetchEmployees() // Fetch employees as well
+            ])
                 .finally(() => setLoading(false));
         }
-    }, [userId, isAuthenticated]);
+    }, [userId, isAuthenticated, fetchEmployees]);
 
     // Add effect to log data when it changes
     useEffect(() => {
         // Removed debugging logs for production environment
-    }, [forms, submissions]);
+    }, [forms, submissions, employees]);
 
     // **Filtering Function with Custom Date Range Support**
     const filterSubmissions = useCallback((data) => {
         if (!data || !Array.isArray(data)) return [];
         
-        // Wait for forms to load before filtering
-        if (!forms || forms.length === 0) {
-            return [];
-        }
+        // Don't wait for forms to load before filtering - filter based on available data
+        // If forms are not loaded yet, we'll filter submissions without form ownership check
+        let filteredData = [...data];
         
-        // First, filter by form ownership - only show submissions for forms owned by current user
-        const userFormIds = forms.map(form => form._id);
-        
-        data = data.filter(sub => {
-            // Handle both string and ObjectId comparisons
-            // Also handle populated form objects
-            let formId;
-            if (typeof sub.form_id === 'object' && sub.form_id !== null) {
-                // This is a populated form object, get the _id
-                formId = sub.form_id._id;
-            } else {
-                // This is just an ID string
-                formId = typeof sub.form_id === 'object' ? sub.form_id.toString() : sub.form_id;
-            }
+        // Only filter by form ownership if forms are loaded
+        if (forms && forms.length > 0) {
+            // First, filter by form ownership - only show submissions for forms owned by current user
+            const userFormIds = forms.map(form => form._id);
             
-            return userFormIds.includes(formId);
-        });
+            filteredData = filteredData.filter(sub => {
+                // Handle both string and ObjectId comparisons
+                // Also handle populated form objects
+                let formId;
+                if (typeof sub.form_id === 'object' && sub.form_id !== null) {
+                    // This is a populated form object, get the _id
+                    formId = sub.form_id._id;
+                } else {
+                    // This is just an ID string
+                    formId = typeof sub.form_id === 'object' ? sub.form_id.toString() : sub.form_id;
+                }
+                
+                const isIncluded = userFormIds.includes(formId);
+                return isIncluded;
+            });
+        }
         
         // Then filter by selected form if not "all"
         if (selectedForm !== "all") {
-            data = data.filter(sub => {
+            filteredData = filteredData.filter(sub => {
                 // Handle both string and ObjectId comparisons
                 // Also handle populated form objects
                 let formId;
@@ -106,6 +136,56 @@ function ReportPage() {
             });
         }
 
+        // Filter by selected employee if not empty (not "no employee filter")
+        if (selectedEmployee !== "") {
+            if (selectedEmployee === "all") {
+                // When "All Employees" is selected, don't filter by employee
+                // This means we include all submissions regardless of employee
+            } else {
+                // When a specific employee is selected, filter by that employee
+                // Find the selected employee details
+                const employeeDetails = employees.find(emp => emp._id === selectedEmployee);
+                
+                filteredData = filteredData.filter(sub => {
+                    // Check if any field in submissions contains the selected employee
+                    if (!sub.submissions) return false;
+                    
+                    // Look for employee fields that match the selected employee
+                    const matchesEmployee = Object.keys(sub.submissions).some(key => {
+                        // More specific check for employee fields
+                        const isEmployeeField = key.toLowerCase().includes('employee') && 
+                                              !key.toLowerCase().includes('rating');
+                        
+                        if (isEmployeeField) {
+                            const submissionValue = sub.submissions[key];
+                            
+                            // Check multiple matching conditions:
+                            // 1. Direct ID match (if form stores ID)
+                            const directIdMatch = submissionValue === selectedEmployee || 
+                                                String(submissionValue) === String(selectedEmployee);
+                            
+                            // 2. Name match (if form stores name)
+                            const nameMatch = employeeDetails && (
+                                submissionValue === employeeDetails.name ||
+                                submissionValue.includes(employeeDetails.name) ||
+                                (employeeDetails.employee_number && submissionValue.includes(employeeDetails.employee_number))
+                            );
+                            
+                            const match = directIdMatch || nameMatch;
+                            
+                            return match;
+                        }
+                        return false;
+                    });
+                    
+                    return matchesEmployee;
+                });
+            }
+        } else {
+            // When no employee filter is selected, don't filter by employee
+            // This means we include all submissions regardless of employee
+        }
+
         if (filter !== "all") {
             if (filter === "custom" && isCustomDateRange) {
                 // Custom date range filtering with Date objects
@@ -114,7 +194,7 @@ function ReportPage() {
                     const startDate = new Date(start);
                     const endDate = new Date(end);
                     endDate.setHours(23, 59, 59, 999); // Include the entire end date
-                    data = data.filter(sub => {
+                    filteredData = filteredData.filter(sub => {
                         const submissionDate = new Date(sub.createdAt);
                         return submissionDate >= startDate && submissionDate <= endDate;
                     });
@@ -125,12 +205,19 @@ function ReportPage() {
                 if (filter === "6months") startDate.setMonth(startDate.getMonth() - 6);
                 if (filter === "30days") startDate.setDate(startDate.getDate() - 30);
                 if (filter === "7days") startDate.setDate(startDate.getDate() - 7);
-                data = data.filter(sub => new Date(sub.createdAt) >= startDate);
+                
+                // Set start of day for proper comparison
+                startDate.setHours(0, 0, 0, 0);
+                
+                filteredData = filteredData.filter(sub => {
+                    const submissionDate = new Date(sub.createdAt);
+                    return submissionDate >= startDate;
+                });
             }
         }
         
-        return data;
-    }, [filter, selectedForm, customDateRange, isCustomDateRange, forms]);
+        return filteredData;
+    }, [filter, selectedForm, selectedEmployee, customDateRange, isCustomDateRange, forms, employees]);
 
     // **Filtered Submissions Memoized**
     const filteredSubmissions = useMemo(() => {
@@ -172,13 +259,130 @@ function ReportPage() {
         return chartPoints;
     }, [filteredSubmissions]);
 
+    // **Rating Trend Data**
+    const ratingTrendData = useMemo(() => {
+        if (!filteredSubmissions.length) {
+            return [];
+        }
+        
+        // Filter out submissions with empty data
+        const validSubmissions = filteredSubmissions.filter(sub => {
+            if (!sub.createdAt) {
+                return false;
+            }
+            // Also check if submissions data is empty
+            if (!sub.submissions || Object.keys(sub.submissions).length === 0) {
+                return false;
+            }
+            return true;
+        });
+        
+        // Group submissions by date and calculate average rating for each date
+        const groupedData = validSubmissions.reduce((acc, submission) => {
+            if (!submission.createdAt) {
+                return acc;
+            }
+            
+            const date = new Date(submission.createdAt).toISOString().split("T")[0];
+            
+            // Extract ratings from submissions
+            let generalRating = null;
+            let employeeRating = null;
+            
+            if (typeof submission.submissions === 'object') {
+                for (const key in submission.submissions) {
+                    // Skip technical fields
+                    if (key === 'cf-turnstile-response' || key === 'captchaToken' || key === 'createdAt' || key === 'updatedAt') {
+                        continue;
+                    }
+                    
+                    const value = submission.submissions[key];
+                    
+                    // Check if this looks like a rating field
+                    if (key.toLowerCase().includes('rating') || 
+                        key.toLowerCase().includes('rate') ||
+                        (typeof value === 'string' && !isNaN(Number(value)) && Number(value) >= 0 && Number(value) <= 5)) {
+                        
+                        const numericValue = Number(value);
+                        // Only consider ratings from 1 to 5 (exclude 0 stars)
+                        if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= 5) {
+                            // Check if this is an employee rating
+                            if (key.toLowerCase().includes('employee') && key.toLowerCase().includes('rating')) {
+                                employeeRating = numericValue;
+                            } else {
+                                // This is a general rating
+                                generalRating = numericValue;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Initialize date entry if not exists
+            if (!acc[date]) {
+                acc[date] = {
+                    ratings: [],
+                    generalRatings: [],
+                    employeeRatings: []
+                };
+            }
+            
+            // Add ratings to respective arrays
+            if (generalRating !== null) {
+                acc[date].generalRatings.push(generalRating);
+                acc[date].ratings.push(generalRating);
+            }
+            
+            if (employeeRating !== null) {
+                acc[date].employeeRatings.push(employeeRating);
+                acc[date].ratings.push(employeeRating);
+            }
+            
+            return acc;
+        }, {});
+        
+        // Calculate average ratings for each date
+        const trendData = Object.keys(groupedData)
+            .sort()
+            .map(date => {
+                const dateData = groupedData[date];
+                const avgRating = dateData.ratings.length > 0 
+                    ? dateData.ratings.reduce((sum, rating) => sum + rating, 0) / dateData.ratings.length 
+                    : 0;
+                    
+                const avgGeneralRating = dateData.generalRatings.length > 0 
+                    ? dateData.generalRatings.reduce((sum, rating) => sum + rating, 0) / dateData.generalRatings.length 
+                    : 0;
+                    
+                const avgEmployeeRating = dateData.employeeRatings.length > 0 
+                    ? dateData.employeeRatings.reduce((sum, rating) => sum + rating, 0) / dateData.employeeRatings.length 
+                    : 0;
+                
+                return {
+                    date,
+                    avgRating: parseFloat(avgRating.toFixed(2)),
+                    avgGeneralRating: parseFloat(avgGeneralRating.toFixed(2)),
+                    avgEmployeeRating: parseFloat(avgEmployeeRating.toFixed(2)),
+                    submissionCount: dateData.ratings.length
+                };
+            })
+            .filter(item => item.avgRating > 0); // Only include dates with ratings
+            
+        return trendData;
+    }, [filteredSubmissions]);
+
     // **Pie Chart Data (Ratings Distribution)**
     const ratingData = useMemo(() => {
-        const ratingCounts = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        // Initialize rating counts excluding 0 stars
+        const ratingCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
         let totalRating = 0;
         let totalRatings = 0;
+        let employeeRatingTotal = 0;
+        let employeeRatingCount = 0;
+        let generalRatingTotal = 0;
+        let generalRatingCount = 0;
 
-        filteredSubmissions.forEach(submission => {
+        filteredSubmissions.forEach((submission) => {
             // Handle the case where submissions might be an empty object or null
             if (!submission.submissions) {
                 return;
@@ -189,8 +393,9 @@ function ReportPage() {
                 return;
             }
             
-            // Extract rating from submissions object
-            let rating = null;
+            // Extract ratings from submissions object
+            let generalRating = null;
+            let employeeRating = null;
             
             // Simple approach: iterate through all keys and look for anything that might be a rating
             if (typeof submission.submissions === 'object') {
@@ -208,38 +413,112 @@ function ReportPage() {
                         (typeof value === 'string' && !isNaN(Number(value)) && Number(value) >= 0 && Number(value) <= 5)) {
                         
                         const numericValue = Number(value);
-                        if (!isNaN(numericValue) && numericValue >= 0 && numericValue <= 5) {
-                            rating = numericValue;
-                            break;
+                        // Only consider ratings from 1 to 5 (exclude 0 stars)
+                        if (!isNaN(numericValue) && numericValue >= 1 && numericValue <= 5) {
+                            // Check if this is an employee rating
+                            if (key.toLowerCase().includes('employee') && key.toLowerCase().includes('rating')) {
+                                employeeRating = numericValue;
+                            } else {
+                                // This is a general rating
+                                generalRating = numericValue;
+                            }
                         }
                     }
                 }
             }
             
-            // If we found a rating, process it
-            if (rating !== null && !isNaN(rating) && rating >= 0 && rating <= 5) {
-                // Round the rating to nearest integer since ratings are typically whole numbers
-                const roundedRating = Math.round(rating);
-                ratingCounts[roundedRating]++;
-                totalRating += roundedRating;
-                totalRatings++;
+            // Apply rating logic based on employee selection
+            if (selectedEmployee === "") {
+                // When no employee filter is selected, only include general ratings
+                if (generalRating !== null) {
+                    const roundedRating = Math.round(generalRating);
+                    // Only count ratings from 1 to 5
+                    if (roundedRating >= 1 && roundedRating <= 5) {
+                        ratingCounts[roundedRating]++;
+                        totalRating += roundedRating;
+                        totalRatings++;
+                        generalRatingTotal += roundedRating;
+                        generalRatingCount++;
+                    }
+                }
+            } else if (selectedEmployee === "all") {
+                // When "All Employees" is selected, include both general and all employee ratings
+                if (generalRating !== null) {
+                    const roundedRating = Math.round(generalRating);
+                    // Only count ratings from 1 to 5
+                    if (roundedRating >= 1 && roundedRating <= 5) {
+                        ratingCounts[roundedRating]++;
+                        totalRating += roundedRating;
+                        totalRatings++;
+                        generalRatingTotal += roundedRating;
+                        generalRatingCount++;
+                    }
+                }
+                
+                if (employeeRating !== null) {
+                    const roundedRating = Math.round(employeeRating);
+                    // Only count ratings from 1 to 5
+                    if (roundedRating >= 1 && roundedRating <= 5) {
+                        ratingCounts[roundedRating]++;
+                        totalRating += roundedRating;
+                        totalRatings++;
+                        employeeRatingTotal += roundedRating;
+                        employeeRatingCount++;
+                    }
+                }
+            } else {
+                // When a specific employee is selected, include general ratings and that employee's ratings
+                if (generalRating !== null) {
+                    const roundedRating = Math.round(generalRating);
+                    // Only count ratings from 1 to 5
+                    if (roundedRating >= 1 && roundedRating <= 5) {
+                        ratingCounts[roundedRating]++;
+                        totalRating += roundedRating;
+                        totalRatings++;
+                        generalRatingTotal += roundedRating;
+                        generalRatingCount++;
+                    }
+                }
+                
+                if (employeeRating !== null) {
+                    const roundedRating = Math.round(employeeRating);
+                    // Only count ratings from 1 to 5
+                    if (roundedRating >= 1 && roundedRating <= 5) {
+                        ratingCounts[roundedRating]++;
+                        totalRating += roundedRating;
+                        totalRatings++;
+                        employeeRatingTotal += roundedRating;
+                        employeeRatingCount++;
+                    }
+                }
             }
         });
 
         const averageRating = totalRatings > 0 ? totalRating / totalRatings : 0;
+        const averageEmployeeRating = employeeRatingCount > 0 ? employeeRatingTotal / employeeRatingCount : 0;
+        const averageGeneralRating = generalRatingCount > 0 ? generalRatingTotal / generalRatingCount : 0;
 
-        // Calculate and return the rating data along with the average rating
-        return {
+        const result = {
             ratingData: Object.entries(ratingCounts).map(([rating, count]) => ({
                 name: `${rating} Stars`,
                 value: count,
             })),
             averageRating: totalRatings > 0 ? averageRating.toFixed(1) : "0.0", // Format to 1 decimal place
+            averageEmployeeRating: employeeRatingCount > 0 ? averageEmployeeRating.toFixed(1) : null,
+            averageGeneralRating: generalRatingCount > 0 ? averageGeneralRating.toFixed(1) : null,
+            employeeRatingCount,
+            generalRatingCount
         };
-    }, [filteredSubmissions]);
-
+        
+        // Calculate and return the rating data along with the average rating
+        return result;
+    }, [filteredSubmissions, selectedEmployee]);
+    
     const chartConfig = {
         submissions: { label: "Submissions", color: "#2563eb" },
+        avgRating: { label: "Average Rating", color: "#f59e0b" },
+        avgGeneralRating: { label: "General Rating", color: "#8b5cf6" },
+        avgEmployeeRating: { label: "Employee Rating", color: "#f97316" },
     };
 
     const starChartConfig = {
@@ -305,280 +584,6 @@ function ReportPage() {
     };
     
     // **PDF Export Function**
-    const exportToPDF = async () => {
-        setIsExporting(true);
-        try {
-            // Get chart elements for screenshots
-            const timelineChartElement = document.querySelector('[data-chart-id="timeline-chart"]');
-            const ratingChartElement = document.querySelector('[data-chart-id="rating-chart"]');
-            
-            // Create canvas from chart elements if they exist
-            let timelineImgData = null;
-            let timelineCanvas = null;
-            let ratingImgData = null;
-            let ratingCanvas = null;
-            
-            if (timelineChartElement) {
-                timelineCanvas = await html2canvas(timelineChartElement, {
-                    scale: 2,
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff',
-                    width: timelineChartElement.scrollWidth,
-                    height: timelineChartElement.scrollHeight
-                });
-                timelineImgData = timelineCanvas.toDataURL('image/png');
-            }
-            
-            if (ratingChartElement) {
-                ratingCanvas = await html2canvas(ratingChartElement, {
-                    scale: 2,
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff',
-                    width: ratingChartElement.scrollWidth,
-                    height: ratingChartElement.scrollHeight
-                });
-                ratingImgData = ratingCanvas.toDataURL('image/png');
-            }
-            
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
-            
-            // Set up styling
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            
-            // Add title
-            pdf.setFontSize(22);
-            pdf.setTextColor(37, 99, 235); // Blue color
-            pdf.text('Submissions Report', pageWidth / 2, 20, { align: 'center' });
-            
-            // Add subtitle
-            pdf.setFontSize(14);
-            pdf.setTextColor(0, 0, 0); // Black color
-            pdf.text('Detailed Analysis', pageWidth / 2, 30, { align: 'center' });
-            
-            // Add report info
-            pdf.setFontSize(10);
-            pdf.setTextColor(100, 100, 100); // Gray color
-            const selectedFormName = selectedForm === "all" ? "All Forms" : 
-                forms.find(f => f._id === selectedForm)?.form_name || "Unknown Form";
-            const dateRange = getDateRangeDisplay();
-            const generatedDate = format(new Date(), 'MMM dd, yyyy HH:mm');
-            
-            pdf.text(`Form: ${selectedFormName}`, 20, 45);
-            pdf.text(`Date Range: ${dateRange}`, 20, 50);
-            pdf.text(`Generated: ${generatedDate}`, 20, 55);
-            
-            // Add summary section
-            pdf.setFontSize(16);
-            pdf.setTextColor(37, 99, 235); // Blue color
-            pdf.text('Summary', 20, 70);
-            
-            pdf.setFontSize(12);
-            pdf.setTextColor(0, 0, 0); // Black color
-            pdf.text(`Total Submissions: ${filteredSubmissions.length}`, 25, 80);
-            pdf.text(`Average Rating: ${ratingData.averageRating} stars`, 25, 87);
-            
-            let yPos = 95;
-            
-            // Add timeline chart image if available
-            if (timelineImgData && timelineCanvas) {
-                pdf.setFontSize(16);
-                pdf.setTextColor(37, 99, 235); // Blue color
-                pdf.text('Submission Timeline Chart', 20, yPos);
-                
-                // Calculate dimensions to fit the chart image
-                const chartImgWidth = timelineCanvas.width;
-                const chartImgHeight = timelineCanvas.height;
-                const maxChartWidth = pageWidth - 40;
-                const maxChartHeight = 80;
-                const chartRatio = Math.min(maxChartWidth / chartImgWidth, maxChartHeight / chartImgHeight);
-                const finalChartWidth = chartImgWidth * chartRatio;
-                const finalChartHeight = chartImgHeight * chartRatio;
-                const chartX = (pageWidth - finalChartWidth) / 2;
-                
-                yPos += 10;
-                pdf.addImage(timelineImgData, 'PNG', chartX, yPos, finalChartWidth, finalChartHeight);
-                yPos += finalChartHeight + 15;
-            }
-            
-            // Add timeline data section
-            pdf.setFontSize(16);
-            pdf.setTextColor(37, 99, 235); // Blue color
-            if (yPos > pageHeight - 50) {
-                pdf.addPage();
-                yPos = 20;
-            }
-            pdf.text('Submission Timeline Data', 20, yPos);
-            
-            pdf.setFontSize(12);
-            pdf.setTextColor(0, 0, 0); // Black color
-            yPos += 10;
-            
-            // Add timeline data
-            if (chartData.length > 0) {
-                chartData.forEach((point) => {
-                    if (yPos > pageHeight - 30) {
-                        pdf.addPage();
-                        yPos = 20;
-                    }
-                    
-                    const date = new Date(point.date).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                    });
-                    pdf.text(`${date}: ${point.submissions} submission(s)`, 25, yPos);
-                    yPos += 6;
-                });
-            } else {
-                if (yPos > pageHeight - 30) {
-                    pdf.addPage();
-                    yPos = 20;
-                }
-                pdf.text('No timeline data available', 25, yPos);
-                yPos += 6;
-            }
-            
-            // Add rating distribution chart image if available
-            if (ratingImgData && ratingCanvas) {
-                pdf.setFontSize(16);
-                pdf.setTextColor(37, 99, 235); // Blue color
-                if (yPos > pageHeight - 100) {
-                    pdf.addPage();
-                    yPos = 20;
-                }
-                pdf.text('Rating Distribution Chart', 20, yPos);
-                
-                // Calculate dimensions to fit the chart image
-                const ratingImgWidth = ratingCanvas.width;
-                const ratingImgHeight = ratingCanvas.height;
-                const maxRatingWidth = pageWidth - 40;
-                const maxRatingHeight = 80;
-                const ratingRatio = Math.min(maxRatingWidth / ratingImgWidth, maxRatingHeight / ratingImgHeight);
-                const finalRatingWidth = ratingImgWidth * ratingRatio;
-                const finalRatingHeight = ratingImgHeight * ratingRatio;
-                const ratingX = (pageWidth - finalRatingWidth) / 2;
-                
-                yPos += 10;
-                pdf.addImage(ratingImgData, 'PNG', ratingX, yPos, finalRatingWidth, finalRatingHeight);
-                yPos += finalRatingHeight + 15;
-            }
-            
-            // Add rating distribution section
-            pdf.setFontSize(16);
-            pdf.setTextColor(37, 99, 235); // Blue color
-            if (yPos > pageHeight - 50) {
-                pdf.addPage();
-                yPos = 20;
-            } else {
-                yPos += 10;
-            }
-            pdf.text('Rating Distribution Data', 20, yPos);
-            
-            pdf.setFontSize(12);
-            pdf.setTextColor(0, 0, 0); // Black color
-            yPos += 10;
-            
-            // Add rating data
-            ratingData.ratingData.forEach((rating) => {
-                if (yPos > pageHeight - 30) {
-                    pdf.addPage();
-                    yPos = 20;
-                }
-                
-                pdf.text(`${rating.name}: ${rating.value} submission(s)`, 25, yPos);
-                yPos += 6;
-            });
-            
-            // Add detailed submissions section
-            pdf.setFontSize(16);
-            pdf.setTextColor(37, 99, 235); // Blue color
-            if (yPos > pageHeight - 50) {
-                pdf.addPage();
-                yPos = 20;
-            } else {
-                yPos += 15;
-            }
-            pdf.text('Detailed Submissions', 20, yPos);
-            
-            pdf.setFontSize(12);
-            pdf.setTextColor(0, 0, 0); // Black color
-            yPos += 10;
-            
-            // Add individual submissions (limit to first 20 for brevity)
-            const submissionsToShow = filteredSubmissions.slice(0, 20);
-            submissionsToShow.forEach((submission, index) => {
-                if (yPos > pageHeight - 50) {
-                    pdf.addPage();
-                    yPos = 20;
-                }
-                
-                const submissionDate = submission.createdAt ? 
-                    new Date(submission.createdAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit"
-                    }) : 'N/A';
-                
-                pdf.text(`Submission #${index + 1} (${submissionDate})`, 25, yPos);
-                yPos += 6;
-                
-                // Add submission details
-                if (submission.submissions && Object.keys(submission.submissions).length > 0) {
-                    Object.entries(submission.submissions).forEach(([key, value]) => {
-                        if (yPos > pageHeight - 30) {
-                            pdf.addPage();
-                            yPos = 20;
-                        }
-                        
-                        // Skip technical fields
-                        if (key === 'cf-turnstile-response' || key === 'captchaToken') return;
-                        
-                        const displayValue = value !== null && value !== undefined ? String(value) : 'N/A';
-                        pdf.text(`${key}: ${displayValue}`, 30, yPos);
-                        yPos += 5;
-                    });
-                } else {
-                    if (yPos > pageHeight - 30) {
-                        pdf.addPage();
-                        yPos = 20;
-                    }
-                    pdf.text('No submission data available', 30, yPos);
-                    yPos += 5;
-                }
-                
-                yPos += 3; // Add spacing between submissions
-            });
-            
-            // Add note if there are more submissions than shown
-            if (filteredSubmissions.length > 20) {
-                if (yPos > pageHeight - 30) {
-                    pdf.addPage();
-                    yPos = 20;
-                }
-                pdf.text(`Note: Only first 20 of ${filteredSubmissions.length} submissions shown`, 25, yPos);
-            }
-            
-            // Save the PDF
-            const fileName = `submissions-report-detailed-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
-            pdf.save(fileName);
-            
-        } catch { 
-            alert('Failed to generate PDF. Please try again.');
-        } finally {
-            setIsExporting(false);
-        }
-    };
-
-
     return (
         <CustomerLayoutPage>
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-8">
@@ -586,25 +591,19 @@ function ReportPage() {
                     <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Submissions Report</h2>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Analyze your form submissions and ratings</p>
                 </div>
-                <Button 
-                    onClick={exportToPDF}
-                    disabled={isExporting || (!chartData.length && ratingData.ratingData.every(r => r.value === 0))}
-                    className="flex items-center gap-2 h-10 px-4 shrink-0"
-                    variant="outline"
-                    size="sm"
-                >
-                    {isExporting ? (
-                        <>
-                            <Loader className="animate-spin h-4 w-4" />
-                            Generating PDF...
-                        </>
-                    ) : (
-                        <>
-                            <Download className="h-4 w-4" />
-                            Export to PDF
-                        </>
-                    )}
-                </Button>
+                <ReportExport 
+                    isExporting={isExporting}
+                    setIsExporting={setIsExporting}
+                    filteredSubmissions={filteredSubmissions}
+                    chartData={chartData}
+                    ratingData={ratingData}
+                    selectedEmployee={selectedEmployee}
+                    employees={employees}
+                    selectedForm={selectedForm}
+                    forms={forms}
+                    filter={filter}
+                    getDateRangeDisplay={getDateRangeDisplay}
+                />
             </div>
 
             {/* Filters */}
@@ -617,7 +616,7 @@ function ReportPage() {
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" className="justify-between w-full h-11 text-left">
                                     <div className="flex items-center">
-                                        <CalendarIcon className="h-4 w-4 mr-2 text-gray-500" />
+                                        <CalendarRange className="h-4 w-4 mr-2 text-gray-500" />
                                         <span className="truncate">{getDateRangeDisplay()}</span>
                                     </div>
                                     <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
@@ -655,6 +654,49 @@ function ReportPage() {
                                 {forms.map(form => (
                                     <DropdownMenuItem key={form._id} onClick={() => setSelectedForm(form._id)}>
                                         <span className="truncate">{form.form_name}</span>
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                    
+                    {/* Add Employee Filter */}
+                    <div className="flex flex-col gap-2 sm:flex-1">
+                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Employee Selection</Label>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="justify-between w-full h-11 text-left">
+                                    <div className="flex items-center min-w-0">
+                                        <span className="truncate">
+                                            {selectedEmployee === "" ? "No Employee Filter" : 
+                                             selectedEmployee === "all" ? "All Employees" : 
+                                             employees.find(e => e._id === selectedEmployee)?.name || "Select Employee"}
+                                        </span>
+                                    </div>
+                                    <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0 ml-2" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent side="bottom" align="start" className="w-64">
+                                <DropdownMenuLabel>Select an Employee</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => setSelectedEmployee("")}>No Employee Filter</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setSelectedEmployee("all")}>All Employees</DropdownMenuItem>
+                                {employees.map(employee => (
+                                    <DropdownMenuItem key={employee._id} onClick={() => setSelectedEmployee(employee._id)}>
+                                        <div className="flex items-center gap-2">
+                                            {employee.profile_photo?.url ? (
+                                                <img 
+                                                    src={employee.profile_photo.url} 
+                                                    alt={employee.name} 
+                                                    className="w-6 h-6 rounded-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+                                                    <User className="w-4 h-4 text-gray-500" />
+                                                </div>
+                                            )}
+                                            <span className="truncate">{employee.name}</span>
+                                        </div>
                                     </DropdownMenuItem>
                                 ))}
                             </DropdownMenuContent>
@@ -771,41 +813,146 @@ function ReportPage() {
                     <>
                         {/* Report Summary */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 border-blue-200 dark:border-blue-700">
+                            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-blue-800 border-blue-200 dark:border-blue-700">
                                 <CardContent className="p-6">
                                     <div className="text-center">
                                         <p className="text-sm text-blue-700 dark:text-blue-300 font-medium mb-2">Total Submissions</p>
-                                        <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{filteredSubmissions.length}</p>
+                                        <div className="flex items-center justify-center gap-2">
+                                            <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                            <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{filteredSubmissions.length}</p>
+                                        </div>
                                     </div>
+
                                 </CardContent>
                             </Card>
-                            <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800 border-green-200 dark:border-green-700">
+                            <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/50 dark:to-green-800 border-green-200 dark:border-green-700">
                                 <CardContent className="p-6">
                                     <div className="text-center">
-                                        <p className="text-sm text-green-700 dark:text-green-300 font-medium mb-2">Average Rating</p>
-                                        <p className="text-3xl font-bold text-green-600 dark:text-green-400">{ratingData.averageRating} ⭐</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800 border-purple-200 dark:border-purple-700">
-                                <CardContent className="p-6">
-                                    <div className="text-center">
-                                        <p className="text-sm text-purple-700 dark:text-purple-300 font-medium mb-2">Date Range</p>
-                                        <p className="text-sm font-semibold text-purple-600 dark:text-purple-400 truncate" title={getDateRangeDisplay()}>{getDateRangeDisplay()}</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900 dark:to-orange-800 border-orange-200 dark:border-orange-700">
-                                <CardContent className="p-6">
-                                    <div className="text-center">
-                                        <p className="text-sm text-orange-700 dark:text-orange-300 font-medium mb-2">Selected Form</p>
-                                        <p className="text-sm font-semibold text-orange-600 dark:text-orange-400 truncate" title={selectedForm === "all" ? "All Forms" : forms.find(f => f._id === selectedForm)?.form_name || "Unknown"}>
-                                            {selectedForm === "all" ? "All Forms" : 
-                                             forms.find(f => f._id === selectedForm)?.form_name || "Unknown"}
+                                        <p className="text-sm text-green-700 dark:text-green-300 font-medium mb-2">
+                                            {selectedEmployee === "" ? "General Ratings" : 
+                                             selectedEmployee !== "all" ? "Average Rating" : "Overall Average"}
                                         </p>
+                                        <div className="flex flex-col items-center justify-center gap-2">
+                                            <div className="flex items-center gap-1">
+                                            {[...Array(5)].map((_, i) => (
+                                                <Star 
+                                                    key={i} 
+                                                    className={`h-4 w-4 ${i < Math.floor(ratingData.averageRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
+                                                />
+                                            ))}
+
+                                            </div>
+                                            <p className="text-3xl font-bold text-green-600 dark:text-green-400 ml-2">{ratingData.averageRating}</p>
+                                        </div>
                                     </div>
+
                                 </CardContent>
                             </Card>
+                            
+                            {/* Conditional rating cards based on employee selection */}
+                            {ratingData.averageGeneralRating && selectedEmployee !== "" && (
+                                <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/50 dark:to-purple-800 border-purple-200 dark:border-purple-700">
+                                    <CardContent className="p-6">
+                                        <div className="text-center">
+                                            <p className="text-sm text-purple-700 dark:text-purple-300 font-medium mb-2">General Ratings</p>
+                                            <div className="flex flex-col items-center justify-center gap-2">
+                                                
+                                                <div className="flex items-center gap-1">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <Star 
+                                                        key={i} 
+                                                        className={`h-4 w-4 ${i < Math.floor(ratingData.averageGeneralRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
+                                                    />
+                                                ))}
+                                                </div>
+                                                <p className="text-3xl font-bold text-purple-600 dark:text-purple-400 ml-2">{ratingData.averageGeneralRating}</p>
+                                            </div>
+                                            <p className="text-xs text-purple-500 dark:text-purple-300 mt-1">{ratingData.generalRatingCount} ratings</p>
+                                        </div>
+
+                                    </CardContent>
+                                </Card>
+                            )}
+                            
+                            {selectedEmployee === "all" && ratingData.averageEmployeeRating && (
+                                <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/50 dark:to-orange-800 border-orange-200 dark:border-orange-700">
+                                    <CardContent className="p-6">
+                                        <div className="text-center">
+                                            <p className="text-sm text-orange-700 dark:text-orange-300 font-medium mb-2">Employees Average</p>
+                                            <div className="flex flex-col items-center justify-center gap-2">
+                                                
+                                            <div className="flex items-center gap-1">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <Star 
+                                                        key={i} 
+                                                        className={`h-4 w-4 ${i < Math.floor(ratingData.averageEmployeeRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
+                                                    />
+                                                ))}
+                                                </div>
+                                                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400 ml-2">{ratingData.averageEmployeeRating}</p>
+                                            </div>
+                                            <p className="text-xs text-orange-500 dark:text-orange-300 mt-1">{ratingData.employeeRatingCount} ratings</p>
+                                        </div>
+
+                                    </CardContent>
+                                </Card>
+                            )}
+                            
+                            {selectedEmployee !== "" && selectedEmployee !== "all" && ratingData.averageEmployeeRating && (
+                                <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/50 dark:to-orange-800 border-orange-200 dark:border-orange-700">
+                                    <CardContent className="p-6">
+                                        <div className="text-center">
+                                            <p className="text-sm text-orange-700 dark:text-orange-300 font-medium mb-2">Employee Ratings</p>
+                                            <div className="flex flex-col items-center justify-center gap-2">
+                                                <div className="flex items-center gap-1"> 
+                                                {[...Array(5)].map((_, i) => (
+                                                    <Star 
+                                                        key={i} 
+                                                        className={`h-4 w-4 ${i < Math.floor(ratingData.averageEmployeeRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
+                                                    />
+                                                ))}
+                                                </div>
+                                                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400 ml-2">{ratingData.averageEmployeeRating}</p>
+                                            </div>
+                                            <p className="text-xs text-orange-500 dark:text-orange-300 mt-1">{ratingData.employeeRatingCount} ratings</p>
+                                        </div>
+
+                                    </CardContent>
+                                </Card>
+                            )}
+                            
+                            {/* Date Range and Form Selection cards when not showing specialized ratings */}
+                            {(!ratingData.averageGeneralRating || selectedEmployee === "") && (
+                                <>
+                                    <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800 border-purple-200 dark:border-purple-700">
+                                        <CardContent className="p-6">
+                                            <div className="text-center">
+                                                <p className="text-sm text-purple-700 dark:text-purple-300 font-medium mb-2">Date Range</p>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <CalendarRange className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                                    <p className="text-sm font-semibold text-purple-600 dark:text-purple-400 truncate" title={getDateRangeDisplay()}>{getDateRangeDisplay()}</p>
+                                                </div>
+                                            </div>
+
+                                        </CardContent>
+                                    </Card>
+                                    <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900 dark:to-orange-800 border-orange-200 dark:border-orange-700">
+                                        <CardContent className="p-6">
+                                            <div className="text-center">
+                                                <p className="text-sm text-orange-700 dark:text-orange-300 font-medium mb-2">Selected Form</p>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <FormInput className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                                    <p className="text-sm font-semibold text-orange-600 dark:text-orange-400 truncate" title={selectedForm === "all" ? "All Forms" : forms.find(f => f._id === selectedForm)?.form_name || "Unknown"}>
+                                                        {selectedForm === "all" ? "All Forms" : 
+                                                         forms.find(f => f._id === selectedForm)?.form_name || "Unknown"}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                        </CardContent>
+                                    </Card>
+                                </>
+                            )}
                         </div>
                         
                         {/* Charts Section */}
@@ -845,7 +992,6 @@ function ReportPage() {
                                                 content={
                                                     <ChartTooltipContent
                                                         className="w-[180px]"
-                                                        nameKey="submissions"
                                                         labelFormatter={(value) =>
                                                             new Date(value).toLocaleDateString("en-US", {
                                                                 month: "short",
@@ -892,12 +1038,184 @@ function ReportPage() {
                                     </ChartContainer>
                                 </CardContent>
                                 <CardFooter className="flex-col border-t pt-4 bg-gray-50 dark:bg-gray-800">
-                                    <p className="text-center text-sm text-gray-600 dark:text-gray-400">Average Rating</p>
+                                    <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+                                        {selectedEmployee === "" ? "General Ratings" : 
+                                         selectedEmployee !== "all" ? "Average Rating" : "Overall Average"}
+                                    </p>
                                     <h2 className="text-center text-3xl font-bold text-gray-900 dark:text-white">{ratingData.averageRating}</h2>
                                     <p className="text-center text-sm text-gray-500 dark:text-gray-400">Stars</p>
+                                    
+                                    {/* Additional rating information */}
+                                    <div className="mt-2 text-center">
+                                        {selectedEmployee !== "" && ratingData.averageGeneralRating && (
+                                            <p className="text-xs text-purple-600 dark:text-purple-400">
+                                                General: {ratingData.averageGeneralRating} ({ratingData.generalRatingCount} ratings)
+                                            </p>
+                                        )}
+                                        {selectedEmployee === "all" && ratingData.averageEmployeeRating && (
+                                            <p className="text-xs text-orange-600 dark:text-orange-400">
+                                                All Employees: {ratingData.averageEmployeeRating} ({ratingData.employeeRatingCount} ratings)
+                                            </p>
+                                        )}
+                                        {selectedEmployee !== "" && selectedEmployee !== "all" && ratingData.averageEmployeeRating && (
+                                            <p className="text-xs text-orange-600 dark:text-orange-400">
+                                                Employee: {ratingData.averageEmployeeRating} ({ratingData.employeeRatingCount} ratings)
+                                            </p>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Employee information when specific employee is selected */}
+                                    {selectedEmployee !== "" && selectedEmployee !== "all" && (
+                                        <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            {employees.find(e => e._id === selectedEmployee)?.name || "Unknown Employee"}
+                                        </p>
+                                    )}
                                 </CardFooter>
                             </Card>
                         </div>
+
+                        {/* Rating Trend Chart */}
+                        {ratingTrendData.length > 0 && (
+                            <div className="grid grid-cols-3 mt-6">
+                                <Card className="shadow-sm col-span-2">
+                                    <CardHeader className="border-b bg-gray-50 dark:bg-gray-800">
+                                        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">Rating Trend Over Time</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-6">
+                                        <ChartContainer config={chartConfig} className="aspect-auto h-[450px] w-full" data-chart-id="rating-trend-chart">
+                                            <LineChart
+                                                accessibilityLayer
+                                                data={ratingTrendData}
+                                                margin={{
+                                                    top: 30,
+                                                    left: 20,
+                                                    right: 20,
+                                                    bottom: 30,
+                                                }}
+                                            >
+                                                <CartesianGrid vertical={false} strokeDasharray="3 3" className="opacity-30" />
+                                                <XAxis
+                                                    dataKey="date"
+                                                    tickLine={false}
+                                                    axisLine={false}
+                                                    tickMargin={8}
+                                                    tickFormatter={(value) =>
+                                                        new Date(value).toLocaleDateString("en-US", {
+                                                            month: "short",
+                                                            day: "numeric",
+                                                        })
+                                                    }
+                                                    interval={ratingTrendData.length > 6 ? Math.floor(ratingTrendData.length / 6) : 0}
+                                                    angle={ratingTrendData.length > 4 ? -45 : 0}
+                                                    textAnchor={ratingTrendData.length > 4 ? "end" : "middle"}
+                                                    height={ratingTrendData.length > 4 ? 80 : 60}
+                                                    tick={{ fontSize: 12 }}
+                                                />
+                                                <YAxis 
+                                                    domain={[0, 5]} 
+                                                    tickCount={6}
+                                                    width={30} 
+                                                    tick={{ fontSize: 12 }} 
+                                                />
+                                                <ChartTooltip
+                                                    cursor={false}
+                                                    content={
+                                                        <ChartTooltipContent
+                                                            labelFormatter={(value) => {
+                                                                return new Date(value).toLocaleDateString("en-US", {
+                                                                    month: "long",
+                                                                    year: "numeric",
+                                                                });
+                                                            }}
+                                                            formatter={(value, name, item, index) => {
+                                                                // Get the label from chartConfig or use the name
+                                                                const label = chartConfig[name] ? chartConfig[name].label : name;
+                                                                
+                                                                return (
+                                                                    <>
+                                                                        <div
+                                                                            className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-[--color-bg]"
+                                                                            style={{
+                                                                                "--color-bg": `var(--color-${name})`
+                                                                            }}
+                                                                        />
+                                                                        {label}
+                                                                        <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
+                                                                            {parseFloat(value).toFixed(1)}
+                                                                            <span className="text-muted-foreground font-normal">
+                                                                                stars
+                                                                            </span>
+                                                                        </div>
+                                                                        {/* Add total submission count after the last item */}
+                                                                        {index === Object.keys(item.payload).filter(key => 
+                                                                            key.includes('avg') && item.payload[key] > 0).length - 1 && (
+                                                                            <div className="text-foreground mt-1.5 flex basis-full items-center border-t pt-1.5 text-xs font-medium">
+                                                                                Submissions
+                                                                                <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
+                                                                                    {item.payload.submissionCount}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </>
+                                                                );
+                                                            }}
+                                                    />
+                                                }
+                                            />
+                                            <Line
+                                                dataKey="avgRating"
+                                                type="natural"
+                                                stroke="var(--color-avgRating)"
+                                                strokeWidth={2}
+                                                dot={{ r: 4 }}
+                                                activeDot={{ r: 6, stroke: "var(--color-avgRating)", strokeWidth: 2 }}
+                                            />
+                                            {selectedEmployee !== "" && (
+                                                <>
+                                                    <Line
+                                                        dataKey="avgGeneralRating"
+                                                        type="natural"
+                                                        stroke="var(--color-avgGeneralRating)"
+                                                        strokeWidth={2}
+                                                        dot={{ r: 4 }}
+                                                        activeDot={{ r: 6, stroke: "var(--color-avgGeneralRating)", strokeWidth: 2 }}
+                                                    />
+                                                    <Line
+                                                        dataKey="avgEmployeeRating"
+                                                        type="natural"
+                                                        stroke="var(--color-avgEmployeeRating)"
+                                                        strokeWidth={2}
+                                                        dot={{ r: 4 }}
+                                                        activeDot={{ r: 6, stroke: "var(--color-avgEmployeeRating)", strokeWidth: 2 }}
+                                                    />
+                                                </>
+                                            )}
+                                        </LineChart>
+                                    </ChartContainer>
+                                    </CardContent>
+                                    <CardFooter className="flex-col border-t pt-4 bg-gray-50 dark:bg-gray-800">
+                                        <div className="flex flex-wrap justify-center gap-4">
+                                            <div className="flex items-center">
+                                                <div className="w-3 h-3 rounded-full bg-[#f59e0b] mr-2"></div>
+                                                <span className="text-sm">Average Rating</span>
+                                            </div>
+                                            {selectedEmployee !== "" && (
+                                                <>
+                                                    <div className="flex items-center">
+                                                        <div className="w-3 h-3 rounded-full bg-[#8b5cf6] mr-2"></div>
+                                                        <span className="text-sm">General Rating</span>
+                                                    </div>
+                                                    <div className="flex items-center">
+                                                        <div className="w-3 h-3 rounded-full bg-[#f97316] mr-2"></div>
+                                                        <span className="text-sm">Employee Rating</span>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </CardFooter>
+                                </Card>
+                            </div>
+                        )}
                     </>
                 )}
             </div>

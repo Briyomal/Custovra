@@ -3,9 +3,11 @@ import { useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import imageCompression from "browser-image-compression";
 
 const ImageUpload = ({ existingImageUrl, onFileSelect, onRemoveImage, showRemoveButton = true }) => {
     const [uploadedImage, setUploadedImage] = useState(existingImageUrl || null);
+    const [errorMessage, setErrorMessage] = useState("");
 
     // Update the state when the existingImageUrl prop changes
     useEffect(() => {
@@ -26,18 +28,115 @@ const ImageUpload = ({ existingImageUrl, onFileSelect, onRemoveImage, showRemove
         }
     }, [existingImageUrl]);
 
-    const onDrop = (acceptedFiles) => {
+    const compressAndConvertToWebP = async (file) => {
+        try {
+            // Compress the image with browser-image-compression
+            const options = {
+                maxSizeMB: 1,
+                maxWidthOrHeight: 1920,
+                useWebWorker: true,
+            };
+            
+            const compressedFile = await imageCompression(file, options);
+            
+            // Convert to WebP format
+            const webpBlob = await convertToWebP(compressedFile);
+            
+            // Create a new File object with .webp extension
+            const webpFile = new File([webpBlob], `${file.name.split('.')[0]}.webp`, {
+                type: 'image/webp'
+            });
+            
+            return webpFile;
+        } catch (error) {
+            console.error("Error compressing or converting image:", error);
+            // Return original file if compression/conversion fails
+            return file;
+        }
+    };
+
+    const convertToWebP = (file) => {
+        return new Promise((resolve, reject) => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                
+                ctx.drawImage(img, 0, 0);
+                
+                canvas.toBlob(
+                    (blob) => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            reject(new Error('Failed to convert to WebP'));
+                        }
+                    },
+                    'image/webp',
+                    0.8 // Quality factor
+                );
+            };
+            
+            img.onerror = (error) => {
+                reject(error);
+            };
+            
+            img.src = URL.createObjectURL(file);
+        });
+    };
+
+    const onDrop = async (acceptedFiles, fileRejections) => {
+        // Clear any previous error messages
+        setErrorMessage("");
+        
+        // Handle file rejection errors
+        if (fileRejections.length > 0) {
+            const { errors } = fileRejections[0];
+            console.error("File rejection errors:", errors);
+            const fileType = fileRejections[0]?.file?.type;
+            const fileName = fileRejections[0]?.file?.name;
+            console.error(`File rejected: ${fileName} (${fileType})`);
+            
+            // Set a user-friendly error message
+            setErrorMessage("Only JPG, JPEG, PNG, and WEBP files are allowed.");
+            return;
+        }
+        
         const file = acceptedFiles[0];
         if (file) {
-            setUploadedImage(URL.createObjectURL(file)); // Preview the new image
-            if (onFileSelect) {
-                onFileSelect(file); // Pass the file to the parent component
+            // Validate file type
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+            if (!validTypes.includes(file.type.toLowerCase())) {
+                setErrorMessage("Only JPG, JPEG, PNG, and WEBP files are allowed.");
+                return;
+            }
+            
+            // Show preview of original image immediately
+            setUploadedImage(URL.createObjectURL(file));
+            
+            // Compress and convert the image
+            try {
+                const processedFile = await compressAndConvertToWebP(file);
+                
+                // Update preview with processed image
+                setUploadedImage(URL.createObjectURL(processedFile));
+                
+                if (onFileSelect) {
+                    onFileSelect(processedFile); // Pass the processed file to the parent component
+                }
+            } catch (error) {
+                console.error("Error processing image:", error);
+                setErrorMessage("Error processing image. Please try another file.");
             }
         }
     };
 
     const handleRemoveImage = () => {
         setUploadedImage(null);
+        setErrorMessage("");
         if (onRemoveImage) {
             onRemoveImage(); // Notify parent component that image should be removed
         }
@@ -46,9 +145,10 @@ const ImageUpload = ({ existingImageUrl, onFileSelect, onRemoveImage, showRemove
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         accept: {
-            "image/*": [".jpeg", ".png", ".jpg"],
+            "image/*": [".jpeg", ".png", ".jpg", ".webp"],
         },
         multiple: false,
+        maxSize: 1048576, // 1MB in bytes
     });
 
     return (
@@ -107,11 +207,18 @@ const ImageUpload = ({ existingImageUrl, onFileSelect, onRemoveImage, showRemove
                                 </div>
                             )}
                             <p className="text-xs text-gray-400 mt-1 dark:text-gray-500">
-                                Supports: JPG, JPEG, PNG
+                                Supports: JPG, JPEG, PNG, WEBP (max 1MB)
                             </p>
                         </div>
                     )}
                 </div>
+                
+                {/* Error message display */}
+                {errorMessage && (
+                    <div className="text-red-500 text-sm mt-2">
+                        {errorMessage}
+                    </div>
+                )}
             </div>
         </>
     );
