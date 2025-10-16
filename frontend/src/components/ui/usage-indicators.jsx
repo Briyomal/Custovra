@@ -76,16 +76,16 @@ const UsageIndicators = () => {
 
   return (
     <TooltipProvider>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3">
         {/* Forms Usage */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Card className="px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border-blue-200 dark:border-blue-800 hover:shadow-md transition-all duration-200 cursor-pointer">
+            <Card className="px-1 py-1 md:px-3 md:py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border-blue-200 dark:border-blue-800 hover:shadow-md transition-all duration-200 cursor-pointer rounded-md">
               <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <FileText className="h-3 w-3 md:h-4 md:w-4 text-blue-600 dark:text-blue-400" />
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1">
-                    <span className={`text-sm font-medium ${getStatusColor(usage.forms.current, usage.forms.maximum)}`}>
+                    <span className={`text-xs md:text-sm font-medium ${getStatusColor(usage.forms.current, usage.forms.maximum)}`}>
                       {usage.forms.current}
                     </span>
                     <span className="text-xs text-gray-500">/</span>
@@ -93,7 +93,7 @@ const UsageIndicators = () => {
                       {usage.forms.maximum}
                     </span>
                   </div>
-                  <div className="w-12 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div className="w-8 md:w-12 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div 
                       className={`h-full transition-all duration-300 ${getProgressColor(usage.forms.current, usage.forms.maximum)}`}
                       style={{ width: `${Math.min((usage.forms.current / usage.forms.maximum) * 100, 100)}%` }}
@@ -116,12 +116,12 @@ const UsageIndicators = () => {
         {/* Submissions Usage */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Card className="px-3 py-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 border-green-200 dark:border-green-800 hover:shadow-md transition-all duration-200 cursor-pointer">
+            <Card className="px-1 py-1 md:px-3 md:py-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 border-green-200 dark:border-green-800 hover:shadow-md transition-all duration-200 cursor-pointer rounded-md">
               <div className="flex items-center gap-2">
-                <Send className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <Send className="h-3 w-3 md:h-4 md:w-4 text-green-600 dark:text-green-400" />
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1">
-                    <span className={`text-sm font-medium ${getStatusColor(usage.submissions.current, usage.submissions.maximum)}`}>
+                    <span className={`text-xs md:text-sm font-medium ${getStatusColor(usage.submissions.current, usage.submissions.maximum)}`}>
                       {usage.submissions.current}
                     </span>
                     <span className="text-xs text-gray-500">/</span>
@@ -129,7 +129,7 @@ const UsageIndicators = () => {
                       {usage.submissions.maximum}
                     </span>
                   </div>
-                  <div className="w-16 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div className="w-14 md:w-16 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div 
                       className={`h-full transition-all duration-300 ${getProgressColor(usage.submissions.current, usage.submissions.maximum)}`}
                       style={{ width: `${Math.min((usage.submissions.current / usage.submissions.maximum) * 100, 100)}%` }}

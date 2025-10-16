@@ -586,9 +586,10 @@ function ReportPage() {
     // **PDF Export Function**
     return (
         <CustomerLayoutPage>
+            <div className="pt-4 md:gap-4 md:p-4">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-8">
                 <div className="flex flex-col gap-1">
-                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Submissions Report</h2>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Submissions Report</h2>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Analyze your form submissions and ratings</p>
                 </div>
                 <ReportExport 
@@ -812,9 +813,9 @@ function ReportPage() {
                 ) : (
                     <>
                         {/* Report Summary */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-blue-800 border-blue-200 dark:border-blue-700">
-                                <CardContent className="p-6">
+                                <CardContent className="p-4 md:p-6">
                                     <div className="text-center">
                                         <p className="text-sm text-blue-700 dark:text-blue-300 font-medium mb-2">Total Submissions</p>
                                         <div className="flex items-center justify-center gap-2">
@@ -826,7 +827,7 @@ function ReportPage() {
                                 </CardContent>
                             </Card>
                             <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/50 dark:to-green-800 border-green-200 dark:border-green-700">
-                                <CardContent className="p-6">
+                                <CardContent className="p-4 md:p-6">
                                     <div className="text-center">
                                         <p className="text-sm text-green-700 dark:text-green-300 font-medium mb-2">
                                             {selectedEmployee === "" ? "General Ratings" : 
@@ -852,7 +853,7 @@ function ReportPage() {
                             {/* Conditional rating cards based on employee selection */}
                             {ratingData.averageGeneralRating && selectedEmployee !== "" && (
                                 <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/50 dark:to-purple-800 border-purple-200 dark:border-purple-700">
-                                    <CardContent className="p-6">
+                                    <CardContent className="p-4 md:p-6">
                                         <div className="text-center">
                                             <p className="text-sm text-purple-700 dark:text-purple-300 font-medium mb-2">General Ratings</p>
                                             <div className="flex flex-col items-center justify-center gap-2">
@@ -876,7 +877,7 @@ function ReportPage() {
                             
                             {selectedEmployee === "all" && ratingData.averageEmployeeRating && (
                                 <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/50 dark:to-orange-800 border-orange-200 dark:border-orange-700">
-                                    <CardContent className="p-6">
+                                    <CardContent className="p-4 md:p-6">
                                         <div className="text-center">
                                             <p className="text-sm text-orange-700 dark:text-orange-300 font-medium mb-2">Employees Average</p>
                                             <div className="flex flex-col items-center justify-center gap-2">
@@ -900,7 +901,7 @@ function ReportPage() {
                             
                             {selectedEmployee !== "" && selectedEmployee !== "all" && ratingData.averageEmployeeRating && (
                                 <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/50 dark:to-orange-800 border-orange-200 dark:border-orange-700">
-                                    <CardContent className="p-6">
+                                    <CardContent className="p-4 md:p-6">
                                         <div className="text-center">
                                             <p className="text-sm text-orange-700 dark:text-orange-300 font-medium mb-2">Employee Ratings</p>
                                             <div className="flex flex-col items-center justify-center gap-2">
@@ -925,7 +926,7 @@ function ReportPage() {
                             {(!ratingData.averageGeneralRating || selectedEmployee === "") && (
                                 <>
                                     <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800 border-purple-200 dark:border-purple-700">
-                                        <CardContent className="p-6">
+                                        <CardContent className="p-4 md:p-6">
                                             <div className="text-center">
                                                 <p className="text-sm text-purple-700 dark:text-purple-300 font-medium mb-2">Date Range</p>
                                                 <div className="flex items-center justify-center gap-2">
@@ -937,7 +938,7 @@ function ReportPage() {
                                         </CardContent>
                                     </Card>
                                     <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900 dark:to-orange-800 border-orange-200 dark:border-orange-700">
-                                        <CardContent className="p-6">
+                                        <CardContent className="p-4 md:p-6">
                                             <div className="text-center">
                                                 <p className="text-sm text-orange-700 dark:text-orange-300 font-medium mb-2">Selected Form</p>
                                                 <div className="flex items-center justify-center gap-2">
@@ -971,7 +972,7 @@ function ReportPage() {
                                 <CardContent className="p-6">
                                     <ChartContainer config={chartConfig} className="aspect-auto h-[350px] w-full" data-chart-id="timeline-chart">
                                         <BarChart data={chartData} margin={{ top: 20, left: 12, right: 12, bottom: 20 }}>
-                                            <CartesianGrid vertical={false} strokeDasharray="3 3" className="opacity-30" />
+                                            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#3B526B" className="opacity-30" />
                                             <XAxis
                                                 dataKey="date"
                                                 tickFormatter={(value) =>
@@ -1076,24 +1077,24 @@ function ReportPage() {
 
                         {/* Rating Trend Chart */}
                         {ratingTrendData.length > 0 && (
-                            <div className="grid grid-cols-3 mt-6">
+                            <div className="grid grid-cols-1 xl:grid-cols-3 mt-6">
                                 <Card className="shadow-sm col-span-2">
                                     <CardHeader className="border-b bg-gray-50 dark:bg-gray-800">
                                         <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">Rating Trend Over Time</CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-6">
-                                        <ChartContainer config={chartConfig} className="aspect-auto h-[450px] w-full" data-chart-id="rating-trend-chart">
+                                        <ChartContainer config={chartConfig} className="aspect-auto h-[350px] w-full" data-chart-id="rating-trend-chart">
                                             <LineChart
                                                 accessibilityLayer
                                                 data={ratingTrendData}
                                                 margin={{
-                                                    top: 30,
-                                                    left: 20,
-                                                    right: 20,
-                                                    bottom: 30,
+                                                    top: 20,
+                                                    left: 10,
+                                                    right: 10,
+                                                    bottom: 20,
                                                 }}
                                             >
-                                                <CartesianGrid vertical={false} strokeDasharray="3 3" className="opacity-30" />
+                                                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#3B526B" className="opacity-30" />
                                                 <XAxis
                                                     dataKey="date"
                                                     tickLine={false}
@@ -1218,6 +1219,7 @@ function ReportPage() {
                         )}
                     </>
                 )}
+            </div>
             </div>
         </CustomerLayoutPage>
     );

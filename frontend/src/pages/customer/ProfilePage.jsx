@@ -7,10 +7,10 @@ import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
-import { Loader } from "lucide-react";
+import { KeyRound, Loader } from "lucide-react";
 import PasswordStrengthMeter from "@/components/PasswordStrengthMeter";
 import { formatDate } from "../../utils/date";
-import { User, Building, Mail, Phone, Calendar, LogIn, BadgeInfo, Key, Shield, Lock, QrCode, CheckCircle, XCircle } from "lucide-react";
+import { User, Building, Mail, Phone, Calendar, LogIn, BadgeInfo, Key, Lock, QrCode, CheckCircle, XCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog";
@@ -204,7 +204,7 @@ function ProfilePage() {
         <CustomerLayoutPage>
             <div className="container mx-auto py-6">
                 <div className="mb-8">
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                    <h1 className="text-xl md:text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
                         <User className="h-6 w-6 text-blue-600" />
                         Profile Settings
                     </h1>
@@ -214,20 +214,20 @@ function ProfilePage() {
                 </div>
 
                 <Tabs defaultValue="info" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="info" className="flex items-center gap-2">
+                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+                        <TabsTrigger value="info" className="flex items-center gap-2 col-span-1">
                             <BadgeInfo className="h-4 w-4" />
                             Profile & Activity
                         </TabsTrigger>
-                        <TabsTrigger value="profile" className="flex items-center gap-2">
+                        <TabsTrigger value="profile" className="flex items-center gap-2 col-span-1">
                             <User className="h-4 w-4" />
                             Update Profile
                         </TabsTrigger>
-                        <TabsTrigger value="security" className="flex items-center gap-2">
-                            <Shield className="h-4 w-4" />
+                        <TabsTrigger value="security" className="flex items-center gap-2 col-span-1">
+                            <KeyRound className="h-4 w-4" />
                             Password & Security
                         </TabsTrigger>
-                        <TabsTrigger value="2fa" className="flex items-center gap-2">
+                        <TabsTrigger value="2fa" className="flex items-center gap-2 col-span-1">
                             <Lock className="h-4 w-4" />
                             2FA
                         </TabsTrigger>
@@ -238,7 +238,7 @@ function ProfilePage() {
                             {/* Profile Information Card */}
                             <Card>
                                 <CardHeader className="border-b">
-                                    <CardTitle className="flex items-center gap-2">
+                                    <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                                         <User className="h-5 w-5" />
                                         <span>Profile Information</span>
                                     </CardTitle>
@@ -280,7 +280,7 @@ function ProfilePage() {
                             {/* Account Activity Card */}
                             <Card>
                                 <CardHeader className="border-b">
-                                    <CardTitle className="flex items-center gap-2">
+                                    <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                                         <Calendar className="h-5 w-5" />
                                         <span>Account Activity</span>
                                     </CardTitle>
@@ -337,7 +337,7 @@ function ProfilePage() {
                     <TabsContent value="profile" className="mt-6">
                         <Card>
                             <CardHeader className="border-b">
-                                <CardTitle className="flex items-center gap-2">
+                                <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                                     <User className="h-5 w-5" />
                                     <span>Update Profile Information</span>
                                 </CardTitle>
@@ -426,7 +426,7 @@ function ProfilePage() {
                     <TabsContent value="security" className="mt-6">
                         <Card>
                             <CardHeader className="border-b">
-                                <CardTitle className="flex items-center gap-2">
+                                <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                                     <Key className="h-5 w-5" />
                                     <span>Password & Security</span>
                                 </CardTitle>
@@ -508,7 +508,7 @@ function ProfilePage() {
                     <TabsContent value="2fa" className="mt-6">
                         <Card>
                             <CardHeader className="border-b">
-                                <CardTitle className="flex items-center gap-2">
+                                <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                                     <Lock className="h-5 w-5" />
                                     <span>Two-Factor Authentication</span>
                                 </CardTitle>

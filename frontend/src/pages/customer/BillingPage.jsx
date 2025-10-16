@@ -443,16 +443,16 @@ function BillingPage() {
     return (
         <CustomerLayoutPage>
             <div className="pt-4 md:p-4 space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        <h1 className="text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">
                             Billing & Subscription
                         </h1>
                         <p className="text-gray-600 dark:text-gray-400">
                             Manage your subscription, payment methods, and billing history
                         </p>
                     </div>
-                    <Button onClick={handleManagePortal} variant="outline" className="flex items-center gap-2">
+                    <Button onClick={handleManagePortal} variant="outline" className="flex items-center gap-2 w-full md:w-auto">
                         <Settings size={16} />
                         Stripe Portal
                         <ExternalLink size={14} />
@@ -460,15 +460,15 @@ function BillingPage() {
                 </div>
 
                 <Tabs value={hasNoSubscription ? "plans" : activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="overview" disabled={hasNoSubscription}>
+                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+                        <TabsTrigger value="overview" disabled={hasNoSubscription} className="col-span-1">
                             Overview
                         </TabsTrigger>
-                        <TabsTrigger value="plans">Plans</TabsTrigger>
-                        <TabsTrigger value="payment-methods" disabled={hasNoSubscription}>
+                        <TabsTrigger value="plans" className="col-span-1">Plans</TabsTrigger>
+                        <TabsTrigger value="payment-methods" disabled={hasNoSubscription} className="col-span-1">
                             Payment Methods
                         </TabsTrigger>
-                        <TabsTrigger value="history" disabled={hasNoSubscription}>
+                        <TabsTrigger value="history" disabled={hasNoSubscription} className="col-span-1">
                             History
                         </TabsTrigger>
                     </TabsList>
@@ -478,7 +478,7 @@ function BillingPage() {
                         {/* Current Subscription */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
+                                <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                                     <Star className="h-5 w-5" />
                                     Current Subscription
                                 </CardTitle>
@@ -595,11 +595,11 @@ function BillingPage() {
                             </Alert>
                         )}
                         
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-2">
                             <h3 className="text-lg font-semibold">
                                 {hasNoSubscription ? 'Choose Your Subscription Plan' : 'Available Plans'}
                             </h3>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-col md:flex-row items-center gap-2">
                                 <span className="text-sm text-gray-500">Billing:</span>
                                 <div className="flex bg-slate-200 dark:bg-slate-800 rounded-lg p-2">
                                     <button

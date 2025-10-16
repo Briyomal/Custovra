@@ -122,12 +122,12 @@ function CustomerLayoutPage({ children }) {
 							</Breadcrumb>
 						</div>
 						{/* Right-aligned content */}
-						<div className="ml-auto flex items-center gap-4">
+						<div className="ml-auto flex items-center gap-2 md:gap-4">
 							{/* Usage Indicators */}
 							<UsageIndicators />
 							{user.payment ? (
 								<Badge
-									className={`mr-3 px-3 py-1 rounded-sm text-white text-sm ${user.payment.plan === 'Premium'
+									className={`mr-0 md:mr-3 px-2 md:px-3 py-1 rounded-sm text-white text-sm ${user.payment.plan === 'Premium'
 											? 'bg-gradient-to-r from-green-700 to-lime-500 border-lime-300 dark:border-green-700'
 											: user.payment.plan === 'Standard'
 												? 'bg-gradient-to-r from-purple-700 to-fuchsia-500 border-fuchsia-300 dark:border-purple-700'

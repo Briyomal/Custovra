@@ -9,7 +9,7 @@ const LoadingSpinner = () => {
 			flex items-center justify-center relative overflow-hidden'
 			>
 			{/* Simple Loading Spinner */}
-			<Loader className="w-16 h-16 animate-spin" />
+			<Loader className="w-8 h-8 md:w-16 md:h-16 animate-spin" />
 		</div>
 	);
 };

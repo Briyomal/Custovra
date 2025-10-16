@@ -89,7 +89,7 @@ const SubmissionsPage = () => {
                 </div>
                 {totalSubmissionsCount === 0 ? (
                     <div className="flex flex-col items-center justify-center mt-20 space-y-4">
-                        <h1 className="text-3xl font-semibold text-gray-600 flex items-center">
+                        <h1 className="text-xl md:text-3xl font-semibold text-gray-500 flex items-center">
                             <span role="img" aria-label="clipboard" className="mr-2">📋</span>
                             No Submissions Yet!
                         </h1>
