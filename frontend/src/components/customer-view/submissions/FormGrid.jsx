@@ -59,17 +59,17 @@ const FormsGrid = ({ forms = [], getSubmissionCountForForm, submissions = [] }) 
     };
 
     return (
-        <div className="grid auto-rows-min gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid auto-rows-min  gap-3 md:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {forms.map((form) => {
                 const submissionCount = getSubmissionCountForForm(form._id);
                 const unreadCount = unreadCounts[form._id] || 0;
                 
                 return (
                     <Card key={form._id} className="bg-slate-50 dark:bg-blue-950/20 backdrop-blur-lg">
-                        <CardHeader className="space-y-0 pb-2">
+                        <CardHeader className="space-y-0 pb-2 pt-3 md:pt-4 px-2 md:px-4">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <CardTitle className="text-md font-regular text-lg">
+                                    <CardTitle className="text-md font-regular text-lg md:text-lg">
                                         {form.form_name}
                                     </CardTitle>
                                     <CardDescription className="text-xs text-muted-foreground">
@@ -77,17 +77,17 @@ const FormsGrid = ({ forms = [], getSubmissionCountForForm, submissions = [] }) 
                                     </CardDescription>
                                 </div>
                                 {unreadCount > 0 && (
-                                    <Badge className="bg-red-500 hover:bg-red-600 text-white rounded-full h-5 px-2 text-xs">
+                                    <Badge className="bg-red-600 hover:bg-red-700 text-white rounded-full h-5 px-2 text-xs">
                                         {unreadCount}
                                     </Badge>
                                 )}
                             </div>
                         </CardHeader>
                         <Separator className="my-2" />
-                        <CardContent className="space-y-5">
+                        <CardContent className="space-y-3 md:space-y-5 px-2 md:px-4">
                             <div className="flex flex-row justify-between items-center">
                                 <p className="text-sm">Submissions</p>
-                                <h3 className="text-gray-400 font-semibold text-3xl">
+                                <h3 className="text-gray-400 font-semibold text-2xl md:text-3xl">
                                     {submissionCount}
                                 </h3>
                             </div>
@@ -95,7 +95,7 @@ const FormsGrid = ({ forms = [], getSubmissionCountForForm, submissions = [] }) 
                                 <p className="text-sm">Form Type</p>
                                 <Badge
                                     variant="outline"
-                                    className={`rounded-sm text-sm font-normal ${
+                                    className={`px-1 md:px-3 rounded-sm text-sm font-normal ${
                                         form.form_type === "Complaint" ? "bg-red-600 text-white" : "bg-yellow-400 text-black"
                                     }`}
                                 >
@@ -105,10 +105,10 @@ const FormsGrid = ({ forms = [], getSubmissionCountForForm, submissions = [] }) 
 
                         </CardContent>
                         <Separator className="" />
-                        <CardFooter className="flex flex-row justify-between items-center">
+                        <CardFooter className="flex flex-row justify-between items-center pb-4 px-2 md:px-4">
                             <Button 
                                 variant="secondary"
-                                className="py-1 mt-4 w-full border border-gray-400 dark:border-gray-800"
+                                className="py-1 mt-4 gap-1 md:gap-2 w-full left-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
                                 submissions={submissions}
                                 onClick={() => handleViewSubmissions(form._id)}
                             >

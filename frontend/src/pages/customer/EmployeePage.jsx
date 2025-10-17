@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Plus, Edit, Trash2, Users, User, ArrowUpDown } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -34,6 +34,11 @@ function EmployeePage() {
   const [photoPreview, setPhotoPreview] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sorting, setSorting] = useState([]);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState(null);
+
+  const isDeleteConfirmed = deleteConfirmationText.trim().toLowerCase() === "delete";
 
   // Fetch employees on component mount
   useEffect(() => {
@@ -369,8 +374,8 @@ function EmployeePage() {
                 Add Employee
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
+            <DialogContent className="sm:max-w-[600px] max-w-[calc(100%-2rem)] rounded-md">
+              <DialogHeader className="border-b py-4">
                 <DialogTitle>
                   {editingEmployee ? 'Edit Employee' : 'Add New Employee'}
                 </DialogTitle>
@@ -400,7 +405,7 @@ function EmployeePage() {
                 {/* Form Fields */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="name">Full Name *</Label>
+                    <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
                     <Input
                       id="name"
                       value={formData.name}
@@ -418,7 +423,7 @@ function EmployeePage() {
                     />
                   </div>
                   <div className="grid gap-2 sm:col-span-2">
-                    <Label htmlFor="designation">Designation *</Label>
+                    <Label htmlFor="designation">Designation <span className="text-red-500">*</span></Label>
                     <Input
                       id="designation"
                       value={formData.designation}
@@ -436,7 +441,9 @@ function EmployeePage() {
                   >
                     Cancel
                   </Button>
-                  <Button onClick={handleSubmit} disabled={submitting}>
+                  <Button
+                   className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
+                   onClick={handleSubmit} disabled={submitting}>
                     {submitting ? 'Saving...' : (editingEmployee ? 'Update Employee' : 'Add Employee')}
                   </Button>
                 </div>
@@ -519,27 +526,60 @@ function EmployeePage() {
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <AlertDialog>
+                              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                                 <AlertDialogTrigger asChild>
-                                  <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="text-red-600 hover:text-red-700"
+                                    onClick={() => setEmployeeToDelete(row.original._id)}
+                                  >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </AlertDialogTrigger>
-                                <AlertDialogContent>
+                                <AlertDialogContent className="max-w-[calc(100%-2rem)] rounded-md">
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Delete Employee</AlertDialogTitle>
                                     <AlertDialogDescription>
                                       Are you sure you want to delete {row.original.name}? This action cannot be undone and will permanently remove all employee data.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      className="bg-red-600 hover:bg-red-700"
-                                      onClick={() => handleDelete(row.original._id)}
+                                  <div className="my-4">
+                                    <label className="text-sm mb-1 block">
+                                      To confirm, type <span className="font-bold text-destructive">Delete</span> below:
+                                    </label>
+                                    <Input
+                                      type="text"
+                                      placeholder="Type 'Delete' to confirm"
+                                      value={deleteConfirmationText}
+                                      onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                                    />
+                                  </div>
+                                  <AlertDialogFooter className="flex flex-row md:flex-none space-x-2">
+                                    <Button
+                                      className="w-1/2 md:w-auto mt-2"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setDeleteConfirmationText("");
+                                        setDeleteDialogOpen(false);
+                                      }}
                                     >
+                                      Cancel
+                                    </Button>
+
+                                    <Button
+                                      className="w-1/2 md:w-auto mt-2"
+                                      variant="destructive"
+                                      onClick={() => {
+                                        handleDelete(employeeToDelete);
+                                        setDeleteConfirmationText("");
+                                        setDeleteDialogOpen(false);
+                                      }}
+                                      disabled={!isDeleteConfirmed}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
                                       Delete
-                                    </AlertDialogAction>
+                                    </Button>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>

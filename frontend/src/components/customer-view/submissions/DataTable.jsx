@@ -71,7 +71,15 @@ const DataTable = ({ data, columns, setLocalSubmissions }) => {
 			const submissions = row.submissions || {};
 			Object.keys(submissions).forEach(key => {
 				if (key.toLowerCase().includes('employee') && submissions[key]) {
-					employees.add(submissions[key]);
+					const value = submissions[key];
+					// Only add non-empty string values that don't look like pure IDs
+					if (typeof value === 'string' && value.trim() !== '') {
+						// Skip values that are just numbers (likely IDs)
+						if (!/^\d+$/.test(value.trim())) {
+							employees.add(value);
+						}
+					}
+					// Skip number values entirely (likely IDs)
 				}
 			});
 		});
@@ -87,7 +95,9 @@ const DataTable = ({ data, columns, setLocalSubmissions }) => {
 			const submissions = row.submissions || {};
 			return Object.keys(submissions).some(key => {
 				if (key.toLowerCase().includes('employee') && submissions[key]) {
-					return submissions[key] === employeeFilter;
+					const value = submissions[key];
+					// Compare with the filter value
+					return value.toString() === employeeFilter.toString();
 				}
 				return false;
 			});
@@ -341,8 +351,8 @@ const exportToCSV = () => {
 
 	return (
 		<div>
-			<div className="flex items-center justify-between py-4 gap-2">
-				<div className="flex items-center gap-2">
+			<div className="flex flex-col items-stretch justify-between py-4 gap-2">
+				<div className="flex flex-col md:flex-row items-stretch gap-2">
 					{data.some((row) => row.submissions?.email) ? (
 						<Input
 							placeholder="Filter emails..."
@@ -350,7 +360,7 @@ const exportToCSV = () => {
 							onChange={(event) =>
 								table.getColumn("email")?.setFilterValue(event.target.value)
 							}
-							className="max-w-sm"
+							className="w-full md:max-w-sm"
 						/>
 					) : data.some((row) => row.submissions?.phone) ? (
 						<Input
@@ -359,7 +369,7 @@ const exportToCSV = () => {
 							onChange={(event) =>
 								table.getColumn("phone")?.setFilterValue(event.target.value)
 							}
-							className="max-w-sm"
+							className="w-full md:max-w-sm"
 						/>
 					) : data.some((row) => row.submissions?.name) ? (
 						<Input
@@ -368,13 +378,13 @@ const exportToCSV = () => {
 							onChange={(event) =>
 								table.getColumn("name")?.setFilterValue(event.target.value)
 							}
-							className="max-w-sm"
+							className="w-full md:max-w-sm"
 						/>
 					) : null}
 					
 					{hasEmployeeData && (
 						<Select value={employeeFilter} onValueChange={(value) => setEmployeeFilter(value === "all-employees" ? "" : value)}>
-							<SelectTrigger className="w-[200px]">
+							<SelectTrigger className="w-full md:w-[200px]">
 								<SelectValue placeholder="Filter by employee" />
 							</SelectTrigger>
 							<SelectContent>
@@ -389,14 +399,14 @@ const exportToCSV = () => {
 					)}
 					
 					{/* Date Range Filter */}
-					<div className="flex items-center gap-2">
+					<div className="flex items-stretch gap-2">
 						<Popover>
 							<PopoverTrigger asChild>
 								<Button
 									variant="outline"
 									size="sm"
 									className={cn(
-										"w-[140px] justify-start text-left font-normal",
+										"w-full md:w-[140px] justify-start text-left font-normal",
 										!dateFrom && "text-muted-foreground"
 									)}
 								>
@@ -420,7 +430,7 @@ const exportToCSV = () => {
 									variant="outline"
 									size="sm"
 									className={cn(
-										"w-[140px] justify-start text-left font-normal",
+										"w-full md:w-[140px] justify-start text-left font-normal",
 										!dateTo && "text-muted-foreground"
 									)}
 								>
@@ -503,9 +513,8 @@ const exportToCSV = () => {
 						</AlertDialog>
 					)}
 					<Button
-						size="sm"
 						onClick={exportToCSV}
-						className="bg-green-600 text-white hover:bg-green-700"
+						className="w-full md:w-fit bg-green-600 text-white hover:bg-green-700"
 					>
 						<FileDown /> Export as CSV
 					</Button>
@@ -513,47 +522,47 @@ const exportToCSV = () => {
 			</div>
 			<div className="rounded-md border flex">
 				<ScrollArea className="w-1 flex-1" orientation="horizontal">
-						<Table className="relative w-full">
-							<TableHeader className="bg-white dark:bg-slate-900">
-								{table.getHeaderGroups().map((headerGroup) => (
-									<TableRow key={headerGroup.id}>
-										{headerGroup.headers.map((header) => {
-											const isActionsColumn = header.column.id === 'actions';
-											return (
-												<TableHead 
-													key={header.id} 
-													className={isActionsColumn ? 'sticky right-0 bg-white dark:bg-slate-900 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.1)] z-10 min-w-[100px]' : 'whitespace-nowrap px-4 min-w-[120px]'}
-												>
-													{header.isPlaceholder ? null : flexRender(header.column.columnDef.header || header.column.columnDef.Header, header.getContext())}
-												</TableHead>
-											);
-										})}
-									</TableRow>
-								))}
-							</TableHeader>
-							<TableBody>
-								{table.getPaginationRowModel().rows.map((row) => (
-									<TableRow key={row.id}>
-										{row.getVisibleCells().map((cell) => {
-											const isActionsColumn = cell.column.id === 'actions';
-											return (
-												<TableCell 
-													key={cell.id}
-													className={isActionsColumn ? 'sticky right-0 bg-white dark:bg-slate-900 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.1)] z-10 min-w-[100px]' : 'whitespace-nowrap px-4 min-w-[120px]'}
-												>
-													{flexRender(cell.column.columnDef.Cell || cell.column.columnDef.cell, { ...cell.getContext(), updateData })}
-												</TableCell>
-											);
-										})}
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
+					<Table className="relative w-full">
+						<TableHeader className="bg-white dark:bg-slate-900">
+							{table.getHeaderGroups().map((headerGroup) => (
+								<TableRow key={headerGroup.id}>
+									{headerGroup.headers.map((header) => {
+										const isActionsColumn = header.column.id === 'actions';
+										return (
+											<TableHead 
+												key={header.id} 
+												className={isActionsColumn ? 'sticky right-0 bg-white dark:bg-slate-900 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.1)] z-10 min-w-[100px]' : 'whitespace-nowrap px-4 min-w-[120px]'}
+											>
+												{header.isPlaceholder ? null : flexRender(header.column.columnDef.header || header.column.columnDef.Header, header.getContext())}
+											</TableHead>
+										);
+									})}
+								</TableRow>
+							))}
+						</TableHeader>
+						<TableBody>
+							{table.getPaginationRowModel().rows.map((row) => (
+								<TableRow key={row.id}>
+									{row.getVisibleCells().map((cell) => {
+										const isActionsColumn = cell.column.id === 'actions';
+										return (
+											<TableCell 
+												key={cell.id}
+												className={isActionsColumn ? 'sticky right-0 bg-white dark:bg-slate-900 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.1)] z-10 min-w-[100px]' : 'whitespace-nowrap px-4 min-w-[120px]'}
+											>
+												{flexRender(cell.column.columnDef.Cell || cell.column.columnDef.cell, { ...cell.getContext(), updateData })}
+											</TableCell>
+										);
+									})}
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
 					<ScrollBar orientation="horizontal" />
 				</ScrollArea>
 			</div>
-			<div className="flex items-center justify-between mt-2">
-				<div className="flex items-center gap-4">
+			<div className="flex flex-col md:flex-row items-center justify-between mt-2 gap-4">
+				<div className="flex flex-col md:flex-row items-center gap-4">
 					<div className="flex-1 text-sm text-muted-foreground">
 						{table.getFilteredSelectedRowModel().rows.length} of{" "}
 						{table.getFilteredRowModel().rows.length} row(s) selected.
@@ -576,7 +585,7 @@ const exportToCSV = () => {
 						</Select>
 					</div>
 				</div>
-				<div className="flex items-center gap-2">
+				<div className="flex flex-col md:flex-row items-center gap-2">
 					<div className="text-sm text-muted-foreground">
 						Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
 					</div>
@@ -647,7 +656,7 @@ const exportToCSV = () => {
 							»
 						</Button>
 					</div>
-					</div>
+				</div>
 			</div>
 		</div>
 	);

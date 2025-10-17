@@ -87,7 +87,7 @@ const SubmissionListPage = () => {
 
 	return (
 		<CustomerLayoutPage>
-			<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+			<div className="flex flex-1 flex-col gap-4 p-0 md:p-4 pt-0">
 				<div className="my-4 P-4">
 					<Button variant="outline" onClick={handleGoBack} className="mb-4">
 						<ArrowLeft className="h-4 w-4 mr-2" />
