@@ -31,6 +31,8 @@ import CustomerProfilePage from "./pages/customer/ProfilePage";
 import AdminProfilePage from "./pages/admin/ProfilePage";
 import BillingPage from "./pages/customer/BillingPage";
 import EmployeePage from "./pages/customer/EmployeePage";
+import SupportPage from "./pages/customer/SupportPage";
+import AdminSupportPage from "./pages/admin/SupportPage";
 
 const ProtectedRoute = ({ children, role }) => {
     const { isAuthenticated, user } = useAuthStore();
@@ -172,6 +174,14 @@ function App() {
 						</ProtectedRoute>
 					}
 				/>
+				<Route
+					path="/support"
+					element={
+						<ProtectedRoute role="customer">
+							<SupportPage />
+						</ProtectedRoute>
+					}
+				/>
 				
 				{/* Customer Dashboard End */}
 				<Route
@@ -219,6 +229,14 @@ function App() {
 					element={
 						<ProtectedRoute role="admin">
 							<AdminProfilePage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/admin/support"
+					element={
+						<ProtectedRoute role="admin">
+							<AdminSupportPage />
 						</ProtectedRoute>
 					}
 				/>

@@ -18,6 +18,7 @@ import submissionRoutes from "./../routes/submission.route.js";
 import reportRoutes from "./../routes/report.route.js";
 import profileRoutes from "./../routes/profile.route.js";
 import planDowngradeRoutes from "./../routes/planDowngrade.route.js";
+import supportRoutes from "./../routes/support.route.js";
 import { handleStripeWebhook  } from './../controllers/payment.controller.js';
 
 import { fileURLToPath } from 'url';
@@ -75,6 +76,7 @@ app.use('/api/reports', reportRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/plan-downgrade", planDowngradeRoutes);
+app.use("/api/support", supportRoutes);
 
 /*
 app.listen(PORT, () => {

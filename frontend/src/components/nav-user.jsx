@@ -4,6 +4,7 @@ import {
   Bell,
   ChevronsUpDown,
   CreditCard,
+  Headset,
   LogOut,
 } from "lucide-react"
 
@@ -100,6 +101,10 @@ export function NavUser({ user }) {
               <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/billing")}>
                 <CreditCard />
                 Billing
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/support/")}>
+                <Headset />
+                Support
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Bell />

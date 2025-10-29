@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
-import { FileText, Send, AlertCircle } from 'lucide-react';
+import { FileText, Send, AlertCircle, BarChart3 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import axios from 'axios';
 
@@ -74,9 +79,86 @@ const UsageIndicators = () => {
 
   const { usage } = usageStats;
 
+  // Mobile dropdown view
+  const MobileUsageDropdown = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="md:hidden p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <BarChart3 className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuItem className="flex flex-col items-start p-4">
+          <div className="flex items-center gap-2 w-full mb-2">
+            <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="font-medium">Forms Usage</span>
+          </div>
+          <div className="flex items-center gap-1 ml-6">
+            <span className={`text-sm font-medium ${getStatusColor(usage.forms.current, usage.forms.maximum)}`}>
+              {usage.forms.current}
+            </span>
+            <span className="text-xs text-gray-500">/</span>
+            <span className="text-xs text-gray-600 dark:text-gray-400">
+              {usage.forms.maximum}
+            </span>
+          </div>
+          <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1 ml-6">
+            <div 
+              className={`h-full transition-all duration-300 ${getProgressColor(usage.forms.current, usage.forms.maximum)}`}
+              style={{ width: `${Math.min((usage.forms.current / usage.forms.maximum) * 100, 100)}%` }}
+            />
+          </div>
+          <div className="text-xs text-gray-500 mt-1 ml-6">
+            {usage.forms.remaining} remaining forms
+          </div>
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem className="flex flex-col items-start p-4">
+          <div className="flex items-center gap-2 w-full mb-2">
+            <Send className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <span className="font-medium">Submissions Usage</span>
+          </div>
+          <div className="flex items-center gap-1 ml-6">
+            <span className={`text-sm font-medium ${getStatusColor(usage.submissions.current, usage.submissions.maximum)}`}>
+              {usage.submissions.current}
+            </span>
+            <span className="text-xs text-gray-500">/</span>
+            <span className="text-xs text-gray-600 dark:text-gray-400">
+              {usage.submissions.maximum}
+            </span>
+          </div>
+          <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1 ml-6">
+            <div 
+              className={`h-full transition-all duration-300 ${getProgressColor(usage.submissions.current, usage.submissions.maximum)}`}
+              style={{ width: `${Math.min((usage.submissions.current / usage.submissions.maximum) * 100, 100)}%` }}
+            />
+          </div>
+          <div className="text-xs text-gray-500 mt-1 ml-6">
+            {usage.submissions.remaining} remaining this month
+          </div>
+          {usage.submissions.resetDate && (
+            <div className="text-xs text-gray-500 mt-1 ml-6">
+              Resets: {new Date(usage.submissions.resetDate).toLocaleDateString()}
+            </div>
+          )}
+        </DropdownMenuItem>
+        
+        {(usage.forms.remaining === 0 || usage.submissions.remaining === 0) && (
+          <DropdownMenuItem className="p-4 pt-0">
+            <Badge variant="destructive" className="flex items-center gap-1 w-full justify-center">
+              <AlertCircle className="h-3 w-3" />
+              <span className="text-xs">Limit Reached</span>
+            </Badge>
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <TooltipProvider>
-      <div className="flex items-center gap-2 md:gap-3">
+      {/* Desktop view - hidden on mobile */}
+      <div className="hidden md:flex items-center gap-2 md:gap-3">
         {/* Forms Usage */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -161,6 +243,11 @@ const UsageIndicators = () => {
             <span className="text-xs">Limit Reached</span>
           </Badge>
         )}
+      </div>
+      
+      {/* Mobile view - hidden on desktop */}
+      <div className="md:hidden">
+        <MobileUsageDropdown />
       </div>
     </TooltipProvider>
   );
