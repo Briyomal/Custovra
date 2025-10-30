@@ -1,5 +1,6 @@
 import bcryptjs from "bcryptjs";
 import crypto from "crypto";
+import { authenticator } from 'otplib';
 
 import {
 	generateTokenAndSetCookie
@@ -23,33 +24,25 @@ import mongoose from "mongoose";
 import axios from "axios";
 
 export const signup = async (req, res) => {
-	const {
-		email,
-		password,
-		name,
-		captchaToken
-	} = req.body;
+	const { email, password, name, captchaToken } = req.body;
+
 	try {
-		// Validate captcha token
+		// 1. CAPTCHA verification
 		if (!captchaToken) {
-			return res.status(400).json({
-				message: "Captcha verification failed"
-			});
+			return res.status(400).json({ message: "Captcha verification failed" });
 		}
 
 		const captchaResponse = await axios.post(
 			"https://challenges.cloudflare.com/turnstile/v0/siteverify",
 			new URLSearchParams({
-				secret: process.env.TURNSTILE_SECRET_KEY, // Use secret key from environment
+				secret: process.env.TURNSTILE_SECRET_KEY,
 				response: captchaToken,
-			}), {
-				headers: {
-					"Content-Type": "application/x-www-form-urlencoded"
-				}
+			}),
+			{
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
 			}
 		);
 
-		// If CAPTCHA verification fails
 		if (!captchaResponse.data.success) {
 			return res.status(400).json({
 				success: false,
@@ -58,61 +51,58 @@ export const signup = async (req, res) => {
 			});
 		}
 
+		// 2. Validate input
 		if (!email || !password || !name) {
 			throw new Error("All fields are required");
 		}
-		// Validate email format
-		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-		if (!emailRegex.test(email)) {
-			return res.status(400).json({
-				success: false,
-				message: "Invalid email format"
-			});
+		if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+			return res.status(400).json({ success: false, message: "Invalid email format" });
 		}
-
-		// Validate password strength (at least 6 characters)
 		if (password.length < 6) {
-			return res.status(400).json({
-				success: false,
-				message: "Password must be at least 6 characters long"
-			});
+			return res.status(400).json({ success: false, message: "Password must be at least 6 characters long" });
 		}
-		const userAlreadyExists = await User.findOne({
-			email
-		});
+
+		const userAlreadyExists = await User.findOne({ email });
 		if (userAlreadyExists) {
-			return res.status(400).json({
-				success: false,
-				message: "User already exists"
-			});
+			return res.status(400).json({ success: false, message: "User already exists" });
 		}
 
-
+		// 3. Create user without stripeCustomerId
 		const hashedPassword = await bcryptjs.hash(password, 10);
 		const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
-
-		const customer = await stripe.customers.create({
-			email
-		}, {
-			apiKey: process.env.STRIPE_SECRET_KEY,
-		})
 
 		const user = new User({
 			email,
 			password: hashedPassword,
 			name,
-			stripeCustomerId: customer.id,
 			verificationToken,
-			verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+			verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000,
 		});
 
 		await user.save();
 
-		//jwt
+		// 4. Create Stripe customer with userId in metadata
+		const customer = await stripe.customers.create(
+			{
+				email,
+				metadata: {
+					userId: user._id.toString(),
+				},
+			},
+			{ apiKey: process.env.STRIPE_SECRET_KEY }
+		);
+
+		// 5. Update user with Stripe ID
+		user.stripeCustomerId = customer.id;
+		await user.save();
+
+		// 6. Create session token
 		generateTokenAndSetCookie(res, user._id);
 
+		// 7. Send verification email
 		await sendVerificationEmail(user.email, verificationToken);
 
+		// 8. Response
 		res.status(201).json({
 			success: true,
 			message: "User created successfully",
@@ -122,10 +112,8 @@ export const signup = async (req, res) => {
 			},
 		});
 	} catch (error) {
-		res.status(400).json({
-			success: false,
-			message: error.message
-		});
+		console.error("Signup error:", error);
+		res.status(400).json({ success: false, message: error.message });
 	}
 };
 
@@ -193,10 +181,18 @@ export const login = async (req, res) => {
 			});
 		}
 
-		const payment = await Payment.findOne({
-			user_id: new mongoose.Types.ObjectId(user._id)
-		});
+		// Check if 2FA is enabled for the user
+		if (user.twoFactorEnabled) {
+			// Instead of logging in directly, we'll indicate that 2FA is required
+			return res.status(200).json({
+				success: true,
+				message: "2FA required",
+				twoFactorRequired: true,
+				userId: user._id
+			});
+		}
 
+		// Check if user is verified (existing logic)
 		if (!user.isVerified) {
 			const currentTime = Date.now();
 			const twentyFourHours = 24 * 60 * 60 * 1000;
@@ -236,6 +232,10 @@ export const login = async (req, res) => {
 			});
 		}
 
+		const payment = await Payment.findOne({
+			user_id: new mongoose.Types.ObjectId(user._id)
+		});
+
 		generateTokenAndSetCookie(res, user._id);
 
 		user.lastLogin = new Date();
@@ -259,6 +259,63 @@ export const login = async (req, res) => {
 	}
 };
 
+// New function to verify 2FA token during login
+export const verify2FALogin = async (req, res) => {
+	const { userId, token } = req.body;
+	
+	try {
+		const user = await User.findById(userId);
+		if (!user) {
+			return res.status(400).json({
+				success: false,
+				message: "User not found"
+			});
+		}
+
+		if (!user.twoFactorEnabled || !user.twoFactorSecret) {
+			return res.status(400).json({
+				success: false,
+				message: "2FA is not enabled for this user"
+			});
+		}
+
+		// Verify the token
+		const isValid = authenticator.check(token, user.twoFactorSecret);
+
+		if (!isValid) {
+			return res.status(400).json({
+				success: false,
+				message: "Invalid 2FA token"
+			});
+		}
+
+		// 2FA is valid, proceed with login
+		const payment = await Payment.findOne({
+			user_id: new mongoose.Types.ObjectId(user._id)
+		});
+
+		generateTokenAndSetCookie(res, user._id);
+
+		user.lastLogin = new Date();
+		await user.save();
+
+		res.status(200).json({
+			success: true,
+			message: "Logged in successfully",
+			user: {
+				...user._doc,
+				password: undefined,
+				payment,
+			},
+		});
+	} catch (error) {
+		console.log("Error in verify2FALogin", error);
+		res.status(500).json({
+			success: false,
+			message: error.message
+		});
+	}
+};
 
 export const logout = async (req, res) => {
 	const isProduction = process.env.NODE_ENV === "production";
@@ -376,7 +433,7 @@ export const checkAuth = async (req, res) => {
 
 		const payment = await Payment.findOne({
 			user_id: new mongoose.Types.ObjectId(user._id)
-		});
+		}).sort({ updated_at: -1 }); // Or sort by created_at: -1
 
 		res.status(200).json({
 			success: true,

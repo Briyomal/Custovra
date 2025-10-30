@@ -71,7 +71,51 @@ const useProfileStore = create((set) => ({
             }
         },
 
+        // 2FA functions
+        generate2FA: async () => {
+            set({ isLoading: true, error: null });
+            try {
+                const response = await axios.post(`${API_URL}/2fa/generate`);
+                set({ isLoading: false });
+                return response.data;
+            } catch (error) {
+                set({
+                    error: error.response?.data?.message || "Failed to generate 2FA",
+                    isLoading: false,
+                });
+                throw error;
+            }
+        },
 
+        verify2FA: async (token) => {
+            set({ isLoading: true, error: null });
+            try {
+                const response = await axios.post(`${API_URL}/2fa/verify`, { token });
+                set({ isLoading: false });
+                return response.data;
+            } catch (error) {
+                set({
+                    error: error.response?.data?.message || "Failed to verify 2FA",
+                    isLoading: false,
+                });
+                throw error;
+            }
+        },
+
+        disable2FA: async () => {
+            set({ isLoading: true, error: null });
+            try {
+                const response = await axios.post(`${API_URL}/2fa/disable`);
+                set({ isLoading: false });
+                return response.data;
+            } catch (error) {
+                set({
+                    error: error.response?.data?.message || "Failed to disable 2FA",
+                    isLoading: false,
+                });
+                throw error;
+            }
+        },
 }));
 
 export default useProfileStore;

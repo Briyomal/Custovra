@@ -12,7 +12,12 @@ import {
     createSubscription,
     updateSubscription as updateSub,
     deleteSubscription,
-    createCheckoutSession ,
+    createCheckoutSession,
+    updateSubscriptionPlan,
+    completeSubscriptionUpdate,
+    checkPlanChangeRequirements,
+    toggleAutoRenewal,
+    renewPreviousPlan
 } from '../controllers/subscription.controller.js';
 import checkSubscription from '../middleware/checkSubscription.js';
 
@@ -27,11 +32,25 @@ router.delete('/subscription-delete/:id', verifyToken, adminRoute, deleteSubscri
 
 // Payment routes
 
-// Select and pay for a subscription plan
-router.post('/checkout-session', verifyToken, createCheckoutSession); // Selecting a plan
+// Create new subscription
+router.post('/checkout-session', verifyToken, createCheckoutSession);
+
+// Check plan change requirements before updating (for modal display)
+router.post('/check-plan-change', verifyToken, checkPlanChangeRequirements);
+
+// Update/modify existing subscription plan
+router.post('/update-plan', verifyToken, updateSubscriptionPlan);
+
+// Toggle auto-renewal for subscription
+router.post('/toggle-auto-renewal', verifyToken, toggleAutoRenewal);
+
+// Renew previous subscription plan
+router.post('/renew-previous-plan', verifyToken, renewPreviousPlan);
+
+// Complete subscription update after form selection (for downgrades)
+router.post('/complete-update', verifyToken, completeSubscriptionUpdate);
 
 // Protect routes requiring active subscriptions
 router.use(checkSubscription);
  
 export default router;
-

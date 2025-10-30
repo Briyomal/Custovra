@@ -14,47 +14,59 @@ const useSubmissionStore = create((set) => ({
     error: null,
     isLoading: false,
 
-    // Fetch submissions
+    // Fetch submissions for forms owned by a user (includes public submissions)
     fetchSubmissions: async (userId) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await axios.get(`${API_URL}/${userId}`);
+            const response = await axios.get(`${API_URL}/owner/${userId}`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('authToken')}`
+                }
+            });
             set({ submissions: response.data, isLoading: false });
         } catch (error) {
             set({
                 error: error.response?.data?.message || "Failed to fetch submissions",
                 isLoading: false,
             });
-            console.error("Error fetching submissions:", error);
         }
     },
 
         
     fetchSubmissionsByForm: async (formId) => {
       try {
-        console.log("Fetching submissions for formId:", formId);
         set({ isLoading: true, error: null });
-        const response = await axios.get(`${API_URL}/form/${formId}`);
-        set({ 
-          submissions: response.data,
-          isLoading: false 
+        const response = await axios.get(`${API_URL}/form/${formId}`, {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('authToken')}`
+            }
         });
-        return response.data;
+        set({ submissions: response.data, isLoading: false });
       } catch (error) {
-        set({ 
-          error: error.message, 
-          isLoading: false 
+        set({
+          error: error.response?.data?.message || "Failed to fetch submissions",
+          isLoading: false,
         });
-        throw error;
       }
     },
-      
-
+    
     // Submit a form
     submitForm: async (formDetails) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await axios.post(API_URL, formDetails);
+            // Determine if we're sending FormData (for file uploads) or JSON
+            const isFormData = formDetails instanceof FormData;
+            
+            // Set appropriate headers and data
+            const config = {
+                headers: {
+                    // For FormData, let the browser set the Content-Type with proper boundary
+                    // For JSON, explicitly set the Content-Type
+                    'Content-Type': isFormData ? undefined : 'application/json',
+                }
+            };
+            
+            const response = await axios.post(API_URL, formDetails, config);
             set((state) => ({
                 submissions: [...state.submissions, response.data],
                 isLoading: false,
@@ -68,24 +80,30 @@ const useSubmissionStore = create((set) => ({
     },
 
     deleteSubmission: async (submissionId, callback) => {
-        try {
-            const response = await axios.delete(`${API_URL}/${submissionId}`, {
-                withCredentials: true, // Ensure cookies are sent with the request
-            });
-            // Update the state to reflect that the form has been deleted
-            set((state) => ({
-                submissions: state.submissions.filter((submission) => submission._id !== submissionId),
-            }));
-            if (callback) callback(); // Call the callback function if provided
-            return response.data; // Return successful response data
-        } catch (error) {
-            console.error("Error deleting submission", error);
-            throw error; // Throw error to handle it in the component
-        }
+        const response = await axios.delete(`${API_URL}/${submissionId}`, {
+            withCredentials: true, // Ensure cookies are sent with the request
+        });
+        // Update the state to reflect that the form has been deleted
+        set((state) => ({
+            submissions: state.submissions.filter((submission) => submission._id !== submissionId),
+        }));
+        if (callback) callback(); // Call the callback function if provided
+        return response.data; // Return successful response data
     },
 
     // Clear error state
     clearError: () => set({ error: null }),
+    
+    // Mark submissions as read
+    markSubmissionsAsRead: async (userId) => {
+        try {
+            await axios.post(`${API_URL}/mark-as-read/${userId}`, {}, {
+                withCredentials: true
+            });
+        } catch (error) {
+            console.error("Failed to mark submissions as read:", error);
+        }
+    },
 }));
 
 export default useSubmissionStore;

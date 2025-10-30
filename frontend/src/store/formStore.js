@@ -64,8 +64,16 @@ const useFormStore = create((set) => ({
             return response.data.form;
         } catch (error) {
             console.error("Error creating form:", error.response?.data || error.message);
-            set({ error: error.response?.data?.message || "Failed to create form", loading: false });
-            throw error; // Re-throw the error for further handling if needed
+            
+            // Store the full error details for better error handling
+            const errorMessage = error.response?.data?.error || 
+                               error.response?.data?.message || 
+                               "Failed to create form";
+            
+            set({ error: errorMessage, loading: false });
+            
+            // Re-throw the original error with all details intact
+            throw error;
         }
     },
 
@@ -73,16 +81,23 @@ const useFormStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             // Log FormData for debugging
-            console.log("FormData keys:", [...formData.keys()]);
-            console.log("FormData values:", [...formData.entries()]);
+            console.log("FormStore: FormData keys:", [...formData.keys()]);
+            console.log("FormStore: FormData values:", [...formData.entries()]);
             for (let [key, value] of formData.entries()) {
                 if (key === "custom_fields") {
                   try {
-                    console.log("🛠 Custom Fields Received in updateForm:", JSON.parse(value));
+                    console.log("FormStore: 🛠 Custom Fields Received in updateForm:", JSON.parse(value));
                   } catch (err) {
-                    console.log("❌ Could not parse custom_fields", err);
+                    console.log("FormStore: ❌ Could not parse custom_fields", err);
                   }
                 }
+                if (key === "default_fields") {
+                    try {
+                      console.log("FormStore: 🛠 Default Fields Received in updateForm:", JSON.parse(value));
+                    } catch (err) {
+                      console.log("FormStore: ❌ Could not parse default_fields", err);
+                    }
+                  }
               }
               
     
@@ -93,12 +108,59 @@ const useFormStore = create((set) => ({
                 },
             });
     
+            console.log("FormStore: Response from updateForm:", response.data);
+    
+            // Update the forms in the store with the updated form data
+            set((state) => ({
+                forms: state.forms.map((form) => 
+                    form._id === formId ? { ...form, ...response.data.form } : form
+                ),
+                isLoading: false,
+            }));
+    
             return response.data;
         } catch (error) {
-            console.error("Error updating form:", error.response?.data || error.message);
-            return error.response?.data;
-        } finally {
-            set({ isLoading: false });
+            console.error("FormStore: Error updating form:", error.response?.data || error.message);
+            
+            // Store the error for state management
+            const errorMessage = error.response?.data?.error || 
+                               error.response?.data?.message || 
+                               "Failed to update form";
+            
+            set({ error: errorMessage, isLoading: false });
+            
+            // Re-throw the original error with all details intact
+            throw error;
+        }
+    },
+
+    // Delete a form's logo
+    deleteFormLogo: async (formId) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await axios.delete(`${API_URL}/delete-logo/${formId}`);
+            
+            // Update the forms in the store with the updated form data
+            set((state) => ({
+                forms: state.forms.map((form) => 
+                    form._id === formId ? { ...form, ...response.data.form } : form
+                ),
+                isLoading: false,
+            }));
+            
+            return response.data;
+        } catch (error) {
+            console.error("Error deleting form logo:", error.response?.data || error.message);
+            
+            // Store the error for state management
+            const errorMessage = error.response?.data?.error || 
+                               error.response?.data?.message || 
+                               "Failed to delete form logo";
+            
+            set({ error: errorMessage, isLoading: false });
+            
+            // Re-throw the original error with all details intact
+            throw error;
         }
     },
 

@@ -27,12 +27,18 @@ export const useAuthStore = create((set) => ({
 		set({ isLoading: true, error: null });
 		try {
 			const response = await axios.post(`${API_URL}/login`, { email, password });
-			set({
-				isAuthenticated: true,
-				user: response.data.user,
-				error: null,
-				isLoading: false,
-			});
+			// Note: We're not setting isAuthenticated here if 2FA is required
+			// The component will handle the 2FA flow
+			if (!response.data.twoFactorRequired) {
+				set({
+					isAuthenticated: true,
+					user: response.data.user,
+					error: null,
+					isLoading: false,
+				});
+			} else {
+				set({ isLoading: false });
+			}
 			return response.data; // Return successful response
 		} catch (error) {
 			const errorMessage = error.response?.data?.message || "Error logging in";
@@ -97,6 +103,18 @@ export const useAuthStore = create((set) => ({
 				isLoading: false,
 				error: error.response.data.message || "Error resetting password",
 			});
+			throw error;
+		}
+	},
+
+	// Update user payment information after plan changes
+	updateUserPayment: async () => {
+		try {
+			const response = await axios.get(`${API_URL}/check-auth`);
+			set({ user: response.data.user });
+			return response.data.user;
+		} catch (error) {
+			console.error('Error updating user payment info:', error);
 			throw error;
 		}
 	},

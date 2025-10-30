@@ -14,11 +14,18 @@ const SubmissionPage = () => {
     const { forms, fetchFormsNew } = useFormStore();
 
     const userId = user?._id;
-    const totalSubmissionsCount = useMemo(() => submissions.length, [submissions]);
+    const totalSubmissionsCount = useMemo(() => {
+        return submissions.length;
+    }, [submissions]);
 
     const getSubmissionCountForForm = useMemo(() => {
         return (formId) => {
-            return submissions.filter((submission) => submission.form_id === formId).length;
+            const count = submissions.filter((submission) => {
+                // Handle both populated form_id object and string ID
+                const submissionFormId = submission.form_id?._id || submission.form_id;
+                return submissionFormId === formId;
+            }).length;
+            return count;
         };
     }, [submissions]);
 
@@ -50,7 +57,8 @@ const SubmissionPage = () => {
 
     return (
         <CustomerLayoutPage>
-            <div className="grid auto-rows-min gap-4 grid-cols-1 md:grid-cols-3 xl:grid-cols-5">
+            <div className="pt-4 md:gap-4 md:p-4">
+            <div className="grid auto-rows-min gap-4 grid-cols-1 md:grid-cols-3 xl:grid-cols-5 ">
                 <Card className="border-b-4 border-b-green-600 mt-4">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-md font-regular">Total Submissions</CardTitle>
@@ -73,7 +81,10 @@ const SubmissionPage = () => {
             <FormsGrid
                 forms={forms}
                 getSubmissionCountForForm={getSubmissionCountForForm}
+                submissions={submissions}
             />
+
+            </div>
         </CustomerLayoutPage>
     );
 };

@@ -4,12 +4,12 @@ const Schema = mongoose.Schema;
 const defaultFieldSchema = new Schema({
     field_name: {
         type: String,
-        enum: ['name', 'email', 'phone', 'rating', 'comment'], // Default fields
+        enum: ['name', 'email', 'phone', 'rating', 'comment', 'image'], // Added 'image' as a default field
         required: true,
     },
     field_type: {
         type: String,
-        enum: ['text', 'email', 'tel', 'rating', 'textarea'],
+        enum: ['text', 'email', 'tel', 'rating', 'textarea', 'employee', 'image'], // Added 'image' as a field type
         required: true,
     },
     is_required: {
@@ -27,6 +27,17 @@ const defaultFieldSchema = new Schema({
         type: Number, // Position of the field for drag-and-drop
         required: true,
     },
+    employees: [{
+        type: Schema.Types.ObjectId,
+        ref: 'Employee'
+    }], // For employee dropdown fields
+    hasEmployeeRating: {
+        type: Boolean,
+        default: false,
+    }, // For employee rating toggle
+    options: [{
+        type: String
+    }] // For dropdown and radio fields
 });
 
 const customFieldSchema = new Schema({
@@ -36,7 +47,7 @@ const customFieldSchema = new Schema({
     },
     field_type: {
         type: String,
-        enum: ['text', 'email', 'tel', 'number', 'rating', 'textarea'],
+        enum: ['text', 'email', 'tel', 'number', 'rating', 'textarea', 'employee', 'image', 'dropdown', 'radio'], // Added 'dropdown' and 'radio' as field types
         required: true,
     },
     is_required: {
@@ -57,7 +68,18 @@ const customFieldSchema = new Schema({
     is_new: {
         type: Boolean,
         default: false,
-    }, 
+    },
+    employees: [{
+        type: Schema.Types.ObjectId,
+        ref: 'Employee'
+    }], // For employee dropdown fields
+    hasEmployeeRating: {
+        type: Boolean,
+        default: false,
+    }, // For employee rating toggle
+    options: [{
+        type: String
+    }] // For dropdown and radio fields
 });
 
 const formSchema = new Schema({
@@ -103,22 +125,8 @@ const formSchema = new Schema({
     },
     is_active: {
         type: Boolean,
-        default: false,
+        default: true,
     },
-    created_at: {
-        type: Date,
-        default: Date.now,
-    },
-    updated_at: {
-        type: Date,
-        default: Date.now,
-    }
-});
+}, { timestamps: true });
 
-// Middleware to update `updated_at` before saving
-formSchema.pre('save', function (next) {
-    this.updated_at = Date.now();
-    next();
-});
-
-export const Form = mongoose.model("Form", formSchema);
+export const Form = mongoose.model('Form', formSchema);

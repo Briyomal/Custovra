@@ -34,13 +34,29 @@ const userSchema = new Schema(
         subscription_plan: {
             type: String,
 		},
+		subscription_expiry: {
+			type: Date,
+		},
+		subscription_status: {
+			type: String,
+			enum: ['active', 'past_due', 'canceled', 'incomplete', 'trialing'],
+			default: null,
+		},
+		monthly_submission_count: {
+			type: Number,
+			default: 0,
+		},
+		last_submission_reset: {
+			type: Date,
+			default: Date.now,
+		},
 		is_active: {
 			type: Boolean,
 			default: false,
 		},
 		stripeCustomerId: { 
 			type: String, 
-			required: true,
+			required: false,
 		},
 		lastLogin: {
 			type: Date,
@@ -61,6 +77,15 @@ const userSchema = new Schema(
 		verificationRequestTimestamp: {
 			type: Date,
 			default: Date.now,
+		},
+		// 2FA fields
+		twoFactorSecret: {
+			type: String,
+			required: false,
+		},
+		twoFactorEnabled: {
+			type: Boolean,
+			default: false,
 		},
 	},
 	{

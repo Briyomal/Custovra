@@ -9,85 +9,226 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox"
 
-export const columns = [
-	{
-		id: "select",
-		header: ({ table }) => (
-			<Checkbox
-				checked={
-					table.getIsAllPageRowsSelected() ||
-					(table.getIsSomePageRowsSelected() && "indeterminate")
+// Generate dynamic columns based on submission data and form field definitions
+export const generateDynamicColumns = (submissions, formData = null) => {
+	if (!submissions || submissions.length === 0) {
+		return staticColumns;
+	}
+
+	// If we have form data, use the current field definitions to determine columns
+	if (formData) {
+		// Create arrays to maintain order
+		const orderedFields = [];
+		const employeeFieldsWithRating = new Map(); // Map to track employee fields with their rating fields
+		
+		// Process default fields
+		if (formData.default_fields && Array.isArray(formData.default_fields)) {
+			formData.default_fields.forEach(field => {
+				if (field.enabled) {
+					orderedFields.push(field.field_name);
+					// If this is an employee field with rating enabled, track it
+					if (field.field_type === 'employee' && field.hasEmployeeRating) {
+						employeeFieldsWithRating.set(field.field_name, `${field.field_name}_rating`);
+					}
 				}
-				onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-				aria-label="Select all"
-			/>
-		),
+			});
+		}
+		
+		// Process custom fields
+		if (formData.custom_fields && Array.isArray(formData.custom_fields)) {
+			formData.custom_fields.forEach(field => {
+				if (field.enabled) {
+					orderedFields.push(field.field_name);
+					// If this is an employee field with rating enabled, track it
+					if (field.field_type === 'employee' && field.hasEmployeeRating) {
+						employeeFieldsWithRating.set(field.field_name, `${field.field_name}_rating`);
+					}
+				}
+			});
+		}
+		
+		// Create columns in the proper order
+		const dynamicColumns = [];
+		orderedFields.forEach(fieldName => {
+			// Add the main field column
+			dynamicColumns.push(createColumnForField(fieldName));
+			
+			// If this is an employee field with rating, add the rating column right after
+			if (employeeFieldsWithRating.has(fieldName)) {
+				const ratingFieldName = employeeFieldsWithRating.get(fieldName);
+				dynamicColumns.push(createEmployeeRatingColumn(ratingFieldName));
+			}
+		});
+		
+		// Combine with static columns
+		return [
+			staticColumns[0], // select checkbox
+			...dynamicColumns,
+			staticColumns[staticColumns.length - 2], // createdAt
+			staticColumns[staticColumns.length - 1], // actions
+		];
+	} else {
+		// Fallback to original behavior if no form data is provided
+		// Get all possible field names from all submissions
+		const allFields = new Set();
+		submissions.forEach(submission => {
+			if (submission.submissions && typeof submission.submissions === 'object') {
+				Object.keys(submission.submissions)
+					.filter(key => key !== 'cf-turnstile-response' && key !== 'captchaToken')
+					.forEach(key => allFields.add(key));
+			}
+		});
 
-		enableSorting: false,
-		enableHiding: false,
-		cell: ({ row }) => (
-			<Checkbox
-				checked={row.getIsSelected()}
-				onCheckedChange={(value) => row.toggleSelected(!!value)}
-				aria-label="Select row"
-			/>
-		),
+		// Convert to array and sort to group employee fields with their ratings
+		const fieldArray = Array.from(allFields);
+		
+		// Separate regular fields from rating fields
+		const regularFields = fieldArray.filter(field => !field.endsWith('_rating'));
+		const ratingFields = fieldArray.filter(field => field.endsWith('_rating'));
+		
+		// Create columns, placing rating fields right after their corresponding employee fields
+		const dynamicColumns = [];
+		regularFields.forEach(fieldName => {
+			// Add the main field column
+			dynamicColumns.push(createColumnForField(fieldName));
+			
+			// Check if there's a corresponding rating field and add it right after
+			const correspondingRatingField = `${fieldName}_rating`;
+			if (ratingFields.includes(correspondingRatingField)) {
+				dynamicColumns.push(createEmployeeRatingColumn(correspondingRatingField));
+			}
+		});
+		
+		// Add any remaining rating fields that don't have a corresponding employee field
+		ratingFields.forEach(fieldName => {
+			const employeeFieldName = fieldName.replace(/_rating$/, '');
+			if (!regularFields.includes(employeeFieldName)) {
+				dynamicColumns.push(createEmployeeRatingColumn(fieldName));
+			}
+		});
 
-	},
-	{
-		id: "name",
-		header: ({ column }) => {
-			return (
-				<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-					Name
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			);
-		},
-		accessorKey: "submissions.name",
-		enableSorting: true, // Enable sorting for the name column
-	},
-	{
-		id: "email",
-		header: ({ column }) => {
-			return (
-				<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-					Email
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			);
-		},
-		accessorKey: "submissions.email",
-		enableSorting: true, // Enable sorting for the email column
-	},
-	{
-		id: "phone",
-		header: ({ column }) => {
-			return (
-				<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-					Phone
-					<ArrowUpDown className="ml-2 h-4 w-4" />
-				</Button>
-			);
-		},
-		accessorKey: "submissions.phone",
-		enableSorting: true, // Enable sorting for the email column
-	},
-	{
-		id: "rating",
-		header: ({ column }) => {
-			return (
+		// Combine with static columns
+		return [
+			staticColumns[0], // select checkbox
+			...dynamicColumns,
+			staticColumns[staticColumns.length - 2], // createdAt
+			staticColumns[staticColumns.length - 1], // actions
+		];
+	}
+};
+
+// Helper function to create a column for a specific field
+const createColumnForField = (fieldName) => {
+	if (fieldName === 'rating') {
+		return {
+			id: "rating",
+			header: ({ column }) => (
 				<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
 					Rating
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
-			);
-		},
-		accessorKey: "submissions.rating",
-		accessorFn: (row) => parseFloat(row.submissions?.rating) || 0, // Ensure 0 is treated as a valid number
+			),
+			accessorKey: "submissions.rating",
+			accessorFn: (row) => parseFloat(row.submissions?.rating) || 0,
+			enableSorting: true,
+			cell: ({ row }) => {
+				const rating = parseFloat(row.original.submissions?.rating) || 0;
+				const maxStars = 5;
+
+				return (
+					<div className="flex items-center">
+						{[...Array(maxStars)].map((_, index) => {
+							if (index + 1 <= rating) {
+								return <Star fill="yellow" key={index} className="h-4 w-4 text-yellow-500" />;
+							} else if (index < rating) {
+								return <StarHalf key={index} className="h-4 w-4 text-yellow-500" />;
+							} else {
+								return <Star key={index} className="h-4 w-4 text-gray-300" />;
+							}
+						})}
+					</div>
+				);
+			},
+		};
+	} else if (fieldName.endsWith('.jpg') || fieldName.endsWith('.jpeg') || fieldName.endsWith('.png') || 
+	           fieldName.includes('image') || fieldName.includes('photo') || fieldName.includes('Image') || fieldName.includes('Photo')) {
+		// Handle image fields
+		return {
+			id: fieldName,
+			header: ({ column }) => (
+				<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+					{fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+			accessorKey: `submissions.${fieldName}`,
+			enableSorting: true,
+			cell: ({ row }) => {
+				const value = row.original.submissions?.[fieldName];
+				// Check if the value looks like a URL (presigned URL)
+				if (value && (value.startsWith('http://') || value.startsWith('https://'))) {
+					return (
+						<div className="flex items-center space-x-2">
+							<img 
+								src={value} 
+								alt="Submission" 
+								className="w-16 h-16 object-cover rounded border"
+								onError={(e) => {
+									// If image fails to load, show a fallback
+									e.target.onerror = null;
+									e.target.parentElement.innerHTML = '<span className="text-blue-500 hover:underline">View Image</span>';
+								}}
+							/>
+							<a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-sm">
+								View Full Size
+							</a>
+						</div>
+					);
+				}
+				// If it's an S3 key, show a placeholder
+				else if (value && (value.startsWith('form_submissions/') || value.includes('form_submissions'))) {
+					return <span className="text-blue-500">[Image File]</span>;
+				}
+				return <span>{value || 'N/A'}</span>;
+			},
+		};
+	} else {
+		return {
+			id: fieldName,
+			header: ({ column }) => (
+				<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+					{fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			),
+			accessorKey: `submissions.${fieldName}`,
+			enableSorting: true,
+			cell: ({ row }) => {
+				const value = row.original.submissions?.[fieldName];
+				return <span>{value || 'N/A'}</span>;
+			},
+		};
+	}
+};
+
+// Helper function to create a column for employee rating fields
+const createEmployeeRatingColumn = (fieldName) => {
+	// Extract the employee field name (remove _rating suffix)
+	const employeeFieldName = fieldName.replace(/_rating$/, '');
+	
+	return {
+		id: fieldName,
+		header: ({ column }) => (
+			<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+				{employeeFieldName.charAt(0).toUpperCase() + employeeFieldName.slice(1)} Rating
+				<ArrowUpDown className="ml-2 h-4 w-4" />
+			</Button>
+		),
+		accessorKey: `submissions.${fieldName}`,
+		accessorFn: (row) => parseFloat(row.submissions?.[fieldName]) || 0,
 		enableSorting: true,
 		cell: ({ row }) => {
-			const rating = parseFloat(row.original.submissions?.rating) || 0;
+			const rating = parseFloat(row.original.submissions?.[fieldName]) || 0;
 			const maxStars = 5;
 
 			return (
@@ -104,6 +245,49 @@ export const columns = [
 				</div>
 			);
 		},
+	};
+};
+
+// Static columns that don't depend on submission data
+const staticColumns = [
+	{
+		id: "select",
+		header: ({ table }) => {
+			const totalRowCount = table.getFilteredRowModel().rows.length;
+			const selectedRowCount = table.getFilteredSelectedRowModel().rows.length;
+			const isAllSelected = totalRowCount > 0 && selectedRowCount === totalRowCount;
+			const isIndeterminate = selectedRowCount > 0 && selectedRowCount < totalRowCount;
+			
+			return (
+				<Checkbox
+					checked={isAllSelected}
+					ref={(checkbox) => {
+						if (checkbox) checkbox.indeterminate = isIndeterminate;
+					}}
+					onCheckedChange={(value) => {
+						if (value) {
+							// Select all filtered rows
+							table.getFilteredRowModel().rows.forEach(row => row.toggleSelected(true));
+						} else {
+							// Deselect all rows
+							table.getFilteredRowModel().rows.forEach(row => row.toggleSelected(false));
+						}
+					}}
+					aria-label="Select all"
+				/>
+			);
+		},
+
+		enableSorting: false,
+		enableHiding: false,
+		cell: ({ row }) => (
+			<Checkbox
+				checked={row.getIsSelected()}
+				onCheckedChange={(value) => row.toggleSelected(!!value)}
+				aria-label="Select row"
+			/>
+		),
+
 	},
 	{
 		id: "createdAt",
@@ -160,14 +344,14 @@ export const columns = [
 			};
 			return (
 				<div>
-					<DropdownMenu>
+					<DropdownMenu modal={false}>
 						<DropdownMenuTrigger asChild>
 							<Button variant="ghost" className="h-8 w-8 p-0">
 								<span className="sr-only">Open menu</span>
 								<MoreHorizontal className="h-4 w-4" />
 							</Button>
 						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
+						<DropdownMenuContent align="end" side="left" className="w-40" sideOffset={8}>
 							<DropdownMenuLabel>Actions</DropdownMenuLabel>
 							<DropdownMenuItem className="cursor-pointer" onClick={() => setIsViewDialogOpen(true)}>
 								<Eye className="h-4 w-4" />
@@ -199,16 +383,18 @@ export const columns = [
 					</AlertDialog>
 
 					<Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-						<DialogContent>
+						<DialogContent className="max-w-2xl">
 							<DialogHeader className="text-left">
 								<DialogTitle>Submission Details</DialogTitle>
 								<DialogDescription>View the details of this submission.</DialogDescription>
 							</DialogHeader> 
 							<Separator />
-							<div className="flex flex-col gap-3">
-								{Object.entries(row.original.submissions).map(([key, value]) => (
-									<div key={key} className="flex items-center gap-2">
-										<span className="font-semibold">{key.charAt(0).toUpperCase() + key.slice(1)}:</span>
+							<div className="flex flex-col gap-3 max-h-96 overflow-y-auto">
+								{Object.entries(row.original.submissions || {})
+									.filter(([key]) => key !== 'cf-turnstile-response' && key !== 'captchaToken') // Filter out unnecessary fields
+									.map(([key, value]) => (
+									<div key={key} className="flex items-start gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded">
+										<span className="font-semibold min-w-32">{key.charAt(0).toUpperCase() + key.slice(1)}:</span>
 										{key === "rating" ? (
 											<div className="flex items-center">
 												{[...Array(5)].map((_, index) => {
@@ -218,16 +404,45 @@ export const columns = [
 														return <Star key={index} className="h-4 w-4 text-gray-300" />;
 													}
 												})}
+												<span className="ml-2 text-sm text-gray-600">{value}/5</span>
 											</div>
+										) : (key.endsWith('.jpg') || key.endsWith('.jpeg') || key.endsWith('.png') || 
+										     key.includes('image') || key.includes('photo') || key.includes('Image') || key.includes('Photo')) ? (
+											// Handle image fields in the view dialog
+											value && (value.startsWith('http://') || value.startsWith('https://')) ? (
+												<div className="flex flex-col gap-2">
+													<img 
+														src={value} 
+														alt={key} 
+														className="w-32 h-32 object-cover rounded border"
+														onError={(e) => {
+															// If image fails to load, show the URL
+															e.target.onerror = null;
+															e.target.style.display = 'none';
+															e.target.parentElement.innerHTML = `<a href="${value}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${value}</a>`;
+														}}
+													/>
+													<a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-sm">
+														View Full Size
+													</a>
+												</div>
+											) : (
+												<span>{value || 'N/A'}</span>
+											)
 										) : (
-											<span>{value}</span>
+											<span className="flex-1">{value || 'N/A'}</span>
 										)}
 									</div>
 								))}
+								{Object.keys(row.original.submissions || {}).length === 0 && (
+									<div className="text-center py-4 text-gray-500">
+										No submission data available
+									</div>
+								)}
 							</div>
 							<DialogFooter>
-								<Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-									Cancel
+								<Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+									Close
 								</Button>
 							</DialogFooter>
 						</DialogContent>
@@ -237,3 +452,6 @@ export const columns = [
 		},
 	},
 ];
+
+// Export both static columns and dynamic column generator
+export const columns = staticColumns;

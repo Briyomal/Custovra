@@ -12,12 +12,86 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
+import UsageIndicators from "@/components/ui/usage-indicators";
+import { useLocation } from "react-router-dom";
+import { useMemo, useState, useEffect } from "react";
+import axios from "axios";
 
 function CustomerLayoutPage({ children }) {
-	
 	const { user } = useAuthStore();
+	const location = useLocation();
+	const [formNames, setFormNames] = useState({});
 
 	const { setTheme } = useTheme();
+
+	// Fetch form names when paths change
+	useEffect(() => {
+		const paths = location.pathname.split('/').filter(Boolean);
+		const formIds = paths.filter(path => path.length === 24); // MongoDB ObjectId length
+		
+		formIds.forEach(async (formId) => {
+			if (!formNames[formId]) {
+				try {
+					const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/forms/${formId}`, {
+						withCredentials: true
+					});
+					setFormNames(prev => ({
+						...prev,
+						[formId]: response.data.form_name
+					}));
+				} catch (error) {
+					console.error(`Error fetching form name for ID ${formId}:`, error);
+				}
+			}
+		});
+	}, [location.pathname]);
+
+	// Define breadcrumb mappings
+	const breadcrumbMappings = useMemo(() => {
+		const paths = location.pathname.split('/').filter(Boolean);
+		
+		// Define route to breadcrumb mapping
+		const routeMap = {
+			'forms': 'Forms',
+			'submissions': 'Submissions',
+			'employees': 'Employees',
+			'reports': 'Reports',
+			'settings': 'Settings',
+			'billing': 'Billing',
+			'profile': 'Profile'
+		};
+
+		// Build breadcrumb items
+		const breadcrumbs = [];
+		
+		// Add intermediate paths (without Dashboard as requested)
+		let currentPath = '';
+		paths.forEach((path, index) => {
+			currentPath += `/${path}`;
+			
+			// Skip empty paths
+			if (!path) return;
+			
+			// Special handling for create-form to show "Create Form" instead of "Create-form"
+			if (path === 'create-form') {
+				breadcrumbs.push({ name: 'Create Form', path: currentPath });
+			}
+			// Check if it's a form ID and we have the form name
+			else if (path.length === 24 && formNames[path]) {
+				breadcrumbs.push({ name: formNames[path], path: currentPath });
+			}
+			// Check if it's a form submission detail page (has form ID)
+			else if (paths[index - 1] === 'submissions' && path.length === 24) {
+				breadcrumbs.push({ name: 'Form Submissions', path: currentPath });
+			} else {
+				const name = routeMap[path] || path.charAt(0).toUpperCase() + path.slice(1);
+				breadcrumbs.push({ name, path: currentPath });
+			}
+		});
+
+		return breadcrumbs;
+	}, [location.pathname, formNames]);
+
 	return (
 		<div>
 			<SidebarProvider>
@@ -30,23 +104,45 @@ function CustomerLayoutPage({ children }) {
 							<Separator orientation="vertical" className="mr-2 h-4" />
 							<Breadcrumb>
 								<BreadcrumbList>
-									<BreadcrumbItem className="hidden md:block">
-										<BreadcrumbLink href="#"></BreadcrumbLink>
-									</BreadcrumbItem>
-									<BreadcrumbSeparator className="hidden md:block" />
-									<BreadcrumbItem>
-										<BreadcrumbPage></BreadcrumbPage>
-									</BreadcrumbItem>
+									{breadcrumbMappings.map((crumb, index) => (
+										<>
+											<BreadcrumbItem key={index} className={index === breadcrumbMappings.length - 1 ? "hidden md:block" : "hidden md:block"}>
+												{index < breadcrumbMappings.length - 1 ? (
+													<BreadcrumbLink href={crumb.path}>{crumb.name}</BreadcrumbLink>
+												) : (
+													<BreadcrumbPage>{crumb.name}</BreadcrumbPage>
+												)}
+											</BreadcrumbItem>
+											{index < breadcrumbMappings.length - 1 && (
+												<BreadcrumbSeparator className="hidden md:block" />
+											)}
+										</>
+									))}
 								</BreadcrumbList>
 							</Breadcrumb>
 						</div>
-						{/* Right-aligned dropdown */}
-						<div className="ml-auto">
-            				{user.payment ? (
-								<Badge className="mr-3 px-3 py-1 border-lime-300 dark:border-green-700 rounded-sm bg-gradient-to-r from-green-700 to-lime-500 text-white text-sm">{user.payment.plan}</Badge>
-            				) : (
-            				    <p></p>
-            				)}
+						{/* Right-aligned content */}
+						<div className="ml-auto flex items-center gap-2 md:gap-4">
+							{/* Usage Indicators */}
+							<UsageIndicators />
+							{user.payment ? (
+								<Badge
+									className={`mr-0 md:mr-3 px-2 md:px-3 py-1 rounded-sm text-white text-sm ${user.payment.plan === 'Premium'
+											? 'bg-gradient-to-r from-green-700 to-lime-500 border-lime-300 dark:border-green-700'
+											: user.payment.plan === 'Standard'
+												? 'bg-gradient-to-r from-purple-700 to-fuchsia-500 border-fuchsia-300 dark:border-purple-700'
+												: user.payment.plan === 'Basic'
+													? 'bg-gradient-to-r from-blue-700 to-cyan-500 border-cyan-300 dark:border-blue-700'
+													: 'bg-gradient-to-r from-stone-700 to-gray-500 border-gray-300 dark:border-stone-700'
+										}`}
+								>
+									{user.payment.plan}
+								</Badge>
+							) : (
+								<p></p>
+							)}
+							
+							{/* Theme Toggle */}
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button variant="outline" size="icon">

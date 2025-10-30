@@ -1,6 +1,7 @@
 import { stripe } from "../utils/stripe.js";
 import { User } from "../models/User.js";
 import { Payment } from "../models/Payment.js";
+import { handlePlanChangeProtection } from "../middleware/planChangeProtection.js";
 
 //const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -41,7 +42,132 @@ export const handleStripeWebhook = async (req, res) => {
             const invoice = event.data.object;
             await handlePaymentSucceeded(invoice);
             break;
-            
+
+        case 'invoice.payment_failed':
+            try {
+                const invoice = event.data.object;
+                const customerId = invoice.customer;
+                const subscriptionId = invoice.subscription;
+
+                // Get the user ID from Customer
+                const customer = await stripe.customers.retrieve(customerId);
+                const userId = customer.metadata?.userId;
+
+                if (userId) {
+                    await User.findByIdAndUpdate(userId, {
+                        subscription_status: 'past_due',
+                        is_active: false, // Deactivate user on payment failure
+                    });
+                    console.log(`✅ User ${userId} marked as past_due due to payment failure`);
+                }
+            } catch (err) {
+                console.error('❌ Error handling invoice.payment_failed:', err);
+            }
+            break;
+
+        case 'customer.subscription.deleted':
+            try {
+                const subscription = event.data.object;
+                const customerId = subscription.customer;
+
+                const user = await User.findOne({ stripeCustomerId: customerId });
+                if (user) {
+                    user.is_active = false;
+                    user.subscription_status = 'canceled';
+                    await user.save();
+                    console.log("User deactivated and marked as canceled due to subscription deletion.");
+                }
+            } catch (err) {
+                console.error("Error handling subscription.deleted:", err);
+            }
+            break;
+
+        case 'customer.subscription.updated':
+            try {
+                const subscription = event.data.object;
+                const customerId = subscription.customer;
+                const subscriptionId = subscription.id;
+                const endDate = new Date(subscription.current_period_end * 1000);
+                const status = subscription.status;
+
+                // Fetch price and product info
+                const priceId = subscription.items.data[0]?.price?.id;
+                const price = await stripe.prices.retrieve(priceId);
+                const productId = price.product;
+
+                // Map product ID to plan name
+                const productMap = {
+                    'prod_RFhrLxBtwAHvvP': 'Basic',
+                    'prod_RFhs1FDL0JH7ko': 'Standard',
+                    'prod_RFhsbfQkCmzsik': 'Premium',
+                };
+
+                const planName = productMap[productId] || 'default';
+                const previousPlan = subscription.metadata?.previousPlan;
+
+                // Get the user ID from Customer
+                const customer = await stripe.customers.retrieve(customerId);
+                const userId = customer.metadata?.userId;
+
+                if (!userId) {
+                    console.warn("No userId found in customer.metadata during subscription.updated.");
+                    return;
+                }
+
+                // Update User record
+                await User.findByIdAndUpdate(userId, {
+                    subscription_plan: subscriptionId,
+                    subscription_expiry: endDate,
+                    subscription_status: status,
+                    is_active: status === 'active',
+                });
+
+                // Update Payment record
+                await Payment.findOneAndUpdate(
+                    { user_id: userId, subscription_id: subscriptionId },
+                    {
+                        plan: planName,
+                        subscription_expiry: endDate,
+                        updated_at: new Date(),
+                    },
+                    { upsert: true }
+                );
+
+                // Trigger downgrade protection if this is a plan change (auto-handle in webhooks)
+                // Skip if forms were pre-selected (to avoid conflict with manual selection)
+                if (previousPlan && previousPlan !== planName) {
+                    const formsPreSelected = subscription.metadata?.formsPreSelected === 'true';
+                    
+                    if (formsPreSelected) {
+                        console.log(`✅ Skipping auto-handling for user ${userId} - forms were pre-selected`);
+                    } else {
+                        console.log(`⚠️ Plan change detected: ${previousPlan} → ${planName} for user ${userId}`);
+                        
+                        // SAFETY CHECK: If this is a downgrade, NEVER auto-handle from webhook
+                        // The frontend should handle downgrade selection manually
+                        const { comparePlans } = await import('../utils/subscriptionPlans.js');
+                        const planComparison = comparePlans(previousPlan, planName);
+                        
+                        if (planComparison.isDowngrade) {
+                            console.log(`🚫 WEBHOOK SAFETY: Detected downgrade ${previousPlan} → ${planName} - NOT auto-handling`);
+                            console.log(`⚠️ This suggests the API call updated Stripe before showing dialog!`);
+                        } else {
+                            // Only auto-handle upgrades or same-plan changes
+                            const protectionResult = await handlePlanChangeProtection(userId, previousPlan, true);
+                            
+                            if (protectionResult.requiresAction) {
+                                console.log(`Plan change protection triggered for user ${userId}:`, protectionResult.message);
+                            }
+                        }
+                    }
+                }
+
+                console.log(`✅ User and payment info updated from subscription.updated to plan ${planName}`);
+            } catch (err) {
+                console.error("❌ Error handling subscription.updated:", err);
+            }
+            break;
+
 
         default:
             console.log(`Unhandled event type: ${event.type}`);
@@ -55,7 +181,7 @@ export const handleStripeWebhook = async (req, res) => {
 export const handleSubscriptionCompleted = async (session) => {
 
     console.log("🔥 Full Session Data:", session); // Debugging
-    
+
     const userId = session.metadata?.userId || null; // Metadata must include userId
     const customerId = session.customer;
     const subscriptionId = session.subscription || null;
@@ -71,10 +197,22 @@ export const handleSubscriptionCompleted = async (session) => {
             console.log(`User not found with userId: ${userId}`);
             return;
         }
+        // Get subscription details from Stripe
+        let subscriptionExpiry = null;
+        if (subscriptionId) {
+            try {
+                const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+                subscriptionExpiry = new Date(subscription.current_period_end * 1000);
+            } catch (error) {
+                console.error('Error retrieving subscription:', error);
+            }
+        }
+
         // Update user details
         user.subscription_plan = subscriptionId || "default_plan"; // Default plan if subscriptionId is null
-        //user.subscription_expiry = subscriptionExpiry;
-        user.stripeCustomerId = customerId,
+        user.subscription_expiry = subscriptionExpiry;
+        user.subscription_status = 'active';
+        user.stripeCustomerId = customerId;
         user.is_active = true;
         await user.save();
 
@@ -87,46 +225,60 @@ export const handleSubscriptionCompleted = async (session) => {
 // Helper function to handle 'invoice.payment_succeeded'
 const handlePaymentSucceeded = async (invoice) => {
     try {
-        // Retrieve the subscription ID and customer ID from the invoice
         const subscriptionId = invoice.subscription;
         const customerId = invoice.customer;
 
-        // Fetch the latest session associated with this subscription
+        // Fetch latest Checkout Session (where your metadata is stored)
         const sessions = await stripe.checkout.sessions.list({
             subscription: subscriptionId,
-            limit: 1, // Only fetch the latest session
+            limit: 1,
         });
 
-        if (sessions.data.length === 0) {
-            throw new Error("No checkout session found for the subscription.");
+        if (!sessions.data.length) {
+            throw new Error("No checkout session found.");
         }
 
-        const session = sessions.data[0]; // Get the latest session
-        const metadata = session.metadata; // Access metadata passed in checkout.session.completed
+        const session = sessions.data[0];
+        const metadata = session.metadata || {};
 
-        // Extract metadata and relevant fields
         const userId = metadata.userId;
-        const planName = metadata.planName;
+        const planName = metadata.planName || "default";
 
-        // Retrieve payment dates from the invoice
-        const payment_date = new Date(invoice.created * 1000); // Invoice creation time
-        const subscription_expiry = new Date(invoice.lines.data[0].period.end * 1000); // Subscription end date
+        if (!userId) {
+            console.warn("❌ No userId found in Checkout Session metadata.");
+            return;
+        }
 
-        const amount = invoice.lines.data[0].amount; //Amount of the invoice
+        const line = invoice.lines.data[0];
+        const amount = line?.amount_total / 100 || invoice.amount_paid / 100;
+        const payment_date = new Date(invoice.created * 1000);
+        const subscription_expiry = new Date(line.period.end * 1000);
 
-        // Save payment record
-        const payment = new Payment({
-            user_id: userId,
-            subscription_id: subscriptionId,
-            plan: planName,
-            amount: amount,
-            payment_date: payment_date,
-            subscription_expiry: subscription_expiry,
+        // Save or update payment
+        await Payment.findOneAndUpdate(
+            { user_id: userId, subscription_id: subscriptionId },
+            {
+                plan: planName,
+                amount,
+                payment_date,
+                subscription_expiry,
+                updated_at: new Date(),
+            },
+            { upsert: true, new: true }
+        );
+
+        // Update user
+        await User.findByIdAndUpdate(userId, {
+            is_active: true,
+            subscription_plan: subscriptionId,
+            subscription_expiry,
+            subscription_status: 'active',
         });
 
-        await payment.save();
-        console.log("Payment record saved successfully.");
+        console.log(`✅ Payment saved and user ${userId} updated`);
     } catch (error) {
-        console.error("Error handling invoice.payment_succeeded:", error);
+        console.error("❌ Error handling invoice.payment_succeeded:", error);
     }
 };
+
+

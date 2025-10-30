@@ -9,7 +9,10 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import HomePage from "./pages/front/HomePage";
 import AdminDashboardPage from "./pages/admin/index";
 import UsersPage from "./pages/admin/UsersPage";
-import SubscriptionPage from "./pages/customer/SubscriptionPage";
+import FormsPage from "./pages/admin/FormsPage";
+import SubmissionsPage from "./pages/admin/SubmissionsPage";
+import AdminReportPage from "./pages/admin/Reportpage";
+
 import FormPage from "./pages/customer/FormPage";
 
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -24,7 +27,12 @@ import FormViewPage from "./pages/front/FormViewPage";
 import SubmissionPage from "./pages/customer/SubmissionPage";
 import SubmissionListPage from "./pages/customer/SubmissionListPage";
 import ReportPage from "./pages/customer/ReportPage";
-import ProfilePage from "./pages/customer/ProfilePage";
+import CustomerProfilePage from "./pages/customer/ProfilePage";
+import AdminProfilePage from "./pages/admin/ProfilePage";
+import BillingPage from "./pages/customer/BillingPage";
+import EmployeePage from "./pages/customer/EmployeePage";
+import SupportPage from "./pages/customer/SupportPage";
+import AdminSupportPage from "./pages/admin/SupportPage";
 
 const ProtectedRoute = ({ children, role }) => {
     const { isAuthenticated, user } = useAuthStore();
@@ -47,11 +55,11 @@ const ProtectedRoute = ({ children, role }) => {
     }
 
 	 // Define routes to ignore for is_active check
-	 const skipIsActiveCheckRoutes = ["/subscription", "/profile"];
+	 const skipIsActiveCheckRoutes = ["/billing", "/profile" ];
 
-    // Skip is_active check for the /subscription page to prevent redirect loops
+    // Redirect users without active subscription to billing page to choose a plan
     if (user?.is_active === false && !skipIsActiveCheckRoutes.includes(location.pathname)) {
-        return <Navigate to="/subscription" replace />;
+        return <Navigate to="/billing" replace />;
     }
 
     return children;
@@ -92,11 +100,7 @@ function App() {
 				/>
 				<Route
 					path="/subscription"
-					element={
-						<ProtectedRoute role="customer">
-							<SubscriptionPage />
-						</ProtectedRoute>
-					}
+					element={<Navigate to="/billing" replace />}
 				/>
 
 				<Route
@@ -148,7 +152,33 @@ function App() {
 					path="/profile"
 					element={
 						<ProtectedRoute role="customer">
-							<ProfilePage />
+							<CustomerProfilePage />
+						</ProtectedRoute>
+					}
+				/>
+
+				<Route
+					path="/billing"
+					element={
+						<ProtectedRoute role="customer">
+							<BillingPage />
+						</ProtectedRoute>
+					}
+				/>
+
+				<Route
+					path="/employees"
+					element={
+						<ProtectedRoute role="customer">
+							<EmployeePage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/support"
+					element={
+						<ProtectedRoute role="customer">
+							<SupportPage />
 						</ProtectedRoute>
 					}
 				/>
@@ -171,10 +201,42 @@ function App() {
 					}
 				/>
 				<Route
+					path="/admin/forms"
+					element={
+						<ProtectedRoute role="admin">
+							<FormsPage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/admin/submissions/:formId"
+					element={
+						<ProtectedRoute role="admin">
+							<SubmissionsPage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/admin/reports"
+					element={
+						<ProtectedRoute role="admin">
+							<AdminReportPage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
 					path="/admin/profile"
 					element={
 						<ProtectedRoute role="admin">
-							<ProfilePage />
+							<AdminProfilePage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/admin/support"
+					element={
+						<ProtectedRoute role="admin">
+							<AdminSupportPage />
 						</ProtectedRoute>
 					}
 				/>
