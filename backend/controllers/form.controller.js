@@ -1,9 +1,6 @@
 // controllers/FormController.js
 import { Form } from '../models/Form.js';
 import { Submission } from "../models/Submission.js";
-import { subscriptionPlans } from "../utils/subscriptionPlans.js";
-import { Payment } from "../models/Payment.js";
-import { User } from "../models/User.js";
 // Replace Cloudinary with S3 utilities
 import { deleteFileFromS3, getPresignedUrl, uploadFileToS3, generateFormLogoKey } from '../utils/s3.js';
 
@@ -23,6 +20,7 @@ export const getAllUserForms = async (req, res) => {
         const userId = req.userId;
 
         // Fetch all forms related to the logged-in user
+        // Include all fields including is_locked for proper lock detection
         const forms = await Form.find({ user_id: userId }).populate('user_id');
 
         // Remove the 404 error when no forms are found - return empty array instead
@@ -85,8 +83,8 @@ export const getFormById = async (req, res) => {
         // Add lock status to response if form is locked
         const responseData = {
             ...formObject,
-            isLocked,
-            lockStatus: isLocked ? {
+            isLocked: formObject.is_locked, // Use the is_locked field directly
+            lockStatus: formObject.is_locked ? {
                 lockedAt: form.lockedAt,
                 lockReason: form.lockReason
             } : null

@@ -99,17 +99,19 @@ export const columns = (refreshUsers) => [
 		cell: ({ row }) => {
 			const plan = row.original.subscription_plan;
 			
-			// Define gradient classes for different plans
+			// Define gradient classes for different plans based on the project specification
 			const getPlanGradientClass = (planName) => {
 				switch (planName) {
-					case 'Premium':
-						return 'bg-gradient-to-r from-green-700 to-lime-500 border-lime-300 dark:border-green-700 text-white';
-					case 'Standard':
-						return 'bg-gradient-to-r from-purple-700 to-fuchsia-500 border-fuchsia-300 dark:border-purple-700 text-white';
-					case 'Basic':
-						return 'bg-gradient-to-r from-blue-700 to-cyan-500 border-cyan-300 dark:border-blue-700 text-white';
+					case 'Gold':
+					case 'Diamond':
+						return 'bg-gradient-to-r from-green-400 to-green-600 text-white';
+					case 'Silver':
+					case 'Platinum':
+						return 'bg-gradient-to-r from-purple-400 to-purple-600 text-white';
+					case 'Bronze':
+						return 'bg-gradient-to-r from-blue-400 to-blue-600 text-white';
 					default:
-						return 'bg-gradient-to-r from-stone-700 to-gray-500 border-gray-300 dark:border-stone-700 text-white';
+						return 'bg-gradient-to-r from-gray-400 to-gray-600 text-white';
 				}
 			};
 			

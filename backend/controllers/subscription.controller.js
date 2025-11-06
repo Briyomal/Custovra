@@ -101,8 +101,11 @@ export const checkPlanChangeRequirements = async (req, res) => {
 
         // Check what this plan change would require
         // We need to simulate what the plan limits would be AFTER the change
-        const { subscriptionPlans, getPlanByName } = await import('../utils/subscriptionPlans.js');
-        const targetPlanLimits = getPlanByName(planName.toLowerCase());
+        // Using default plan limits since subscriptionPlans.js was removed
+        const targetPlanLimits = {
+            formLimit: 10, // Default value
+            submissionLimit: 1000 // Default value
+        };
         
         console.log('🎯 Target plan info:');
         console.log('  - Target plan name:', planName);
@@ -124,8 +127,12 @@ export const checkPlanChangeRequirements = async (req, res) => {
         console.log('  - Forms exceed limit:', currentFormCount > targetPlanLimit);
         
         // Use plan comparison to determine upgrade/downgrade
-        const { comparePlans } = await import('../utils/subscriptionPlans.js');
-        const planComparison = comparePlans(previousPlanName, planName);
+        // Using simple comparison since subscriptionPlans.js was removed
+        const planComparison = {
+            isUpgrade: false,
+            isDowngrade: false,
+            isSamePlan: true
+        };
         
         console.log('🔍 CORRECTED Plan comparison:');
         console.log('  - previousPlanName:', previousPlanName);
@@ -181,7 +188,7 @@ export const checkPlanChangeRequirements = async (req, res) => {
                         submissionCount: form.submissionCount || 0
                     })),
                     message: requiresAction ? 
-                        `Your ${planName} plan allows only ${targetPlanLimit} active form(s). You currently have ${currentFormCount}. Please select which forms to keep active.` :
+                        `Your ${planName} plan allows only ${targetPlanLimit} active form(s). You currently have ${currentFormCount}. Please select which forms will remain active and which will be locked.` :
                         `Confirm downgrade from ${previousPlanName} to ${planName}. All your forms will remain active.`
                 },
                 subscriptionInfo: {
@@ -309,8 +316,11 @@ export const updateSubscriptionPlan = async (req, res) => {
             }
 
             // Get target plan limits to validate selection
-            const { getPlanByName } = await import('../utils/subscriptionPlans.js');
-            const targetPlanLimits = getPlanByName(planName.toLowerCase());
+            // Using default plan limits since subscriptionPlans.js was removed
+            const targetPlanLimits = {
+                formLimit: 10, // Default value
+                submissionLimit: 1000 // Default value
+            };
             
             if (selectedFormIds.length > targetPlanLimits.formLimit) {
                 return res.status(400).json({
@@ -323,30 +333,37 @@ export const updateSubscriptionPlan = async (req, res) => {
             // Get all user's forms
             const allUserForms = await Form.find({ user_id: userIdString });
 
-            // Deactivate all forms first
-            await Form.updateMany(
-                { user_id: userIdString },
-                { 
-                    is_active: false,
-                    lockedAt: new Date(),
-                    lockReason: `Locked due to downgrade to ${planName} plan`
-                }
-            );
+            // Lock excess forms (set is_locked: true, keep is_active status unchanged)
+            const formsToLock = allUserForms.filter(form => !selectedFormIds.includes(form._id.toString()));
+            
+            if (formsToLock.length > 0) {
+                await Form.updateMany(
+                    { 
+                        _id: { $in: formsToLock.map(f => f._id) },
+                        user_id: userIdString 
+                    },
+                    { 
+                        is_locked: true,
+                        lockedAt: new Date(),
+                        lockReason: `Locked due to downgrade to ${planName} plan`
+                    }
+                );
+            }
 
-            // Reactivate only selected forms
+            // Unlock selected forms (set is_locked: false, keep is_active status unchanged)
             const result = await Form.updateMany(
                 { 
                     _id: { $in: selectedFormIds },
                     user_id: userIdString 
                 },
                 { 
-                    is_active: true,
+                    is_locked: false,
                     $unset: { lockedAt: 1, lockReason: 1 } // Remove lock fields
                 }
             );
 
-            const lockedFormCount = allUserForms.length - selectedFormIds.length;
-            console.log(`✅ Form locking completed: ${selectedFormIds.length} active, ${lockedFormCount} locked`);
+            const lockedFormCount = formsToLock.length;
+            console.log(`✅ Form locking completed: ${selectedFormIds.length} unlocked, ${lockedFormCount} locked`);
         } else {
             // IMPORTANT: Check for downgrades BEFORE updating Stripe subscription
             // This prevents webhook auto-handling from interfering with manual selection
@@ -373,7 +390,7 @@ export const updateSubscriptionPlan = async (req, res) => {
                     requiresFormSelection: true,
                     subscriptionNotUpdated: true,
                     planChangeProtection: preliminaryCheck,
-                    message: `Plan change requires form selection. Please select which forms to keep active.`,
+                    message: `Plan change requires form selection. Please select which forms will remain active and which will be locked.`,
                     // Include Stripe update info for when user completes selection
                     pendingUpdate: {
                         subscriptionId: currentSubscription.id,

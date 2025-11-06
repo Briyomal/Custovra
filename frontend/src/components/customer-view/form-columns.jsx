@@ -80,7 +80,8 @@ export const columns = [
 		cell: ({ getValue, row }) => {
 			const value = getValue(); // Retrieve the true/false value
 			const form = row.original;
-			const isLocked = form.lockedAt && form.lockReason;
+			// Updated to use is_locked field
+			const isLocked = form.is_locked;
 			
 			if (isLocked) {
 				return (
@@ -138,7 +139,8 @@ export const columns = [
 		Cell: ({ row, updateData }) => {
 			const navigate = useNavigate(); // Use inside the functional component
 			const form = row.original;
-			const isLocked = form.lockedAt && form.lockReason;
+			// Updated to use is_locked field
+			const isLocked = form.is_locked;
 
 			// Handle form editing
 			const handleEditForm = () => {

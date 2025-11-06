@@ -2,7 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-
+import multer from "multer";
 
 import { connectDB } from "./db/connectDB.js";
 
@@ -21,6 +21,11 @@ import usageRoutes from "./routes/usage.route.js";
 import { handleStripeWebhook  } from './controllers/payment.controller.js';
 import billingRoutes from './routes/billing.route.js';
 import supportRoutes from './routes/support.route.js';
+import planDowngradeRoutes from './routes/planDowngrade.route.js';
+import manualPaymentRoutes from './routes/manualPayment.route.js';
+import manualPlanRoutes from './routes/manualPlan.route.js';
+import manualSubscriptionRoutes from './routes/manualSubscription.route.js';
+import manualBillingRoutes from './routes/manualBilling.route.js';
 
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -34,6 +39,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Multer middleware for handling FormData
+const upload = multer();
 
 app.get("/", (req, res) => {
 	res.send("hello World!");
@@ -42,13 +49,12 @@ app.get("/", (req, res) => {
 const CLIENT_URL = process.env.CLIENT_URL?.replace(/\/$/, ''); // Remove trailing slash if present
 
 app.use(cors({ 
-	
     origin: CLIENT_URL, // Replace with your frontend's URL http://localhost:5173
-	methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
-	crossDomain: true,
-	xhrFields: { withCredentials: true },
-	credentials: true,
-  }));
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+    crossDomain: true,
+    xhrFields: { withCredentials: true },
+    credentials: true,
+}));
 
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
@@ -72,7 +78,12 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/usage', usageRoutes);
+app.use('/api/plan-downgrade', planDowngradeRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/manual-payments', manualPaymentRoutes);
+app.use('/api/manual-plans', manualPlanRoutes);
+app.use('/api/manual-subscriptions', manualSubscriptionRoutes);
+app.use('/api/manual-billing', manualBillingRoutes);
 
 app.listen(PORT, () => {
 	connectDB();

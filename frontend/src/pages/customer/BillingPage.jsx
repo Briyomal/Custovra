@@ -5,44 +5,55 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+
 import CustomerLayoutPage from "./LayoutPage";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { 
     CreditCard, 
     Calendar, 
-    DollarSign, 
     CheckCircle, 
     XCircle, 
     AlertCircle, 
-    Trash2,
-    Star,
-    ExternalLink,
-    Download,
-    Settings
+    FileText,
+    Lock,
+    Unlock
 } from "lucide-react";
 import toast from "react-hot-toast";
-import AddPaymentMethodDialog from "@/components/AddPaymentMethodDialog";
-import PlanDowngradeDialog from "@/components/PlanDowngradeDialog";
-// Plan downgrade check is now handled directly in handlePlanChange
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function BillingPage() {
     const [loading, setLoading] = useState(true);
     const [subscriptionDetails, setSubscriptionDetails] = useState(null);
     const [paymentHistory, setPaymentHistory] = useState([]);
     const [availablePlans, setAvailablePlans] = useState([]);
-    const [paymentMethods, setPaymentMethods] = useState([]);
-    const [error, setError] = useState(null);
+    // const [error, setError] = useState(null);
+    const [pendingPayments, setPendingPayments] = useState([]);
     const [activeTab, setActiveTab] = useState("overview");
-    const [loadingPlanId, setLoadingPlanId] = useState(null);
-    const [planInterval, setPlanInterval] = useState("yearly");
-    const [showDowngradeDialog, setShowDowngradeDialog] = useState(false);
-    const [downgradeData, setDowngradeData] = useState(null);
-    const [togglingAutoRenewal, setTogglingAutoRenewal] = useState(false);
+    const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+    const [selectedPlanId, setSelectedPlanId] = useState(null);
+    // Downgrade form selection state
+    const [isDowngradeDialogOpen, setIsDowngradeDialogOpen] = useState(false);
+    const [downgradeInfo, setDowngradeInfo] = useState(null);
+    const [selectedFormIds, setSelectedFormIds] = useState([]);
+    const [isCheckingDowngrade, setIsCheckingDowngrade] = useState(false);
+    const [isSubmittingDowngrade, setIsSubmittingDowngrade] = useState(false);
+    const [downgradeError, setDowngradeError] = useState('');
+    const [paymentFormData, setPaymentFormData] = useState({
+        planId: "",
+        billingPeriod: "monthly",
+        paymentMethod: "bank_transfer",
+        paymentProof: null
+    });
     
-    // Plan downgrade state is now managed locally in handlePlanChange
-    
-    const { isAuthenticated, updateUserPayment } = useAuthStore();
+    const { isAuthenticated } = useAuthStore();
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -55,11 +66,11 @@ function BillingPage() {
     const fetchBillingData = async () => {
         try {
             setLoading(true);
-            const [subscriptionRes, historyRes, plansRes, methodsRes] = await Promise.allSettled([
-                axios.get(`${import.meta.env.VITE_SERVER_URL}/api/billing/subscription-details`, { withCredentials: true }),
-                axios.get(`${import.meta.env.VITE_SERVER_URL}/api/billing/payment-history`, { withCredentials: true }),
-                axios.get(`${import.meta.env.VITE_SERVER_URL}/api/billing/available-plans`, { withCredentials: true }),
-                axios.get(`${import.meta.env.VITE_SERVER_URL}/api/billing/payment-methods`, { withCredentials: true })
+            const [subscriptionRes, historyRes, plansRes, pendingRes] = await Promise.allSettled([
+                axios.get(`${import.meta.env.VITE_SERVER_URL}/api/manual-billing/subscription-details`, { withCredentials: true }),
+                axios.get(`${import.meta.env.VITE_SERVER_URL}/api/manual-billing/payment-history`, { withCredentials: true }),
+                axios.get(`${import.meta.env.VITE_SERVER_URL}/api/manual-billing/available-plans`, { withCredentials: true }),
+                axios.get(`${import.meta.env.VITE_SERVER_URL}/api/manual-billing/pending-payments`, { withCredentials: true })
             ]);
 
             if (subscriptionRes.status === 'fulfilled') {
@@ -74,187 +85,128 @@ function BillingPage() {
                 setAvailablePlans(plansRes.value.data.data);
             }
 
-            if (methodsRes.status === 'fulfilled') {
-                setPaymentMethods(methodsRes.value.data.data);
+            if (pendingRes.status === 'fulfilled') {
+                setPendingPayments(pendingRes.value.data.data);
             }
 
         } catch (err) {
             console.error('Error fetching billing data:', err);
-            setError('Failed to load billing information');
+            // setError('Failed to load billing information');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleManagePortal = async () => {
+    const handlePaymentRequest = async (e) => {
+        e.preventDefault();
+        console.log('Submitting payment request with paymentFormData:', paymentFormData);
+        
+        // Validate that we have a planId
+        if (!paymentFormData.planId) {
+            toast.error('Plan selection is required. Please try the downgrade process again.');
+            // Reset and allow user to restart the process
+            setIsPaymentDialogOpen(false);
+            if (downgradeInfo?.targetPlanId) {
+                setTimeout(() => restartDowngradeProcess(downgradeInfo.targetPlanId), 100);
+            }
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('planId', paymentFormData.planId);
+        formData.append('billingPeriod', paymentFormData.billingPeriod);
+        formData.append('paymentMethod', paymentFormData.paymentMethod);
+        
+        // Add form selection data if it exists
+        if (paymentFormData.formSelection) {
+            formData.append('formSelection', JSON.stringify(paymentFormData.formSelection));
+        }
+        
+        if (paymentFormData.paymentProof) {
+            formData.append('paymentProof', paymentFormData.paymentProof);
+        }
+
         try {
             const response = await axios.post(
-                `${import.meta.env.VITE_SERVER_URL}/api/billing/create-customer-portal-session`,
-                {},
-                { withCredentials: true }
+                `${import.meta.env.VITE_SERVER_URL}/api/manual-billing/payment-request`,
+                formData,
+                { 
+                    withCredentials: true,
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }
             );
-            window.open(response.data.url, '_blank');
+            
+            if (response.data.success) {
+                toast.success(response.data.message);
+                setIsPaymentDialogOpen(false);
+                resetPaymentForm();
+                fetchBillingData();
+            }
         } catch (err) {
-            console.error('Error opening billing portal:', err);
-            toast.error('Failed to open billing portal');
+            console.error('Error submitting payment request:', err);
+            const errorMessage = err.response?.data?.error || 'Failed to submit payment request';
+            toast.error(errorMessage);
+            
+            // If it's a plan not found error, reset and allow user to try again
+            if (errorMessage.includes('Plan not found')) {
+                setIsPaymentDialogOpen(false);
+                if (downgradeInfo?.targetPlanId) {
+                    setTimeout(() => restartDowngradeProcess(downgradeInfo.targetPlanId), 100);
+                }
+            }
         }
     };
+    
+    // Function to restart the downgrade process
+    // This function is used when users need to restart the downgrade process after cancelling or failing payment
+    const restartDowngradeProcess = (planId) => {
+        // Reset any existing downgrade state
+        setDowngradeInfo(null);
+        setSelectedFormIds([]);
+        // Start the downgrade process again
+        checkDowngradeImpact(planId);
+    };
 
-    const handlePlanChange = async (priceId, planName) => {
+    const handleCancelPaymentRequest = async (paymentId) => {
+        if (!window.confirm("Are you sure you want to cancel this payment request?")) return;
+        
         try {
-            setLoadingPlanId(priceId);
-            
-            // Step 1: Check plan change requirements FIRST (before any Stripe update)
-            console.log('🔍 Checking plan change requirements for:', { priceId, planName });
-            
-            const checkResponse = await axios.post(
-                `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/check-plan-change`,
-                { priceId, planName },
-                { withCredentials: true }
-            );
-            
-            if (!checkResponse.data.success) {
-                if (checkResponse.data.current) {
-                    toast.error('You are already subscribed to this plan');
-                    return;
-                }
-                toast.error(checkResponse.data.error || 'Failed to check plan requirements');
-                return;
-            }
-            
-            const checkResult = checkResponse.data;
-            console.log('📊 Plan change check result:', checkResult);
-            console.log('🔍 Check details:');
-            console.log('  - requiresFormSelection:', checkResult.requiresFormSelection);
-            console.log('  - isDowngrade:', checkResult.isDowngrade);
-            console.log('  - isNewSubscription:', checkResult.isNewSubscription);
-            console.log('  - currentPlan:', checkResult.currentPlan);
-            console.log('  - targetPlan:', checkResult.targetPlan);
-            
-            // Step 2: Handle based on check results
-            if (checkResult.requiresFormSelection && checkResult.isDowngrade) {
-                // Show modal immediately for downgrades requiring form selection
-                console.log('📦 Opening modal for downgrade form selection');
-                
-                const modalData = {
-                    ...checkResult.planChangeInfo,
-                    targetPlan: checkResult.targetPlan,
-                    currentPlan: checkResult.currentPlan,
-                    subscriptionInfo: checkResult.subscriptionInfo
-                };
-                
-                setDowngradeData(modalData);
-                setShowDowngradeDialog(true);
-                toast(`Select which forms to keep active when switching to ${planName}`, {
-                    icon: 'ℹ️',
-                    duration: 4000
-                });
-                return; // Don't proceed with Stripe update yet
-            }
-            
-            if (checkResult.isNewSubscription) {
-                // Create new subscription via checkout
-                console.log('🆕 Creating new subscription');
-                const response = await axios.post(
-                    `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/checkout-session`,
-                    { priceId, planName },
-                    { withCredentials: true }
-                );
-                
-                // Redirect to Stripe checkout
-                window.location.href = response.data.url;
-                return;
-            }
-            
-            // Step 3: For upgrades or non-conflicting changes, proceed directly
-            console.log('⬆️ Proceeding with direct subscription update');
-            
-            const response = await axios.post(
-                `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/update-plan`,
-                { priceId, planName },
+            const response = await axios.delete(
+                `${import.meta.env.VITE_SERVER_URL}/api/manual-billing/payment-request/${paymentId}`,
                 { withCredentials: true }
             );
             
             if (response.data.success) {
-                // Handle completed updates (upgrades or non-conflicting changes)
-                const protectionResult = response.data.planChangeProtection;
-                if (protectionResult && protectionResult.requiresAction && protectionResult.autoHandled) {
-                    if (protectionResult.isUpgrade) {
-                        toast.success(`Plan upgraded! ${protectionResult.unlockedForms || 0} forms were unlocked.`);
-                    } else {
-                        toast.info(protectionResult.message);
-                    }
-                } else {
-                    toast.success(response.data.message);
-                }
-                
-                // Refresh billing data for completed updates
-                await fetchBillingData();
-                
-                // Update global user payment data to refresh header
-                try {
-                    const updatedUser = await updateUserPayment();
-                    console.log('✅ Global user payment data updated:', updatedUser?.payment?.plan);
-                } catch (updateError) {
-                    console.warn('Failed to update global user data:', updateError);
-                }
+                toast.success("Payment request cancelled successfully");
+                fetchBillingData();
             }
-            
         } catch (err) {
-            console.error('Error handling plan change:', err);
-            const errorMessage = err.response?.data?.error || 'Failed to process plan change';
-            
-            if (err.response?.data?.current) {
-                toast.error('You are already subscribed to this plan');
-            } else {
-                toast.error(errorMessage);
-            }
-        } finally {
-            setLoadingPlanId(null);
+            console.error('Error cancelling payment request:', err);
+            const errorMessage = err.response?.data?.error || 'Failed to cancel payment request';
+            toast.error(errorMessage);
         }
     };
 
-    const handleDowngradeComplete = async () => {
-        // Refresh billing data after downgrade handling
-        await fetchBillingData();
-        
-        // Update global user payment data to refresh header
-        try {
-            const updatedUser = await updateUserPayment();
-            console.log('✅ Global user payment data updated after downgrade:', updatedUser?.payment?.plan);
-        } catch (updateError) {
-            console.warn('Failed to update global user data after downgrade:', updateError);
-        }
-        
-        setShowDowngradeDialog(false);
-        setDowngradeData(null);
-        toast.success('Plan downgrade completed successfully!');
+    const resetPaymentForm = () => {
+        setPaymentFormData({
+            planId: "",
+            billingPeriod: "monthly",
+            paymentMethod: "bank_transfer",
+            paymentProof: null
+        });
+        setSelectedPlanId(null); // Also reset the selected plan ID
+        // Reset downgrade state as well
+        setDowngradeInfo(null);
+        setSelectedFormIds([]);
     };
 
-    const handleDowngradeClose = () => {
-        setShowDowngradeDialog(false);
-        setDowngradeData(null);
-    };
-
-    const handleDeletePaymentMethod = async (paymentMethodId) => {
-        try {
-            await axios.delete(
-                `${import.meta.env.VITE_SERVER_URL}/api/billing/payment-methods/${paymentMethodId}`,
-                { withCredentials: true }
-            );
-            toast.success('Payment method removed successfully');
-            fetchBillingData();
-        } catch (err) {
-            console.error('Error removing payment method:', err);
-            toast.error('Failed to remove payment method');
-        }
-    };
-
-    const formatCurrency = (amount, currency = 'usd') => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: currency.toUpperCase(),
-        }).format(amount);
+    const formatCurrency = (amount) => {
+        return `Rs ${new Intl.NumberFormat('en-LK', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(amount)}`;
     };
 
     const formatDate = (date) => {
@@ -265,209 +217,436 @@ function BillingPage() {
         });
     };
 
-    // Helper function to determine if a plan is an upgrade or downgrade
-    const getPlanChangeType = (currentPlan, targetPlan) => {
-        if (!currentPlan || !targetPlan) return 'upgrade';
+    const getStatusBadge = (status, endDate = null) => {
+        const now = new Date();
+        const end = endDate ? new Date(endDate) : null;
         
-        // Normalize plan names for comparison
-        const normalizePlanName = (name) => {
-            if (!name) return 'basic';
-            return name.toLowerCase().replace(/\s*plan\s*$/i, '').trim();
+        // Check if subscription is expired
+        const isExpired = end && end < now;
+        
+        const statusConfig = {
+            active: { color: 'w-fit bg-green-100 text-green-800', icon: CheckCircle, text: 'Active' },
+            past_due: { color: 'w-fit bg-yellow-100 text-yellow-800', icon: AlertCircle, text: 'Past Due' },
+            cancelled: { color: 'w-fit bg-red-100 text-red-800', icon: XCircle, text: 'Cancelled' },
+            canceled: { color: 'w-fit bg-red-100 text-red-800', icon: XCircle, text: 'Cancelled' },
+            expired: { color: 'w-fit bg-gray-100 text-gray-800', icon: XCircle, text: 'Expired' },
+            inactive: { color: 'w-fit bg-gray-100 text-gray-800', icon: XCircle, text: 'Inactive' },
         };
         
-        const currentPlanName = normalizePlanName(currentPlan.name);
-        const targetPlanName = normalizePlanName(targetPlan.name);
+        // If subscription is expired but status is still active, show expired
+        let displayStatus = status;
+        if (isExpired && status === 'active') {
+            displayStatus = 'expired';
+        }
         
-        // Define plan hierarchy (basic < standard < premium)
-        const planHierarchy = {
-            'basic': 1,
-            'standard': 2,
-            'premium': 3
-        };
+        const config = statusConfig[displayStatus] || statusConfig.inactive;
+        const Icon = config.icon;
         
-        const currentLevel = planHierarchy[currentPlanName] || 1;
-        const targetLevel = planHierarchy[targetPlanName] || 1;
-        
-        if (targetLevel > currentLevel) return 'upgrade';
-        if (targetLevel < currentLevel) return 'downgrade';
-        return 'same'; // Same plan level
+        return (
+            <Badge className={config.color}>
+                <Icon className="w-3 h-3 mr-1" />
+                {config.text}
+                {isExpired && endDate && (
+                    <span className="ml-1 text-xs">
+                        ({formatDate(endDate)})
+                    </span>
+                )}
+            </Badge>
+        );
     };
 
-    // Toggle auto-renewal for subscription
-    const handleToggleAutoRenewal = async () => {
+    // Downgrade form selection functions
+    const checkDowngradeImpact = async (planId) => {
         try {
-            setTogglingAutoRenewal(true);
-            const response = await axios.post(
-                `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/toggle-auto-renewal`,
-                {},
-                { withCredentials: true }
+            setIsCheckingDowngrade(true);
+            setDowngradeError('');
+            
+            console.log('Checking downgrade impact for planId:', planId);
+            
+            const response = await axios.get(
+                `${import.meta.env.VITE_SERVER_URL}/api/plan-downgrade/check-downgrade-impact`,
+                { 
+                    params: { targetPlanId: planId },
+                    withCredentials: true 
+                }
             );
             
-            if (response.data.success) {
-                // Refresh subscription details
-                await fetchBillingData();
-                toast.success(response.data.message);
+            const data = response.data.data;
+            console.log('Downgrade check response:', data);
+            
+            if (data.requiresAction) {
+                // User needs to select forms
+                setDowngradeInfo({
+                    ...data,
+                    targetPlanId: planId
+                });
+                // Pre-select forms up to the limit
+                const preSelectedIds = data.activeForms
+                    .slice(0, data.newPlanLimit)
+                    .map(form => form._id);
+                setSelectedFormIds(preSelectedIds);
+                setIsDowngradeDialogOpen(true);
+            } else {
+                // No action needed, proceed with normal payment flow
+                setSelectedPlanId(planId);
+                setIsPaymentDialogOpen(true);
             }
         } catch (err) {
-            console.error('Error toggling auto-renewal:', err);
-            const errorMessage = err.response?.data?.error || 'Failed to toggle auto-renewal';
-            
-            // Check if the error is because no payment method is set
-            if (err.response?.data?.requiresPaymentMethod) {
-                toast.error(errorMessage, {
-                    duration: 6000,
-                    icon: '💳'
-                });
-                // Optionally switch to the payment methods tab to prompt user to add one
-                setActiveTab("payment-methods");
-            } else {
-                toast.error(errorMessage);
-            }
+            console.error('Error checking downgrade impact:', err);
+            const errorMessage = err.response?.data?.error || 'Failed to check downgrade impact';
+            setDowngradeError(errorMessage);
+            toast.error(errorMessage);
         } finally {
-            setTogglingAutoRenewal(false);
+            setIsCheckingDowngrade(false);
         }
     };
 
-    // Renew previous subscription plan
-    const handleRenewPreviousPlan = async () => {
-        try {
-            setLoadingPlanId('renew_previous');
+    const handleFormToggle = (formId) => {
+        setSelectedFormIds(prev => {
+            const isSelected = prev.includes(formId);
             
-            // First check if user has a payment method
-            if (!paymentMethods || paymentMethods.length === 0) {
-                toast.error('Please add a payment method before renewing your plan.', {
-                    duration: 6000,
-                    icon: '💳'
-                });
-                setActiveTab("payment-methods");
+            if (isSelected) {
+                // Remove form
+                return prev.filter(id => id !== formId);
+            } else {
+                // Add form (check limit)
+                const limit = downgradeInfo?.lockedForms ? downgradeInfo.targetPlanLimit : downgradeInfo?.newPlanLimit;
+                if (limit && prev.length >= limit) {
+                    toast.error(`You can only select ${limit} form(s)`);
+                    return prev;
+                }
+                return [...prev, formId];
+            }
+        });
+    };
+
+    const handleAutoSelect = () => {
+        if (downgradeInfo?.isUpgrade) {
+            // For upgrades, auto-select up to the target plan limit or total form count (whichever is smaller)
+            // We can select any forms, but let's select unlocked ones first, then locked ones
+            const unlockedForms = downgradeInfo.allForms.filter(form => !form.is_locked);
+            const lockedForms = downgradeInfo.allForms.filter(form => form.is_locked);
+            
+            // Combine unlocked forms first, then locked forms
+            const allFormsSorted = [...unlockedForms, ...lockedForms];
+            
+            // Select up to the target plan limit or total form count (whichever is smaller)
+            const maxSelectable = Math.min(downgradeInfo.targetPlanLimit, downgradeInfo.totalFormCount);
+            const preSelectedIds = allFormsSorted
+                .slice(0, maxSelectable)
+                .map(form => form._id);
+                
+            setSelectedFormIds(preSelectedIds);
+            toast.info(`Auto-selected ${preSelectedIds.length} forms`);
+        } else {
+            // For downgrades, auto-select the most recent forms up to the limit
+            const preSelectedIds = downgradeInfo.activeForms
+                .slice(0, downgradeInfo.newPlanLimit)
+                .map(form => form._id);
+            setSelectedFormIds(preSelectedIds);
+            toast.info(`Auto-selected ${preSelectedIds.length} most recent forms`);
+        }
+    };
+
+    const handleDowngradeSubmit = async () => {
+        try {
+            setIsSubmittingDowngrade(true);
+            setDowngradeError('');
+            
+            if (selectedFormIds.length === 0) {
+                setDowngradeError('Please select at least one form to keep active');
                 return;
             }
             
-            // Call backend to create a new subscription based on previous plan
-            const response = await axios.post(
-                `${import.meta.env.VITE_SERVER_URL}/api/subscriptions/renew-previous-plan`,
-                { previousPlan: subscriptionDetails.previousPlan },
+            if (selectedFormIds.length > downgradeInfo.newPlanLimit) {
+                setDowngradeError(`You can only select ${downgradeInfo.newPlanLimit} form(s)`);
+                return;
+            }
+            
+            // Debug log
+            console.log('Submitting form selection for downgrade with targetPlanId:', downgradeInfo.targetPlanId);
+            console.log('Selected form IDs:', selectedFormIds);
+            
+            // Set payment form data first with form selection info
+            const newPaymentFormData = {
+                planId: downgradeInfo.targetPlanId,
+                billingPeriod: "monthly",
+                paymentMethod: "bank_transfer",
+                paymentProof: null,
+                // Store form selection for processing after payment
+                formSelection: {
+                    selectedFormIds: selectedFormIds,
+                    isUpgrade: false,
+                    targetPlanId: downgradeInfo.targetPlanId
+                }
+            };
+            console.log('Setting payment form data to:', newPaymentFormData);
+            setPaymentFormData(newPaymentFormData);
+            
+            // Close dialog and open payment dialog
+            setIsDowngradeDialogOpen(false);
+            setSelectedPlanId(downgradeInfo.targetPlanId);
+            setIsPaymentDialogOpen(true);
+            
+            toast.success('Form selection saved successfully');
+        } catch (err) {
+            console.error('Error handling form selection:', err);
+            const errorMessage = err.response?.data?.error || 'Failed to save form selection';
+            setDowngradeError(errorMessage);
+            toast.error(errorMessage);
+        } finally {
+            setIsSubmittingDowngrade(false);
+        }
+    };
+
+    // Check if user needs to manage forms due to plan upgrade
+    const checkUpgradeImpact = async (planId) => {
+        try {
+            setIsCheckingDowngrade(true);
+            setDowngradeError('');
+            
+            console.log('Checking upgrade impact for planId:', planId);
+            
+            // For upgrades, we need to show all forms, not just locked ones
+            const response = await axios.get(
+                `${import.meta.env.VITE_SERVER_URL}/api/plan-downgrade/all-forms-for-upgrade`,
                 { withCredentials: true }
             );
             
-            if (response.data.success) {
-                if (response.data.redirectUrl) {
-                    // Redirect to Stripe checkout
-                    window.location.href = response.data.redirectUrl;
-                } else {
-                    // Refresh billing data for completed updates
-                    await fetchBillingData();
-                    toast.success('Plan renewed successfully!');
-                    
-                    // Update global user payment data to refresh header
-                    try {
-                        const updatedUser = await updateUserPayment();
-                        console.log('✅ Global user payment data updated:', updatedUser?.payment?.plan);
-                    } catch (updateError) {
-                        console.warn('Failed to update global user data:', updateError);
-                    }
-                }
+            const allFormsData = response.data.data;
+            console.log('All forms data:', allFormsData);
+            
+            // Get the target plan to get its limit
+            const targetPlan = availablePlans.find(plan => plan.id === planId);
+            
+            // For upgrades, show all forms if the target plan allows more forms than currently available
+            if (allFormsData.count > 0 && targetPlan) {
+                // User has forms, need to select which ones to unlock/use with new plan
+                setDowngradeInfo({
+                    requiresAction: true,
+                    isUpgrade: true, // Indicator for upgrade scenario
+                    targetPlanId: planId,
+                    targetPlanName: targetPlan.name,
+                    targetPlanLimit: targetPlan.form_limit,
+                    allForms: allFormsData.allForms, // Show all forms, not just locked ones
+                    totalFormCount: allFormsData.count,
+                    message: `You have ${allFormsData.count} form(s). Please select up to ${targetPlan.form_limit} form(s) to use with your new ${targetPlan.name} plan.`
+                });
+                // Pre-select forms up to the limit
+                setSelectedFormIds([]);
+                setIsDowngradeDialogOpen(true);
+            } else {
+                // No forms or no target plan, proceed with normal payment flow
+                setSelectedPlanId(planId);
+                setIsPaymentDialogOpen(true);
             }
         } catch (err) {
-            console.error('Error renewing previous plan:', err);
-            const errorMessage = err.response?.data?.error || 'Failed to renew previous plan';
+            console.error('Error checking upgrade impact:', err);
+            const errorMessage = err.response?.data?.error || 'Failed to check upgrade impact';
+            setDowngradeError(errorMessage);
             toast.error(errorMessage);
         } finally {
-            setLoadingPlanId(null);
+            setIsCheckingDowngrade(false);
+        }
+    };
+
+    const handleUpgradeSubmit = async () => {
+        try {
+            setIsSubmittingDowngrade(true);
+            setDowngradeError('');
+            
+            if (selectedFormIds.length === 0) {
+                setDowngradeError('Please select at least one form to unlock');
+                return;
+            }
+            
+            // Get the target plan to validate the selection
+            const targetPlan = availablePlans.find(plan => plan.id === downgradeInfo.targetPlanId);
+            if (!targetPlan) {
+                setDowngradeError('Target plan not found');
+                return;
+            }
+            
+            if (selectedFormIds.length > targetPlan.form_limit) {
+                setDowngradeError(`You can only select ${targetPlan.form_limit} form(s) for your ${targetPlan.name} plan`);
+                return;
+            }
+            
+            // Debug log
+            console.log('Submitting form selection for upgrade with targetPlanId:', downgradeInfo.targetPlanId);
+            console.log('Selected form IDs:', selectedFormIds);
+            
+            // Set payment form data first with form selection info
+            const newPaymentFormData = {
+                planId: downgradeInfo.targetPlanId,
+                billingPeriod: "monthly",
+                paymentMethod: "bank_transfer",
+                paymentProof: null,
+                // Store form selection for processing after payment
+                formSelection: {
+                    selectedFormIds: selectedFormIds,
+                    isUpgrade: true,
+                    targetPlanId: downgradeInfo.targetPlanId
+                }
+            };
+            console.log('Setting payment form data to:', newPaymentFormData);
+            setPaymentFormData(newPaymentFormData);
+            
+            // Close dialog and open payment dialog
+            setIsDowngradeDialogOpen(false);
+            setSelectedPlanId(downgradeInfo.targetPlanId);
+            setIsPaymentDialogOpen(true);
+            
+            toast.success('Form selection saved successfully');
+        } catch (err) {
+            console.error('Error handling form selection for upgrade:', err);
+            const errorMessage = err.response?.data?.error || 'Failed to save form selection';
+            setDowngradeError(errorMessage);
+            toast.error(errorMessage);
+        } finally {
+            setIsSubmittingDowngrade(false);
         }
     };
 
     // Filter plans by interval
-    const monthlyPlans = availablePlans.filter(plan => plan.interval === 'month');
-    const yearlyPlans = availablePlans.filter(plan => plan.interval === 'year');
-    const currentPlans = planInterval === 'monthly' ? monthlyPlans : yearlyPlans;
+    // const monthlyPlans = availablePlans.filter(plan => plan.price_monthly > 0);
+    // const yearlyPlans = availablePlans.filter(plan => plan.price_yearly > 0);
     
     // Check if user has no active subscription
     const hasNoSubscription = !subscriptionDetails || 
-        subscriptionDetails.subscription.status === 'inactive' || 
-        subscriptionDetails.subscription.status === 'canceled';
+        !subscriptionDetails.subscription || 
+        subscriptionDetails.subscription.status !== 'active';
 
-    const getStatusBadge = (status) => {
-        const statusConfig = {
-            active: { color: 'w-fit bg-green-100 text-green-800', icon: CheckCircle, text: 'Active' },
-            past_due: { color: 'w-fit bg-yellow-100 text-yellow-800', icon: AlertCircle, text: 'Past Due' },
-            canceled: { color: 'w-fit bg-red-100 text-red-800', icon: XCircle, text: 'Canceled' },
-            inactive: { color: 'w-fit bg-gray-100 text-gray-800', icon: XCircle, text: 'Inactive' },
-        };
-        
-        const config = statusConfig[status] || statusConfig.inactive;
-        const Icon = config.icon;
-        
-        return (
-            <Badge className={`${config.color} flex items-center gap-1`}>
-                <Icon size={12} />
-                {config.text}
-            </Badge>
-        );
-    };
+    // Pre-select current plan when dialog opens
+    useEffect(() => {
+        if (isPaymentDialogOpen && !downgradeInfo) {
+            // Only run this logic for regular payment requests, not downgrade scenarios
+            // If a specific plan was selected, use that; otherwise use current plan
+            const planIdToSelect = selectedPlanId || (subscriptionDetails?.subscription?.plan_id?._id) || "";
+            console.log('Payment dialog opened. Current paymentFormData:', paymentFormData, 'planIdToSelect:', planIdToSelect, 'selectedPlanId:', selectedPlanId);
+            // Only update if the planId is not already set properly to avoid overriding values set elsewhere
+            if ((!paymentFormData.planId || paymentFormData.planId === "") && planIdToSelect) {
+                console.log('Setting paymentFormData.planId to planIdToSelect:', planIdToSelect);
+                setPaymentFormData(prev => ({
+                    ...prev,
+                    planId: planIdToSelect
+                }));
+            } else if (selectedPlanId && selectedPlanId !== "" && paymentFormData.planId !== selectedPlanId) {
+                // If selectedPlanId is explicitly set and different, update to that
+                console.log('Setting paymentFormData.planId to selectedPlanId:', selectedPlanId);
+                setPaymentFormData(prev => ({
+                    ...prev,
+                    planId: selectedPlanId
+                }));
+            }
+        } else if (isPaymentDialogOpen && downgradeInfo) {
+            console.log('Payment dialog opened during downgrade process. downgradeInfo:', downgradeInfo, 'paymentFormData:', paymentFormData);
+        }
+    }, [isPaymentDialogOpen, subscriptionDetails, selectedPlanId, downgradeInfo, paymentFormData.planId]);
 
     if (loading) {
         return <LoadingSpinner />;
     }
 
-    if (!isAuthenticated) {
-        return (
-            <CustomerLayoutPage>
-                <div className="pt-4 md:p-4">
-                    <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>
-                            Please log in to access your billing information.
-                        </AlertDescription>
-                    </Alert>
-                </div>
-            </CustomerLayoutPage>
-        );
-    }
-
-    if (error) {
-        return (
-            <CustomerLayoutPage>
-                <div className="pt-4 md:p-4">
-                    <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>
-                            {error}
-                        </AlertDescription>
-                    </Alert>
-                </div>
-            </CustomerLayoutPage>
-        );
-    }
-
     return (
         <CustomerLayoutPage>
-            <div className="pt-4 md:p-4 space-y-6">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">
-                            Billing & Subscription
-                        </h1>
-                        <p className="text-gray-600 dark:text-gray-400">
-                            Manage your subscription, payment methods, and billing history
-                        </p>
-                    </div>
-                    <Button onClick={handleManagePortal} variant="outline" className="flex items-center gap-2 w-full md:w-auto">
-                        <Settings size={16} />
-                        Stripe Portal
-                        <ExternalLink size={14} />
-                    </Button>
+            <div className="space-y-6">
+                <div>
+                    <h1 className="text-3xl font-bold">Billing & Subscription</h1>
+                    <p className="text-gray-600 dark:text-gray-400">
+                        Manage your subscription and payment history
+                    </p>
                 </div>
 
+                {/* Subscription Status Banner - Shown at the top */}
+                {subscriptionDetails?.subscription && (() => {
+                    const now = new Date();
+                    const endDate = new Date(subscriptionDetails.subscription.subscription_end);
+                    const isExpired = endDate < now;
+                    const isCancelled = subscriptionDetails.subscription.status === 'cancelled' || subscriptionDetails.subscription.status === 'canceled';
+                    
+                    if (isExpired) {
+                        return (
+                            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                                <div className="flex items-center">
+                                    <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
+                                    <span className="text-yellow-800 font-medium">
+                                        Subscription Expired
+                                    </span>
+                                </div>
+                                <p className="text-yellow-700 text-sm mt-1">
+                                    Your subscription expired on {formatDate(subscriptionDetails.subscription.subscription_end)}. 
+                                    Please renew your subscription to continue using the service.
+                                </p>
+                            </div>
+                        );
+                    }
+                    
+                    if (isCancelled) {
+                        return (
+                            <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                                <div className="flex items-center">
+                                    <XCircle className="h-5 w-5 text-red-600 mr-2" />
+                                    <span className="text-red-800 font-medium">
+                                        Subscription Cancelled
+                                    </span>
+                                </div>
+                                <p className="text-red-700 text-sm mt-1">
+                                    Your subscription was cancelled. 
+                                    Please choose a new plan to continue using the service.
+                                </p>
+                            </div>
+                        );
+                    }
+                    
+                    return null;
+                })()}
+
+                {/* Pending Payments - Moved to be visible on all tabs */}
+                {pendingPayments.length > 0 && (
+                    <Card className="mb-6">
+                        <CardHeader>
+                            <CardTitle>Pending Payment Requests</CardTitle>
+                            <CardDescription>
+                                These payments are awaiting admin approval
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {pendingPayments.map((payment) => (
+                                    <div key={payment._id} className="flex items-center justify-between p-4 border rounded-lg border-yellow-500 dark:bg-slate-900">
+                                        <div>
+                                            <h4 className="font-medium">{payment.plan_name}</h4>
+                                            <p className="text-sm text-gray-500">
+                                                {formatCurrency(payment.amount)} ({payment.billing_period})
+                                            </p>
+                                            <p className="text-xs text-gray-400">
+                                                Requested on {formatDate(payment.created_at)}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Badge className="bg-yellow-100 text-yellow-800" variant="default">Pending Approval</Badge>
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm"
+                                                onClick={() => handleCancelPaymentRequest(payment._id)}
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
                 <Tabs value={hasNoSubscription ? "plans" : activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+                    <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="overview" disabled={hasNoSubscription} className="col-span-1">
                             Overview
                         </TabsTrigger>
                         <TabsTrigger value="plans" className="col-span-1">Plans</TabsTrigger>
-                        <TabsTrigger value="payment-methods" disabled={hasNoSubscription} className="col-span-1">
-                            Payment Methods
-                        </TabsTrigger>
                         <TabsTrigger value="history" disabled={hasNoSubscription} className="col-span-1">
                             History
                         </TabsTrigger>
@@ -478,419 +657,546 @@ function BillingPage() {
                         {/* Current Subscription */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-                                    <Star className="h-5 w-5" />
-                                    Current Subscription
-                                </CardTitle>
-                                <CardDescription>
-                                    Your current plan details and usage
-                                </CardDescription>
+                                <div className="flex justify-between items-center">
+                                    <CardTitle>Current Subscription</CardTitle>
+                                    <Button onClick={() => setActiveTab("plans")}>
+                                        Change Plan
+                                    </Button>
+                                </div>
                             </CardHeader>
-                            <CardContent className="space-y-4">
-                                {subscriptionDetails ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-medium text-gray-500">Plan</p>
-                                            <p className="text-lg font-semibold">{subscriptionDetails.plan.displayName}</p>
+                            <CardContent>
+                                {subscriptionDetails?.subscription ? (
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center">
+                                            <div>
+                                                <h3 className="text-xl font-semibold">{subscriptionDetails.subscription.plan_name}</h3>
+                                                <p className="text-gray-500">
+                                                    {formatCurrency(subscriptionDetails.subscription.amount)} / {subscriptionDetails.subscription.billing_period}
+                                                </p>
+                                            </div>
+                                            {getStatusBadge(subscriptionDetails.subscription.status, subscriptionDetails.subscription.subscription_end)}
                                         </div>
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-medium text-gray-500">Status</p>
-                                            {getStatusBadge(subscriptionDetails.subscription.status)}
-                                        </div>
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-medium text-gray-500">Next Billing</p>
-                                            <p className="text-sm">
-                                                {subscriptionDetails.subscription.current_period_end
-                                                    ? formatDate(subscriptionDetails.subscription.current_period_end)
-                                                    : 'N/A'}
-                                            </p>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-medium text-gray-500">Forms Limit</p>
-                                            <p className="text-sm">{subscriptionDetails.plan.formLimit} forms</p>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className="h-4 w-4 text-gray-500" />
+                                                <div>
+                                                    <p className="text-sm text-gray-500">Start Date</p>
+                                                    <p className="font-medium">
+                                                        {formatDate(subscriptionDetails.subscription.subscription_start)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className="h-4 w-4 text-gray-500" />
+                                                <div>
+                                                    <p className="text-sm text-gray-500">End Date</p>
+                                                    <p className="font-medium">
+                                                        {formatDate(subscriptionDetails.subscription.subscription_end)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-2">
+                                                <FileText className="h-4 w-4 text-gray-500" />
+                                                <div>
+                                                    <p className="text-sm text-gray-500">Forms Used</p>
+                                                    <p className="font-medium">
+                                                        {subscriptionDetails.formCount} / {subscriptionDetails.subscription.plan_id?.form_limit || 'Unlimited'}
+                                                    </p>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (
-                                    <p className="text-gray-500">No active subscription</p>
+                                    <div className="text-center py-8">
+                                        <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                        <h3 className="text-lg font-medium mb-2">No Active Subscription</h3>
+                                        <p className="text-gray-500 mb-4">
+                                            You don&apos;t have an active subscription. Select a plan to get started.
+                                        </p>
+                                        <Button onClick={() => setActiveTab("plans")}>
+                                            Choose a Plan
+                                        </Button>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>
 
-                        {/* Quick Stats */}
-                        {subscriptionDetails && (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <Card>
-                                    <CardContent className="p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-blue-100 rounded-lg">
-                                                <DollarSign className="h-4 w-4 text-blue-600" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-gray-600">Plan Features</p>
-                                                <p className="text-lg font-semibold">{subscriptionDetails.plan.features?.length || 0} included</p>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardContent className="p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-green-100 rounded-lg">
-                                                <CheckCircle className="h-4 w-4 text-green-600" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-gray-600">Submission Limit</p>
-                                                <p className="text-lg font-semibold">{subscriptionDetails.plan.submissionLimit?.toLocaleString() || 'Unlimited'}/month</p>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardContent className="p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-purple-100 rounded-lg">
-                                                <Calendar className="h-4 w-4 text-purple-600" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-gray-600">Auto Renewal</p>
-                                                <div className="flex items-center gap-2">
-                                                    <p className="text-lg font-semibold">
-                                                        {subscriptionDetails.subscription.cancel_at_period_end ? 'Disabled' : 'Enabled'}
-                                                    </p>
-                                                    <Button 
-                                                        variant="outline" 
-                                                        size="sm" 
-                                                        onClick={handleToggleAutoRenewal}
-                                                        disabled={togglingAutoRenewal}
-                                                        className="h-8 px-2"
-                                                    >
-                                                        {togglingAutoRenewal ? (
-                                                            <div className="flex items-center gap-1">
-                                                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-900"></div>
-                                                                <span>...</span>
-                                                            </div>
-                                                        ) : subscriptionDetails.subscription.cancel_at_period_end ? (
-                                                            'Enable'
-                                                        ) : (
-                                                            'Disable'
-                                                        )}
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        )}
+
                     </TabsContent>
 
                     {/* Plans Tab */}
                     <TabsContent value="plans" className="space-y-6">
-                        {hasNoSubscription && (
-                            <Alert>
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertDescription>
-                                    You don&apos;t have an active subscription. Choose a plan below to get started.
-                                </AlertDescription>
-                            </Alert>
-                        )}
-                        
-                        <div className="flex flex-col md:flex-row items-center justify-between gap-2">
-                            <h3 className="text-lg font-semibold">
-                                {hasNoSubscription ? 'Choose Your Subscription Plan' : 'Available Plans'}
-                            </h3>
-                            <div className="flex flex-col md:flex-row items-center gap-2">
-                                <span className="text-sm text-gray-500">Billing:</span>
-                                <div className="flex bg-slate-200 dark:bg-slate-800 rounded-lg p-2">
-                                    <button
-                                        onClick={() => setPlanInterval('monthly')}
-                                        className={`px-4 py-2 text-sm rounded-md transition-colors ${
-                                            planInterval === 'monthly'
-                                                ? 'bg-white dark:bg-slate-950 shadow-sm  dark:text-gray-300'
-                                                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
-                                        }`}
-                                    >
-                                        Monthly
-                                    </button>
-                                    <button
-                                        onClick={() => setPlanInterval('yearly')}
-                                        className={`px-4 py-2 text-sm rounded-md transition-colors ${
-                                            planInterval === 'yearly'
-                                                ? 'bg-white dark:bg-slate-950 shadow-sm dark:text-gray-300'
-                                                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
-                                        }`}
-                                    >
-                                        Yearly
-                                        <span className="ml-1 text-xs text-green-600 font-medium">
-                                            (Save 16%)
-                                        </span>
-                                    </button>
-                                </div>
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h2 className="text-2xl font-bold">Subscription Plans</h2>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                    Choose a plan that fits your needs
+                                </p>
                             </div>
+                            
+                            <Button onClick={() => {
+                                setSelectedPlanId(null); // No specific plan selected
+                                setIsPaymentDialogOpen(true);
+                            }}>
+                                <CreditCard className="h-4 w-4 mr-2" />
+                                Make Payment
+                            </Button>
                         </div>
                         
-                        {/* Previous Plan Renewal Option */}
-                        {hasNoSubscription && subscriptionDetails?.previousPlan && (
-                            <Card className="border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                                        <Star className="h-5 w-5" />
-                                        Renew Your Previous Plan
-                                    </CardTitle>
-                                    <CardDescription>
-                                        You previously had the {subscriptionDetails.previousPlan.plan} plan. 
-                                        Renew it with your existing payment method.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="flex flex-wrap items-center gap-4 text-sm">
-                                        <div className="flex items-center gap-2">
-                                            <Calendar className="h-4 w-4 text-gray-500" />
-                                            <span>Expired: {formatDate(subscriptionDetails.previousPlan.subscription_expiry)}</span>
-                                        </div>
-                                    </div>
-                                    <Button 
-                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                                        onClick={() => handleRenewPreviousPlan()}
-                                        disabled={loadingPlanId === 'renew_previous'}
-                                    >
-                                        {loadingPlanId === 'renew_previous' ? (
-                                            <div className="flex items-center gap-2">
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                <span>Processing...</span>
-                                            </div>
-                                        ) : (
-                                            'Renew Previous Plan'
-                                        )}
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        )}
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {currentPlans.map((plan) => {
-                                // Check if this plan matches both name and billing interval
-                                // Convert frontend interval format (monthly/yearly) to Stripe format (month/year)
-                                const currentInterval = planInterval === 'monthly' ? 'month' : 'year';
-                                const isCurrentPlan = subscriptionDetails?.plan.name.toLowerCase().includes(plan.name.toLowerCase()) &&
-                                    subscriptionDetails?.subscription.status === 'active' &&
-                                    subscriptionDetails?.subscription.interval === currentInterval;
-                                
-                                return (
-                                    <Card key={plan.priceId} className={`relative ${
-                                        isCurrentPlan ? 'ring-2 ring-blue-500 bg-slate-200 dark:bg-slate-900' : ''
-                                    }`}>
-                                        {isCurrentPlan && (
-                                            <div className="absolute -top-2 -right-2">
-                                                <Badge className="bg-blue-100 text-blue-800">
-                                                    Current Plan
-                                                </Badge>
-                                            </div>
-                                        )}
-                                        <CardHeader>
-                                            <CardTitle className="text-lg">{plan.name}</CardTitle>
-                                            <CardDescription>{plan.description}</CardDescription>
-                                            <div className="text-2xl font-bold">
-                                                {formatCurrency(plan.amount)}
-                                                <span className="text-sm font-normal text-gray-500">/{plan.interval}</span>
-                                            </div>
-                                            {planInterval === 'yearly' && (
-                                                <div className="text-xs text-green-600">
-                                                    Save {formatCurrency((plan.amount * 12 - plan.amount * 10) / 12)} per month
-                                                </div>
-                                            )}
-                                        </CardHeader>
-                                        <CardContent className="space-y-4">
-                                            {plan.features && plan.features.length > 0 ? (
-                                                <ul className="space-y-2">
-                                                    {plan.features.map((feature, index) => (
-                                                        <li key={index} className="flex items-center gap-2 text-sm">
-                                                            <CheckCircle size={14} className="text-green-500" />
-                                                            {feature}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            ) : (
-                                                <ul className="space-y-2">
-                                                    <li className="flex items-center gap-2 text-sm">
-                                                        <CheckCircle size={14} className="text-green-500" />
-                                                        All features included
-                                                    </li>
-                                                </ul>
-                                            )}
-                                            <Button 
-                                                className={`w-full text-white ${
-                                                    isCurrentPlan 
-                                                        ? 'bg-blue-600 hover:bg-blue-700' 
-                                                        : 'bg-indigo-600 hover:bg-indigo-700'
-                                                }`}
-                                                onClick={() => handlePlanChange(plan.priceId, plan.name)}
-                                                disabled={isCurrentPlan || loadingPlanId === plan.priceId}
-                                            >
-                                                {loadingPlanId === plan.priceId ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                                        <span>Processing...</span>
-                                                    </div>
-                                                ) : isCurrentPlan ? (
-                                                    'Current Plan'
-                                                ) : hasNoSubscription && subscriptionDetails?.previousPlan ? (
-                                                    // User had a previous plan, check if this is the same plan
-                                                    (subscriptionDetails.previousPlan.plan.toLowerCase().includes(plan.name.toLowerCase()) || 
-                                                     plan.name.toLowerCase().includes(subscriptionDetails.previousPlan.plan.toLowerCase())) ? (
-                                                        'Renew Plan'
-                                                    ) : getPlanChangeType(
-                                                        { name: subscriptionDetails.previousPlan.plan }, 
-                                                        plan
-                                                    ) === 'downgrade' ? (
-                                                        'Downgrade to This Plan'
-                                                    ) : (
-                                                        'Upgrade to This Plan'
-                                                    )
-                                                ) : hasNoSubscription ? (
-                                                    'Choose Plan'
-                                                ) : (
-                                                    // Determine button text based on plan comparison
-                                                    getPlanChangeType(subscriptionDetails?.plan, plan) === 'downgrade' 
-                                                        ? 'Downgrade to This Plan' 
-                                                        : 'Upgrade to This Plan'
+                        {availablePlans.length > 0 ? (
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                {availablePlans.map((plan) => {
+                                    const isCurrentPlan = subscriptionDetails?.subscription?.plan_id?._id === plan.id;
+                                    const currentFormLimit = subscriptionDetails?.subscription?.plan_id?.form_limit || 0;
+                                    const isDowngrade = plan.form_limit < currentFormLimit;
+                                    const actionText = isCurrentPlan 
+                                        ? "Current Plan" 
+                                        : isDowngrade 
+                                            ? "Downgrade Plan" 
+                                            : "Upgrade Plan";
+                                    
+                                    return (
+                                        <Card 
+                                            key={plan.id} 
+                                            className={`flex flex-col ${isCurrentPlan ? 'border-2 border-blue-500' : ''}`}
+                                        >
+                                            <CardHeader>
+                                                <CardTitle>{plan.name}</CardTitle>
+                                                <CardDescription>{plan.description}</CardDescription>
+                                                {isCurrentPlan && (
+                                                    <Badge className="w-fit bg-blue-500 hover:bg-blue-600">
+                                                        Current Plan
+                                                    </Badge>
                                                 )}
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
-                                );
-                            })}
-                        </div>
-                        
-                        {currentPlans.length === 0 && (
-                            <Card>
-                                <CardContent className="p-8 text-center">
-                                    <AlertCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                                    <p className="text-gray-500">No {planInterval} plans available</p>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </TabsContent>
-
-                    {/* Payment Methods Tab */}
-                    <TabsContent value="payment-methods" className="space-y-6">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold">Payment Methods</h3>
-                            <AddPaymentMethodDialog onPaymentMethodAdded={fetchBillingData} />
-                        </div>
-                        
-                        {paymentMethods.length > 0 ? (
-                            <div className="grid gap-4">
-                                {paymentMethods.map((method) => (
-                                    <Card key={method.id}>
-                                        <CardContent className="p-4">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-gray-100 rounded">
-                                                        <CreditCard className="h-4 w-4" />
+                                            </CardHeader>
+                                            <CardContent className="flex-1">
+                                                <div className="space-y-4">
+                                                    <div className="text-3xl font-bold">
+                                                        {formatCurrency(plan.price_monthly)}
+                                                        <span className="text-lg font-normal text-gray-500">/month</span>
                                                     </div>
-                                                    <div>
-                                                        <p className="font-medium">
-                                                            {method.card?.brand.toUpperCase()} •••• {method.card?.last4}
-                                                        </p>
-                                                        <p className="text-sm text-gray-500">
-                                                            Expires {method.card?.exp_month}/{method.card?.exp_year}
-                                                        </p>
+                                                    <div className="text-sm text-gray-500">
+                                                        {formatCurrency(plan.price_yearly)} billed yearly
                                                     </div>
+                                                    
+                                                    <ul className="space-y-2">
+                                                        <li className="flex items-center">
+                                                            <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                                            {plan.form_limit} forms
+                                                        </li>
+                                                        {plan.features.map((feature, index) => (
+                                                            <li key={index} className="flex items-center">
+                                                                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                                                {feature}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
                                                 </div>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleDeletePaymentMethod(method.id)}
-                                                    className="text-red-600 hover:text-red-700"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </Button>
+                                            </CardContent>
+                                            <div className="p-6 pt-0">
+                                                {isCurrentPlan ? (
+                                                    <Button 
+                                                        className="w-full"
+                                                        onClick={() => {
+                                                            setSelectedPlanId(plan.id); // Set the selected plan ID
+                                                            setIsPaymentDialogOpen(true);
+                                                        }}
+                                                    >
+                                                        Pay for Next Month
+                                                    </Button>
+                                                ) : (
+                                                    <Button 
+                                                        className="w-full"
+                                                        variant={isDowngrade ? "secondary" : "default"}
+                                                        onClick={async () => {
+                                                            // Check if this is a downgrade or upgrade
+                                                            if (isDowngrade) {
+                                                                // This is a downgrade, check if form selection is needed
+                                                                await checkDowngradeImpact(plan.id);
+                                                            } else {
+                                                                // This is an upgrade, check if there are locked forms to unlock
+                                                                await checkUpgradeImpact(plan.id);
+                                                            }
+                                                        }}
+                                                        disabled={isCheckingDowngrade}
+                                                    >
+                                                        {isCheckingDowngrade ? 'Checking...' : actionText}
+                                                    </Button>
+                                                )}
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
+                                        </Card>
+                                    );
+                                })}
                             </div>
                         ) : (
                             <Card>
-                                <CardContent className="p-8 text-center">
-                                    <CreditCard className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                                    <p className="text-gray-500 mb-4">No payment methods found</p>
-                                    <AddPaymentMethodDialog onPaymentMethodAdded={fetchBillingData} />
+                                <CardContent className="py-8 text-center">
+                                    <p className="text-gray-500">No subscription plans available</p>
                                 </CardContent>
                             </Card>
                         )}
+                        
+                        {/* Payment Dialog */}
+                        <Dialog open={isPaymentDialogOpen} onOpenChange={(open) => {
+                            setIsPaymentDialogOpen(open);
+                            // Reset selected plan ID when dialog closes
+                            if (!open) {
+                                setSelectedPlanId(null);
+                            }
+                        }}>
+                            <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle>Make Payment</DialogTitle>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    {/* Add a button to restart downgrade process if needed */}
+                                    {downgradeInfo && (
+                                        <div className="text-center pb-2">
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm"
+                                                onClick={() => {
+                                                    setIsPaymentDialogOpen(false);
+                                                    restartDowngradeProcess(downgradeInfo.targetPlanId);
+                                                }}
+                                            >
+                                                Reselect Forms
+                                            </Button>
+                                        </div>
+                                    )}
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="plan" className="text-right">
+                                            Plan
+                                        </Label>
+                                        <div className="col-span-3">
+                                            <Select
+                                                value={paymentFormData.planId}
+                                                onValueChange={(value) => setPaymentFormData({ ...paymentFormData, planId: value })}
+                                                disabled={!!paymentFormData.formSelection} // Disable if form selection exists
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a plan" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {availablePlans.map((plan) => (
+                                                        <SelectItem key={plan.id} value={plan.id}>
+                                                            {plan.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            {paymentFormData.formSelection && (
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Plan is fixed based on your form selection
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="billingPeriod" className="text-right">
+                                            Billing
+                                        </Label>
+                                        <div className="col-span-3">
+                                            <Select
+                                                value={paymentFormData.billingPeriod}
+                                                onValueChange={(value) => setPaymentFormData({ ...paymentFormData, billingPeriod: value })}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="monthly">Monthly</SelectItem>
+                                                    <SelectItem value="yearly">Yearly</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="paymentMethod" className="text-right">
+                                            Method
+                                        </Label>
+                                        <div className="col-span-3">
+                                            <Select
+                                                value={paymentFormData.paymentMethod}
+                                                onValueChange={(value) => setPaymentFormData({ ...paymentFormData, paymentMethod: value })}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                                                    <SelectItem value="cash">Cash</SelectItem>
+                                                    <SelectItem value="other">Other</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="paymentProof" className="text-right">
+                                            Proof
+                                        </Label>
+                                        <div className="col-span-3">
+                                            <Input
+                                                id="paymentProof"
+                                                type="file"
+                                                accept="image/*,.pdf"
+                                                onChange={(e) => setPaymentFormData({ ...paymentFormData, paymentProof: e.target.files[0] })}
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Upload payment receipt or proof of transfer
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex justify-end gap-2">
+                                        <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>
+                                            Cancel
+                                        </Button>
+                                        <Button onClick={handlePaymentRequest}>
+                                            Submit Payment
+                                        </Button>
+                                    </div>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                        
+                        {/* Downgrade Dialog */}
+                        <Dialog open={isDowngradeDialogOpen} onOpenChange={(open) => {
+                            setIsDowngradeDialogOpen(open);
+                            if (!open) {
+                                setDowngradeInfo(null);
+                                setSelectedFormIds([]);
+                                setDowngradeError('');
+                            }
+                        }}>
+                            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                                <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-2">
+                                        <AlertCircle className="h-5 w-5 text-amber-500" />
+                                        {downgradeInfo?.isUpgrade ? 'Plan Upgrade - Unlock Forms' : 'Plan Downgrade Confirmation'}
+                                    </DialogTitle>
+                                </DialogHeader>
+                                
+                                {downgradeInfo && (
+                                    <div className="space-y-6">
+                                        <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
+                                            <p className="text-amber-800">
+                                                {downgradeInfo?.isUpgrade 
+                                                    ? `You have ${downgradeInfo.totalFormCount} form(s). Please select up to ${downgradeInfo.targetPlanLimit} form(s) to use with your new ${downgradeInfo.targetPlanName} plan.`
+                                                    : `Your ${downgradeInfo.currentPlan} plan allows ${downgradeInfo.currentFormCount} active form(s), 
+                                                    but the new ${downgradeInfo.targetPlan} plan only allows ${downgradeInfo.newPlanLimit} active form(s). 
+                                                    Please select which ${downgradeInfo.newPlanLimit} form(s) will remain active and which ${downgradeInfo.excessFormCount} will be locked.`}
+                                            </p>
+                                        </div>
+                                        
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-lg font-semibold">
+                                                {downgradeInfo?.isUpgrade 
+                                                    ? `Select forms to use (up to ${Math.min(downgradeInfo.targetPlanLimit, downgradeInfo.totalFormCount)} forms)`
+                                                    : `Select ${downgradeInfo.newPlanLimit} form(s) to keep active`}
+                                            </h3>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm text-gray-600">
+                                                    {selectedFormIds.length} of {downgradeInfo?.isUpgrade ? Math.min(downgradeInfo.targetPlanLimit, downgradeInfo.totalFormCount) : downgradeInfo.newPlanLimit} selected
+                                                </span>
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm"
+                                                    onClick={handleAutoSelect}
+                                                >
+                                                    Auto-select
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="grid gap-3 max-h-96 overflow-y-auto">
+                                            {(downgradeInfo?.isUpgrade ? downgradeInfo?.allForms : downgradeInfo?.activeForms)?.map((form) => {
+                                                const isSelected = selectedFormIds.includes(form._id);
+                                                return (
+                                                    <Card 
+                                                        key={form._id} 
+                                                        className={`cursor-pointer transition-colors ${
+                                                            isSelected 
+                                                                ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-slate-900' 
+                                                                : 'hover:bg-slate-100 dark:hover:bg-slate-900'
+                                                        }`}
+                                                        onClick={() => handleFormToggle(form._id)}
+                                                    >
+                                                        <CardContent className="p-4">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div 
+                                                                        className={`w-5 h-5 rounded border flex items-center justify-center cursor-pointer ${
+                                                                            isSelected 
+                                                                                ? 'bg-blue-500 border-blue-500' 
+                                                                                : 'border-gray-300'
+                                                                        }`}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleFormToggle(form._id);
+                                                                        }}
+                                                                    >
+                                                                        {isSelected && (
+                                                                            <CheckCircle className="h-4 w-4 text-white" />
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <FileText className="h-4 w-4 text-gray-500" />
+                                                                        <div>
+                                                                            <p className="font-medium">{form.form_name}</p>
+                                                                            {form.form_note && (
+                                                                                <p className="text-sm text-gray-600 mt-1">{form.form_note}</p>
+                                                                            )}
+                                                                            <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                                                                                <Badge variant="outline" className="text-xs">
+                                                                                    {form.form_type}
+                                                                                </Badge>
+                                                                                <span className="flex items-center gap-1">
+                                                                                    <Calendar className="h-3 w-3" />
+                                                                                    {formatDate(form.created_at || form.lockedAt)}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    {downgradeInfo?.isUpgrade ? (
+                                                                        isSelected ? (
+                                                                            <div className="flex items-center gap-1 text-green-600 text-sm">
+                                                                                <Unlock className="h-4 w-4" />
+                                                                                <span>Will be unlocked</span>
+                                                                            </div>
+                                                                        ) : form.is_locked ? (
+                                                                            <div className="flex items-center gap-1 text-gray-600 text-sm">
+                                                                                <Lock className="h-4 w-4" />
+                                                                                <span>Currently locked</span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="flex items-center gap-1 text-blue-600 text-sm">
+                                                                                <CheckCircle className="h-4 w-4" />
+                                                                                <span>Already unlocked</span>
+                                                                            </div>
+                                                                        )
+                                                                    ) : (
+                                                                        isSelected ? (
+                                                                            <div className="flex items-center gap-1 text-green-600 text-sm">
+                                                                                <CheckCircle className="h-4 w-4" />
+                                                                                <span>Will remain active</span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="flex items-center gap-1 text-red-600 text-sm">
+                                                                                <XCircle className="h-4 w-4" />
+                                                                                <span>Will be locked</span>
+                                                                            </div>
+                                                                        )
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                );
+                                            })}
+                                        </div>
+                                        
+                                        {downgradeError && (
+                                            <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                                                <p className="text-red-800 text-sm">{downgradeError}</p>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Show message when user hasn't selected enough forms */}
+                                        {(!downgradeInfo?.isUpgrade && selectedFormIds.length < (downgradeInfo?.newPlanLimit || 0)) && (
+                                            <div className="bg-blue-50 dark:bg-slate-900 border border-orange-500 rounded-md p-3">
+                                                <p className="text-orange-500 text-sm">
+                                                    Please select {downgradeInfo?.newPlanLimit || 0} form(s) to continue. 
+                                                    Currently selected: {selectedFormIds.length}
+                                                </p>
+                                            </div>
+                                        )}
+                                        
+                                        {((downgradeInfo?.isUpgrade && selectedFormIds.length < Math.min(downgradeInfo.totalFormCount, downgradeInfo.targetPlanLimit || 0))) && (
+                                            <div className="bg-blue-50 dark:bg-slate-900 border border-orange-500 rounded-md p-3">
+                                                <p className="text-orange-500 text-sm">
+                                                    Please select up to {Math.min(downgradeInfo.totalFormCount, downgradeInfo.targetPlanLimit || 0)} form(s) to unlock. 
+                                                    Currently selected: {selectedFormIds.length}
+                                                </p>
+                                            </div>
+                                        )}
+                                        
+                                        <div className="flex justify-end gap-2">
+                                            <Button 
+                                                variant="outline" 
+                                                onClick={() => setIsDowngradeDialogOpen(false)}
+                                                disabled={isSubmittingDowngrade}
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button 
+                                                onClick={downgradeInfo?.isUpgrade ? handleUpgradeSubmit : handleDowngradeSubmit}
+                                                disabled={isSubmittingDowngrade || 
+                                                    (downgradeInfo?.isUpgrade && selectedFormIds.length < Math.min(downgradeInfo.totalFormCount, downgradeInfo.targetPlanLimit)) ||
+                                                    (!downgradeInfo?.isUpgrade && selectedFormIds.length < downgradeInfo.newPlanLimit)}
+                                            >
+                                                {isSubmittingDowngrade ? 'Saving...' : `Confirm and Continue to Payment`}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </DialogContent>
+                        </Dialog>
                     </TabsContent>
 
                     {/* History Tab */}
                     <TabsContent value="history" className="space-y-6">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold">Payment History</h3>
-                            <Button variant="outline" size="sm" className="flex items-center gap-2">
-                                <Download size={14} />
-                                Export
-                            </Button>
-                        </div>
-                        
-                        {paymentHistory.length > 0 ? (
-                            <div className="space-y-3">
-                                {paymentHistory.map((payment) => (
-                                    <Card key={payment.id}>
-                                        <CardContent className="p-4">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`p-2 rounded ${
-                                                        payment.status === 'succeeded' || payment.status === 'paid'
-                                                            ? 'bg-green-100 text-green-600'
-                                                            : 'bg-red-100 text-red-600'
-                                                    }`}>
-                                                        <DollarSign className="h-4 w-4" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-medium">{payment.description}</p>
-                                                        <p className="text-sm text-gray-500">
-                                                            {formatDate(payment.date)}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="font-semibold">
-                                                        {formatCurrency(payment.amount, payment.currency)}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Payment History</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {paymentHistory.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {paymentHistory.map((payment) => (
+                                            <div key={payment.id} className="flex items-center justify-between p-4 border rounded-lg">
+                                                <div>
+                                                    <h4 className="font-medium">{payment.plan}</h4>
+                                                    <p className="text-sm text-gray-500">
+                                                        {payment.description}
                                                     </p>
-                                                    <Badge 
-                                                        className={`text-xs ${
-                                                            payment.status === 'succeeded' || payment.status === 'paid'
-                                                                ? 'bg-green-100 text-green-800'
-                                                                : 'bg-red-100 text-red-800'
-                                                        }`}
-                                                    >
+                                                    <p className="text-xs text-gray-400">
+                                                        {formatDate(payment.date)}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    <span className="font-medium">
+                                                        {formatCurrency(payment.amount)}
+                                                    </span>
+                                                    <Badge variant={
+                                                        payment.status === 'approved' ? 'default' : 
+                                                        payment.status === 'pending' ? 'secondary' : 'destructive'
+                                                    }>
                                                         {payment.status}
                                                     </Badge>
                                                 </div>
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
-                        ) : (
-                            <Card>
-                                <CardContent className="p-8 text-center">
-                                    <DollarSign className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                                    <p className="text-gray-500">No payment history found</p>
-                                </CardContent>
-                            </Card>
-                        )}
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8">
+                                        <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                        <p className="text-gray-500">No payment history available</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
                     </TabsContent>
                 </Tabs>
             </div>
-            
-            {/* Plan Downgrade Dialog */}
-            <PlanDowngradeDialog
-                isOpen={showDowngradeDialog}
-                onClose={handleDowngradeClose}
-                onComplete={handleDowngradeComplete}
-                initialDowngradeData={downgradeData}
-            />
         </CustomerLayoutPage>
     );
 }

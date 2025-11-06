@@ -34,6 +34,10 @@ const userSchema = new Schema(
         subscription_plan: {
             type: String,
 		},
+        subscription_plan_id: {
+            type: Schema.Types.ObjectId,
+            ref: 'ManualPlan',
+        },
 		subscription_expiry: {
 			type: Date,
 		},

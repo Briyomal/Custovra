@@ -1,5 +1,3 @@
-//import { Outlet } from 'react-router-dom';
-
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
@@ -13,16 +11,56 @@ import { useTheme } from "@/components/theme-provider";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
 import UsageIndicators from "@/components/ui/usage-indicators";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useMemo, useState, useEffect } from "react";
 import axios from "axios";
+import toast from "react-hot-toast";
 
 function CustomerLayoutPage({ children }) {
 	const { user } = useAuthStore();
 	const location = useLocation();
+	const navigate = useNavigate();
 	const [formNames, setFormNames] = useState({});
 
 	const { setTheme } = useTheme();
+
+	// Check subscription status and redirect if needed
+	useEffect(() => {
+		const checkSubscriptionStatus = async () => {
+			// Skip subscription check for billing pages
+			if (location.pathname.includes('/billing') || location.pathname === '/billing') {
+				return;
+			}
+
+			try {
+				// Check if user has active subscription
+				const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/manual-billing/subscription-details`, {
+					withCredentials: true
+				});
+
+				// If no active subscription, redirect to billing
+				if (!response.data?.data?.subscription || response.data.data.subscription.status !== 'active') {
+					// Only show toast once and not on billing page
+					if (!location.pathname.includes('/billing')) {
+						toast.error("No active subscription. Redirecting to billing page.");
+						navigate('/billing');
+					}
+				}
+			} catch (error) {
+				console.error('Error checking subscription status:', error);
+				// If there's an error checking subscription, redirect to billing
+				if (!location.pathname.includes('/billing')) {
+					toast.error("Subscription check failed. Redirecting to billing page.");
+					navigate('/billing');
+				}
+			}
+		};
+
+		// Only check subscription for authenticated users
+		if (user) {
+			checkSubscriptionStatus();
+		}
+	}, [user, location.pathname, navigate]);
 
 	// Fetch form names when paths change
 	useEffect(() => {
@@ -125,18 +163,33 @@ function CustomerLayoutPage({ children }) {
 						<div className="ml-auto flex items-center gap-2 md:gap-4">
 							{/* Usage Indicators */}
 							<UsageIndicators />
-							{user.payment ? (
+							{user?.subscription ? (
 								<Badge
-									className={`mr-0 md:mr-3 px-2 md:px-3 py-1 rounded-sm text-white text-sm ${user.payment.plan === 'Premium'
+									className={`mr-0 md:mr-3 px-2 md:px-3 py-1 rounded-sm text-white text-sm ${
+										user.subscription.plan_name === 'Gold' || user.subscription.plan_name === 'Diamond'
 											? 'bg-gradient-to-r from-green-700 to-lime-500 border-lime-300 dark:border-green-700'
-											: user.payment.plan === 'Standard'
+											: user.subscription.plan_name === 'Silver' || user.subscription.plan_name === 'Platinum'
 												? 'bg-gradient-to-r from-purple-700 to-fuchsia-500 border-fuchsia-300 dark:border-purple-700'
-												: user.payment.plan === 'Basic'
+												: user.subscription.plan_name === 'Bronze'
 													? 'bg-gradient-to-r from-blue-700 to-cyan-500 border-cyan-300 dark:border-blue-700'
 													: 'bg-gradient-to-r from-stone-700 to-gray-500 border-gray-300 dark:border-stone-700'
-										}`}
+									}`}
 								>
-									{user.payment.plan}
+									{user.subscription.plan_name}
+								</Badge>
+							) : user?.subscription_plan ? (
+								<Badge
+									className={`mr-0 md:mr-3 px-2 md:px-3 py-1 rounded-sm text-white text-sm ${
+										user.subscription_plan === 'Gold' || user.subscription_plan === 'Diamond'
+											? 'bg-gradient-to-r from-green-700 to-lime-500 border-lime-300 dark:border-green-700'
+											: user.subscription_plan === 'Silver' || user.subscription_plan === 'Platinum'
+												? 'bg-gradient-to-r from-purple-700 to-fuchsia-500 border-fuchsia-300 dark:border-purple-700'
+												: user.subscription_plan === 'Bronze'
+													? 'bg-gradient-to-r from-blue-700 to-cyan-500 border-cyan-300 dark:border-blue-700'
+													: 'bg-gradient-to-r from-stone-700 to-gray-500 border-gray-300 dark:border-stone-700'
+									}`}
+								>
+									{user.subscription_plan}
 								</Badge>
 							) : (
 								<p></p>

@@ -1,6 +1,7 @@
 import bcryptjs from "bcryptjs";
 import crypto from "crypto";
 import { authenticator } from 'otplib';
+import mongoose from "mongoose";
 
 import {
 	generateTokenAndSetCookie
@@ -14,95 +15,37 @@ import {
 import {
 	User
 } from "../models/User.js";
-import {
-	Payment
-} from "../models/Payment.js";
-import {
-	stripe
-} from "../utils/stripe.js";
-import mongoose from "mongoose";
-import axios from "axios";
+import { ManualSubscription } from "../models/ManualSubscription.js";
 
 export const signup = async (req, res) => {
-	const { email, password, name, captchaToken } = req.body;
-
 	try {
-		// 1. CAPTCHA verification
-		if (!captchaToken) {
-			return res.status(400).json({ message: "Captcha verification failed" });
-		}
+		const { email, password, name, company, phone } = req.body;
 
-		const captchaResponse = await axios.post(
-			"https://challenges.cloudflare.com/turnstile/v0/siteverify",
-			new URLSearchParams({
-				secret: process.env.TURNSTILE_SECRET_KEY,
-				response: captchaToken,
-			}),
-			{
-				headers: { "Content-Type": "application/x-www-form-urlencoded" },
-			}
-		);
-
-		if (!captchaResponse.data.success) {
-			return res.status(400).json({
-				success: false,
-				message: "Invalid captcha",
-				errors: captchaResponse.data["error-codes"]
-			});
-		}
-
-		// 2. Validate input
-		if (!email || !password || !name) {
-			throw new Error("All fields are required");
-		}
-		if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-			return res.status(400).json({ success: false, message: "Invalid email format" });
-		}
-		if (password.length < 6) {
-			return res.status(400).json({ success: false, message: "Password must be at least 6 characters long" });
-		}
-
-		const userAlreadyExists = await User.findOne({ email });
-		if (userAlreadyExists) {
+		// 1. Check if user already exists
+		let user = await User.findOne({ email });
+		if (user) {
 			return res.status(400).json({ success: false, message: "User already exists" });
 		}
 
-		// 3. Create user without stripeCustomerId
+		// 2. Hash the password
 		const hashedPassword = await bcryptjs.hash(password, 10);
-		const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
 
-		const user = new User({
+		// 3. Create user without stripeCustomerId
+		user = new User({
 			email,
 			password: hashedPassword,
 			name,
-			verificationToken,
-			verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000,
+			company,
+			phone,
+			// Removed stripeCustomerId since we're not using Stripe
 		});
 
 		await user.save();
 
-		// 4. Create Stripe customer with userId in metadata
-		const customer = await stripe.customers.create(
-			{
-				email,
-				metadata: {
-					userId: user._id.toString(),
-				},
-			},
-			{ apiKey: process.env.STRIPE_SECRET_KEY }
-		);
-
-		// 5. Update user with Stripe ID
-		user.stripeCustomerId = customer.id;
-		await user.save();
-
-		// 6. Create session token
+		// 4. Generate JWT token and set cookie
 		generateTokenAndSetCookie(res, user._id);
 
-		// 7. Send verification email
-		await sendVerificationEmail(user.email, verificationToken);
-
-		// 8. Response
+		// 5. Send success response
 		res.status(201).json({
 			success: true,
 			message: "User created successfully",
@@ -112,8 +55,8 @@ export const signup = async (req, res) => {
 			},
 		});
 	} catch (error) {
-		console.error("Signup error:", error);
-		res.status(400).json({ success: false, message: error.message });
+		console.error("Error in signup controller:", error.message);
+		res.status(500).json({ success: false, message: "Internal server error" });
 	}
 };
 
@@ -232,10 +175,6 @@ export const login = async (req, res) => {
 			});
 		}
 
-		const payment = await Payment.findOne({
-			user_id: new mongoose.Types.ObjectId(user._id)
-		});
-
 		generateTokenAndSetCookie(res, user._id);
 
 		user.lastLogin = new Date();
@@ -247,7 +186,7 @@ export const login = async (req, res) => {
 			user: {
 				...user._doc,
 				password: undefined,
-				payment,
+				payment: null,
 			},
 		});
 	} catch (error) {
@@ -290,10 +229,6 @@ export const verify2FALogin = async (req, res) => {
 		}
 
 		// 2FA is valid, proceed with login
-		const payment = await Payment.findOne({
-			user_id: new mongoose.Types.ObjectId(user._id)
-		});
-
 		generateTokenAndSetCookie(res, user._id);
 
 		user.lastLogin = new Date();
@@ -305,7 +240,7 @@ export const verify2FALogin = async (req, res) => {
 			user: {
 				...user._doc,
 				password: undefined,
-				payment,
+				payment: null,
 			},
 		});
 	} catch (error) {
@@ -417,7 +352,7 @@ export const resetPassword = async (req, res) => {
 
 export const checkAuth = async (req, res) => {
 	try {
-		const user = await User.findById(req.userId).populate('subscription_plan');
+		const user = await User.findById(req.userId).populate('subscription_plan_id');
 		if (!user) {
 			return res.status(400).json({
 				success: false,
@@ -425,22 +360,18 @@ export const checkAuth = async (req, res) => {
 			});
 		}
 
-		// Check if subscription is active or expired
-		if (user.subscription_expiry && new Date() > new Date(user.subscription_expiry)) {
-			user.is_active = false;
-			await user.save();
-		}
-
-		const payment = await Payment.findOne({
-			user_id: new mongoose.Types.ObjectId(user._id)
-		}).sort({ updated_at: -1 }); // Or sort by created_at: -1
+		// Get user's manual subscription
+		const manualSubscription = await ManualSubscription.findOne({ 
+			user_id: req.userId,
+			status: 'active'
+		}).populate('plan_id');
 
 		res.status(200).json({
 			success: true,
 			user: {
 				...user._doc,
 				password: undefined, // Exclude sensitive information
-				payment,
+				subscription: manualSubscription || null,
 			},
 		});
 	} catch (error) {

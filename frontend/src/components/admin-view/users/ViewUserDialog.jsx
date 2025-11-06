@@ -44,12 +44,9 @@ export function ViewUserDialog({ user, open, onOpenChange }) {
 
   const getPlanVariant = (plan) => {
     if (!plan || plan === "Free") return "secondary";
-    if (plan === "Basic") return "default";
-    if (plan === "Standard") return "secondary";
-    if (plan === "Premium") return "default";
-    return "secondary";
+    return "default";
   };
-
+  console.log(user);
   const getStatusVariant = (status) => {
     switch (status) {
       case "active": return "default";
@@ -188,10 +185,11 @@ export function ViewUserDialog({ user, open, onOpenChange }) {
                 <Badge 
                   variant={getPlanVariant(user.subscription_plan)} 
                   className={
-                    user.subscription_plan === "Premium" ? "w-fit bg-purple-500 hover:bg-purple-600" :
-                    user.subscription_plan === "Standard" ? "w-fit bg-blue-500 hover:bg-blue-600" :
-                    user.subscription_plan === "Basic" ? "w-fit bg-green-500 hover:bg-green-600" :
-                    "w-fit"
+                    user.subscription_plan === "Silver" ? "w-fit bg-gradient-to-r from-purple-400 to-purple-600 text-white" :
+                    user.subscription_plan === "Gold" ? "w-fit bg-gradient-to-r from-green-400 to-green-600 text-white" :
+                    user.subscription_plan === "Diamond" ? "w-fit bg-gradient-to-r from-green-400 to-green-600 text-white" :
+                    user.subscription_plan === "Platimun" ? "w-fit bg-gradient-to-r from-purple-400 to-purple-600 text-white" :
+                    "w-fit bg-gradient-to-r from-gray-400 to-gray-600 text-white"
                   }
                 >
                   {user.subscription_plan || "Free"}

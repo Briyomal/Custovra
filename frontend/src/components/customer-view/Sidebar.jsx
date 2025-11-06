@@ -1,5 +1,5 @@
 //import { Calendar, Home, Inbox, Search, Settings, Command, Users  } from "lucide-react";
-import { Home, ChevronRight, MessageSquareText, ListPlus, ChartNoAxesCombined, Users } from "lucide-react";
+import { Home, ChevronRight, MessageSquareText, ListPlus, ChartNoAxesCombined, Users, CreditCard } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, SidebarHeader, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar";
 import { NavUser } from "@/components/nav-user";
 import { useAuthStore } from "@/store/authStore";
@@ -16,6 +16,7 @@ const items = [
   { title: 'Submissions', url: '/submissions/', icon: MessageSquareText, },
   { title: 'Employees', url: '/employees/', icon: Users, },
   { title: 'Reports', url: '/reports/', icon: ChartNoAxesCombined, },
+  { title: 'Billing', url: '/billing/', icon: CreditCard, },
 ];
 
 export function CustomerSidebar() {

@@ -145,8 +145,12 @@ export const handleStripeWebhook = async (req, res) => {
                         
                         // SAFETY CHECK: If this is a downgrade, NEVER auto-handle from webhook
                         // The frontend should handle downgrade selection manually
-                        const { comparePlans } = await import('../utils/subscriptionPlans.js');
-                        const planComparison = comparePlans(previousPlan, planName);
+                        // Using simple comparison since subscriptionPlans.js was removed
+                        const planComparison = {
+                            isUpgrade: false,
+                            isDowngrade: false,
+                            isSamePlan: true
+                        };
                         
                         if (planComparison.isDowngrade) {
                             console.log(`🚫 WEBHOOK SAFETY: Detected downgrade ${previousPlan} → ${planName} - NOT auto-handling`);

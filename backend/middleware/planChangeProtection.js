@@ -1,6 +1,57 @@
 import { Form } from "../models/Form.js";
 import { getUserPlanLimits } from "./checkSubscriptionLimits.js";
-import { comparePlans } from "../utils/subscriptionPlans.js";
+
+/**
+ * Helper function to compare plans and determine if it's an upgrade or downgrade
+ * @param {string} fromPlanName - Name of the previous plan
+ * @param {string} toPlanName - Name of the new plan
+ * @returns {Object} - Comparison result
+ */
+const comparePlans = (fromPlanName, toPlanName) => {
+  // For manual plans, we'll use a simple approach based on common plan names
+  // This is a simplified version since we don't have predefined plan limits anymore
+  
+  // Normalize plan names to lowercase and remove extra spaces
+  const normalizePlanName = (name) => {
+    if (!name) return 'basic';
+    return name.toLowerCase().replace(/\s+/g, '').trim();
+  };
+
+  const normalizedFrom = normalizePlanName(fromPlanName);
+  const normalizedTo = normalizePlanName(toPlanName);
+
+  // Simple mapping for common plan names to "tiers"
+  const planTiers = {
+    // Basic tier
+    'basic': 1,
+    'bronze': 1,
+    
+    // Standard tier
+    'standard': 2,
+    'silver': 2,
+    
+    // Premium tier
+    'premium': 3,
+    'gold': 3,
+    'platinum': 3,
+    'diamond': 3,
+    
+    // Enterprise tier (if exists)
+    'enterprise': 4,
+    'business': 4
+  };
+
+  const fromTier = planTiers[normalizedFrom] || 1;
+  const toTier = planTiers[normalizedTo] || 1;
+
+  return {
+    isUpgrade: toTier > fromTier,
+    isDowngrade: toTier < fromTier,
+    isSamePlan: toTier === fromTier,
+    fromTier,
+    toTier
+  };
+};
 
 /**
  * Middleware to handle automatic plan downgrade protection
@@ -77,7 +128,7 @@ export const handlePlanChangeProtection = async (userId, previousPlanName = null
                             user_id: userId 
                         },
                         { 
-                            $set: { is_active: true },
+                            $set: { is_active: true, is_locked: false },
                             $unset: { lockedAt: "", lockReason: "" }
                         }
                     );
@@ -136,7 +187,7 @@ export const handlePlanChangeProtection = async (userId, previousPlanName = null
                             user_id: userId 
                         },
                         { 
-                            is_active: false,
+                            is_locked: true,
                             lockedAt: new Date(),
                             lockReason: `Auto-locked due to plan change to ${planName} (limit: ${newPlanLimit} forms)`
                         }
@@ -182,7 +233,7 @@ export const handlePlanChangeProtection = async (userId, previousPlanName = null
                         created_at: form.createdAt || form.created_at,
                         submissionCount: form.submissionCount || 0
                     })),
-                    message: `Your ${planName} plan allows only ${newPlanLimit} active form(s). You currently have ${currentFormCount}. Please select which forms to keep active.`
+                    message: `Your ${planName} plan allows only ${newPlanLimit} active form(s). You currently have ${currentFormCount}. Please select which forms will remain active and which will be locked.`
                 };
             }
         }

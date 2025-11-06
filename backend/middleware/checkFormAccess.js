@@ -33,8 +33,8 @@ export const checkFormAccess = async (req, res, next) => {
             });
         }
 
-        // Check if form is locked
-        if (form.lockedAt && form.lockReason) {
+        // Check if form is locked using the new is_locked field
+        if (form.is_locked) {
             console.log(`🔒 Form access denied - Form ${id} is locked:`, {
                 formId: id,
                 userId,
@@ -99,9 +99,9 @@ export const checkFormAccessReadOnly = async (req, res, next) => {
             });
         }
 
-        // Add form and lock status to request object
+        // Add form and lock status to request object using the new is_locked field
         req.form = form;
-        req.isFormLocked = !!(form.lockedAt && form.lockReason);
+        req.isFormLocked = form.is_locked;
         
         next();
 

@@ -1,8 +1,7 @@
 import { User } from "../models/User.js";
 import { Form } from "../models/Form.js";
 import { Submission } from "../models/Submission.js";
-import { Payment } from "../models/Payment.js";
-import { subscriptionPlans } from "../utils/subscriptionPlans.js";
+import { ManualSubscription } from "../models/ManualSubscription.js";
 
 /**
  * Subscription Limits Middleware
@@ -17,39 +16,48 @@ export const getUserPlanLimits = async (userId) => {
             return { error: "User not found or inactive", limits: null };
         }
 
-        // Get the user's ACTIVE subscription from Payment model
-        const now = new Date();
-        const activePayment = await Payment.findOne({
+        // Check for manual subscription
+        const manualSubscription = await ManualSubscription.findOne({
             user_id: userId,
-            subscription_expiry: { $gt: now } // Only get non-expired subscriptions
-        }).sort({ subscription_expiry: -1 }); // Get the latest expiring active subscription
+            status: 'active'
+        }).populate('plan_id');
 
-        let planName = 'basic'; // Default plan
-        
-        if (activePayment) {
-            // Map the payment plan to our internal plan names
-            planName = mapSubscriptionToPlan(activePayment.plan) || 'basic';
-            console.log(`User ${userId} has active subscription:`, {
-                plan: activePayment.plan,
-                mappedPlan: planName,
-                expiry: activePayment.subscription_expiry
+        if (manualSubscription && manualSubscription.plan_id) {
+            // Use manual plan limits
+            const limits = {
+                formLimit: manualSubscription.plan_id.form_limit,
+                submissionLimit: manualSubscription.plan_id.submission_limit
+            };
+            
+            console.log(`User ${userId} has active manual subscription:`, {
+                planName: manualSubscription.plan_id.name,
+                limits
             });
-        } else {
-            console.log(`User ${userId} has no active subscription, defaulting to basic plan`);
+            
+            return { 
+                error: null, 
+                limits,
+                planName: manualSubscription.plan_id.name,
+                user,
+                activePayment: null
+            };
         }
 
-        const limits = subscriptionPlans[planName];
-        if (!limits) {
-            console.error(`Invalid subscription plan: ${planName}`);
-            return { error: "Invalid subscription plan", limits: null };
-        }
+        // If no manual subscription, user has no active subscription
+        console.log(`User ${userId} has no active subscription, defaulting to basic plan`);
+        
+        // Default to basic plan limits
+        const limits = {
+            formLimit: 1,
+            submissionLimit: 100
+        };
 
         return { 
             error: null, 
             limits,
-            planName,
+            planName: 'basic',
             user,
-            activePayment
+            activePayment: null
         };
     } catch (error) {
         console.error("Error getting user plan limits:", error);

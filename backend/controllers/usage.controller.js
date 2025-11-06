@@ -1,5 +1,5 @@
 import { getUserUsageStats, getUserPlanLimits } from '../middleware/checkSubscriptionLimits.js';
-import { subscriptionPlans } from '../utils/subscriptionPlans.js';
+import { ManualPlan } from '../models/ManualPlan.js';
 import { Payment } from '../models/Payment.js';
 import { User } from '../models/User.js';
 
@@ -22,7 +22,6 @@ export const getUserUsage = async (req, res) => {
         
         console.log('Getting usage stats for user:', userId);
         const { error, stats } = await getUserUsageStats(userId);
-        console.log('Usage stats result:', { error, stats: !!stats });
         
         if (error) {
             console.error('Error getting user usage stats:', error);
@@ -49,6 +48,21 @@ export const getUserUsage = async (req, res) => {
 // Get all subscription plans with their limits
 export const getSubscriptionPlans = async (req, res) => {
     try {
+        // Get all active manual plans
+        const plans = await ManualPlan.find({ is_active: true });
+        
+        // Format plans for frontend
+        const subscriptionPlans = {};
+        plans.forEach(plan => {
+            subscriptionPlans[plan.name.toLowerCase().replace(/\s+/g, '_')] = {
+                name: plan.name,
+                formLimit: plan.form_limit,
+                submissionLimit: plan.submission_limit,
+                description: plan.description,
+                features: plan.features
+            };
+        });
+        
         res.status(200).json({
             success: true,
             data: subscriptionPlans

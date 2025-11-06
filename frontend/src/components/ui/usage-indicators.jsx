@@ -20,9 +20,7 @@ const UsageIndicators = () => {
     const fetchUsageStats = async () => {
       try {
         const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/usage/stats`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('authToken')}`
-          }
+          withCredentials: true
         });
         
         if (response.data.success) {

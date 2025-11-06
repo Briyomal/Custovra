@@ -127,6 +127,18 @@ const formSchema = new Schema({
         type: Boolean,
         default: true,
     },
+    is_locked: {
+        type: Boolean,
+        default: false
+    },
+    lockedAt: {
+        type: Date,
+        default: null
+    },
+    lockReason: {
+        type: String,
+        default: null
+    }
 }, { timestamps: true });
 
 export const Form = mongoose.model('Form', formSchema);

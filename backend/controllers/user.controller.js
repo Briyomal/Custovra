@@ -2,6 +2,7 @@ import { User } from "../models/User.js";
 import { Form } from "../models/Form.js";
 import { Submission } from "../models/Submission.js";
 import { Payment } from "../models/Payment.js";
+import { ManualSubscription } from "../models/ManualSubscription.js";
 
 export const getAllUsers = async (req, res, next) =>{
    try {
@@ -33,40 +34,77 @@ export const getAllUsers = async (req, res, next) =>{
         user_id: user._id
       }).sort({ created_at: -1 }).select('plan subscription_id subscription_expiry');
 
-      // Determine plan name with multiple fallbacks
+      // Get the most recent active manual subscription
+      const activeManualSubscription = await ManualSubscription.findOne({
+        user_id: user._id,
+        status: 'active'
+      }).sort({ subscription_end: -1 });
+
+      // Get the most recent manual subscription (active or inactive)
+      const recentManualSubscription = await ManualSubscription.findOne({
+        user_id: user._id
+      }).sort({ subscription_end: -1 });
+
+      // Determine plan name with multiple fallbacks - PRIORITY: Manual subscription data first
       let planName = 'Free'; // Default plan
+      let subscriptionStatus = userObject.subscription_status || 'inactive';
       
-      // Priority 1: Use plan from active payment if available
-      if (activePayment && activePayment.plan) {
+      // Priority 1: Use plan from active manual subscription if available
+      if (activeManualSubscription && activeManualSubscription.plan_name) {
+        planName = activeManualSubscription.plan_name;
+        subscriptionStatus = activeManualSubscription.status;
+      }
+      // Priority 2: Use plan from recent manual subscription if available
+      else if (recentManualSubscription && recentManualSubscription.plan_name) {
+        planName = recentManualSubscription.plan_name;
+        subscriptionStatus = recentManualSubscription.status;
+      }
+      // Priority 3: Use user's subscription_plan from User model
+      else if (userObject.subscription_plan) {
+        planName = userObject.subscription_plan;
+      }
+      // Priority 4: Use plan from active payment if available
+      else if (activePayment && activePayment.plan) {
         // Capitalize first letter for display
         planName = activePayment.plan.charAt(0).toUpperCase() + activePayment.plan.slice(1);
       }
-      // Priority 2: Use plan from recent payment if available
+      // Priority 5: Use plan from recent payment if available
       else if (recentPayment && recentPayment.plan) {
         // Capitalize first letter for display
         planName = recentPayment.plan.charAt(0).toUpperCase() + recentPayment.plan.slice(1);
       } 
-      // Priority 3: Use user's subscription_plan if it looks like a plan name
-      else if (userObject.subscription_plan) {
-        const planLower = userObject.subscription_plan.toLowerCase();
-        if (planLower.includes('basic')) planName = 'Basic';
-        else if (planLower.includes('standard')) planName = 'Standard';
-        else if (planLower.includes('premium')) planName = 'Premium';
-        else if (userObject.subscription_status === 'active') planName = 'Basic'; // Default active plan
-      }
-      // Priority 4: If user has active subscription status, assume Basic plan
+      // Priority 6: If user has active subscription status, assume Basic plan
       else if (userObject.subscription_status === 'active') {
         planName = 'Basic';
       }
       
+      // Determine subscription ID with priority
+      let subscriptionId = userObject.subscription_id || null;
+      if (activeManualSubscription) {
+        subscriptionId = activeManualSubscription._id;
+      } else if (recentManualSubscription) {
+        subscriptionId = recentManualSubscription._id;
+      } else if (activePayment) {
+        subscriptionId = activePayment.subscription_id;
+      } else if (recentPayment) {
+        subscriptionId = recentPayment.subscription_id;
+      }
+
+      // Determine subscription expiry with priority
+      let subscriptionExpiry = userObject.subscription_expiry || null;
+      if (activeManualSubscription) {
+        subscriptionExpiry = activeManualSubscription.subscription_end;
+      } else if (recentManualSubscription) {
+        subscriptionExpiry = recentManualSubscription.subscription_end;
+      }
+
       return {
         ...userObject,
         phone: userObject.phone || 'N/A',
         subscription_plan: planName,
-        subscription_id: activePayment ? activePayment.subscription_id : 
-                       (recentPayment ? recentPayment.subscription_id : 
-                       (userObject.subscription_plan || null)),
-        subscription_expiry: userObject.subscription_expiry || null,
+        subscription_status: subscriptionStatus,
+        subscription_id: subscriptionId,
+        subscription_expiry: subscriptionExpiry,
         formCount,
         submissionCount
       };

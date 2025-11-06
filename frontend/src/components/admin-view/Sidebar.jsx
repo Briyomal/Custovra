@@ -1,5 +1,5 @@
 //import { Calendar, Home, Inbox, Search, Settings, Command, Users  } from "lucide-react";
-import { Home, Users, FileText, BarChart3, Headset } from "lucide-react";
+import { Home, Users, FileText, BarChart3, Headset, CreditCard } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { NavUser } from "@/components/nav-user";
 import { useAuthStore } from "@/store/authStore";
@@ -13,6 +13,7 @@ const items = [
     { title: 'Forms', url: '/admin/forms', icon: FileText },
     { title: 'Reports', url: '/admin/reports', icon: BarChart3 },
     { title: 'Support', url: '/admin/support', icon: Headset },
+    { title: 'Payments', url: '/admin/payments', icon: CreditCard },
 ];
 
 export function AdminSidebar() {
