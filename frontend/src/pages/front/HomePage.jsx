@@ -1,142 +1,215 @@
+import { CheckCircle, Star, BarChart3, Users, MessageCircle, Shield, Mail } from "lucide-react";
 import Header from "./Header";
 
-//import { useState } from 'react'
-//import { Dialog, DialogPanel } from '@headlessui/react'
-//import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
-/*
-const navigation = [
-	{ name: 'Product', href: '#' },
-	{ name: 'Features', href: '#' },
-	{ name: 'Marketplace', href: '#' },
-	{ name: 'Company', href: '#' },
-  ]
-*/
 const HomePage = () => {
-	//const [setMobileMenuOpen] = useState(false)
-	return (
-		<>
-			<Header />
-			<div className="bg-white dark:bg-slate-950">
-				<div className="relative isolate px-6 pt-14 lg:px-8">
-					<div aria-hidden="true" className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
-						<div
-							style={{
-								clipPath: "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",
-							}}
-							className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
-						/>
-					</div>
+  return (
+    <>
+      <Header />
 
-					<div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
-						<div className="text-center">
-							<h1 className="text-balance text-5xl font-semibold tracking-tight text-gray-900 sm:text-7xl dark:text-gray-50">Welcome to Review Platform</h1>
-							<p className="mt-8 text-pretty text-lg font-medium text-gray-500 sm:text-xl/8 dark:text-gray-400">Anim aute id magna aliqua ad ad non deserunt sunt. Qui irure qui lorem cupidatat commodo. Elit sunt amet fugiat veniam occaecat.</p>
-							<div className="mt-10 flex items-center justify-center gap-x-6">
-								<a href="#" className="py-3 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg shadow-lg hover:from-blue-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-blue-200 transition duration-200">
-									Get started
-								</a>
-								<a href="#" className="text-sm/6 font-semibold text-gray-900 dark:text-white">
-									Learn more <span aria-hidden="true">→</span>
-								</a>
-							</div>
-						</div>
-					</div>
-					<div aria-hidden="true" className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]">
-						<div
-							style={{
-								clipPath: "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",
-							}}
-							className="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
-						/>
-					</div>
-				</div>
-			</div>
-			{/* About Us Section */}
-			<section id="about" className="bg-gray-50 dark:bg-slate-900 py-24 px-6 lg:px-8">
-				<div className="max-w-3xl mx-auto text-center">
-					<h2 className="text-4xl font-semibold text-gray-900 dark:text-white">About Us</h2>
+      {/* Hero Section */}
+			<section className="relative overflow-hidden bg-white dark:bg-slate-950">
+				<div
+					className="absolute inset-0 bg-gradient-to-br from-[#16bf4c]/20 to-[#4f595b]/10 opacity-40 blur-3xl"
+					aria-hidden="true"
+				></div>
+
+				<div className="relative mx-auto max-w-3xl text-center px-6 pt-32 pb-40 sm:pt-48 sm:pb-56 lg:pt-56">
+					<h1 className="text-5xl font-bold text-[#4f595b] dark:text-white sm:text-6xl">
+						Turn Customer Feedback Into Business Growth
+					</h1>
 					<p className="mt-6 text-lg text-gray-600 dark:text-gray-400">
-						We are a platform dedicated to helping businesses collect and manage customer reviews and complaints with ease.
-						Empower your brand with authentic feedback, smart insights, and a simple interface that scales with your needs.
+						Create powerful review and complaint forms, share them through QR codes or links, and start collecting real
+						feedback that helps your business grow.
 					</p>
-				</div>
-			</section>
-
-			{/* Pricing Section */}
-			<section id="pricing" className="bg-white dark:bg-slate-950 py-24 px-6 lg:px-8">
-				<div className="max-w-5xl mx-auto text-center">
-					<h2 className="text-4xl font-semibold text-gray-900 dark:text-white">Pricing Plans</h2>
-					<p className="mt-4 text-lg text-gray-600 dark:text-gray-400">Choose the plan that fits your business size and needs.</p>
-					<div className="mt-12 grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-						{/* Basic Plan */}
-						<div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-md">
-							<h3 className="text-xl font-bold text-gray-900 dark:text-white">Basic</h3>
-							<p className="mt-2 text-sm text-gray-500 dark:text-gray-400">For small businesses getting started.</p>
-							<p className="mt-4 text-3xl font-bold text-indigo-600">$15<span className="text-base font-medium text-gray-500">/mo</span></p>
-							<ul className="mt-6 space-y-2 text-sm text-gray-600 dark:text-gray-300 text-left">
-								<li>✔️ Up to 5 forms</li>
-								<li>✔️ Basic reporting</li>
-								<li>✔️ QR code generator</li>
-							</ul>
-							<a href="#" className="mt-6 inline-block w-full rounded-lg bg-indigo-600 py-3 text-white font-semibold hover:bg-indigo-700 transition duration-200">Choose Plan</a>
-						</div>
-
-						{/* Standard Plan */}
-						<div className="rounded-2xl border border-indigo-600 bg-indigo-50 dark:bg-slate-800 p-8 shadow-xl">
-							<h3 className="text-xl font-bold text-gray-900 dark:text-white">Standard</h3>
-							<p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Perfect for growing teams.</p>
-							<p className="mt-4 text-3xl font-bold text-indigo-600">$30<span className="text-base font-medium text-gray-500">/mo</span></p>
-							<ul className="mt-6 space-y-2 text-sm text-gray-700 dark:text-gray-300 text-left">
-								<li>✔️ Up to 10 forms</li>
-								<li>✔️ Advanced analytics</li>
-								<li>✔️ Custom branding</li>
-							</ul>
-							<a href="#" className="mt-6 inline-block w-full rounded-lg bg-indigo-600 py-3 text-white font-semibold hover:bg-indigo-700 transition duration-200">Choose Plan</a>
-						</div>
-
-						{/* Premium Plan */}
-						<div className="rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 shadow-md">
-							<h3 className="text-xl font-bold text-gray-900 dark:text-white">Premium</h3>
-							<p className="mt-2 text-sm text-gray-500 dark:text-gray-400">For larger businesses or enterprises.</p>
-							<p className="mt-4 text-3xl font-bold text-indigo-600">$60<span className="text-base font-medium text-gray-500">/mo</span></p>
-							<ul className="mt-6 space-y-2 text-sm text-gray-600 dark:text-gray-300 text-left">
-								<li>✔️ Up to 20 forms</li>
-								<li>✔️ Employee assignment</li>
-								<li>✔️ Priority support</li>
-							</ul>
-							<a href="#" className="mt-6 inline-block w-full rounded-lg bg-indigo-600 py-3 text-white font-semibold hover:bg-indigo-700 transition duration-200">Choose Plan</a>
-						</div>
+					<div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+						<a
+							href="#"
+							className="px-6 py-3 rounded-lg bg-[#16bf4c] text-white font-semibold shadow-md hover:bg-[#13a843] transition"
+						>
+							Start Free Trial
+						</a>
+						<a href="#about" className="px-6 py-3 rounded-lg font-semibold text-[#4f595b] dark:text-gray-100">
+							See How It Works →
+						</a>
 					</div>
 				</div>
 			</section>
 
-			{/* Contact Section */}
-			<section id="contact" className="bg-gray-50 dark:bg-slate-900 py-24 px-6 lg:px-8">
-				<div className="max-w-2xl mx-auto text-center">
-					<h2 className="text-4xl font-semibold text-gray-900 dark:text-white">Contact Us</h2>
-					<p className="mt-4 text-lg text-gray-600 dark:text-gray-400">Have questions or need help? Fill out the form below and we’ll get back to you shortly.</p>
-					<form className="mt-10 space-y-6 text-left">
-						<div>
-							<label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
-							<input type="text" className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500" />
-						</div>
-						<div>
-							<label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-							<input type="email" className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500" />
-						</div>
-						<div>
-							<label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Message</label>
-							<textarea rows="4" className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 px-4 py-2 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-						</div>
-						<div className="text-center">
-							<button type="submit" className="rounded-lg bg-indigo-600 px-6 py-3 text-white font-semibold hover:bg-indigo-700 transition duration-200">Send Message</button>
-						</div>
-					</form>
-				</div>
-			</section>
+      {/* How It Works */}
+      <section className="bg-gray-50 dark:bg-slate-900 py-24 px-6">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-4xl font-bold text-[#4f595b] dark:text-white">Collect. Analyze. Grow.</h2>
+          <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            Custovra makes it effortless to listen to your customers and use their feedback to improve your business.
+          </p>
 
-		</>
-	);
+          <div className="mt-12 grid sm:grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-md">
+              <MessageCircle className="mx-auto text-[#16bf4c]" size={48} />
+              <h3 className="mt-4 text-xl font-semibold text-[#4f595b] dark:text-white">1. Create Your Form</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Choose review or complaint forms, customize questions, and add your branding in minutes.
+              </p>
+            </div>
+            <div className="p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-md">
+              <Users className="mx-auto text-[#16bf4c]" size={48} />
+              <h3 className="mt-4 text-xl font-semibold text-[#4f595b] dark:text-white">2. Share Easily</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Generate QR codes or shareable links to collect instant feedback from your customers.
+              </p>
+            </div>
+            <div className="p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-md">
+              <BarChart3 className="mx-auto text-[#16bf4c]" size={48} />
+              <h3 className="mt-4 text-xl font-semibold text-[#4f595b] dark:text-white">3. Get Insights</h3>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Analyze feedback, download reports, and track satisfaction trends effortlessly.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Core Features */}
+      <section className="bg-white dark:bg-slate-950 py-24 px-6">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-4xl font-bold text-[#4f595b] dark:text-white">Everything You Need to Understand Your Customers</h2>
+          <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            Custovra gives you all the tools to collect, manage, and act on customer feedback — all in one platform.
+          </p>
+
+          <div className="mt-12 grid sm:grid-cols-1 md:grid-cols-3 gap-8 text-left">
+            {[
+              { icon: CheckCircle, title: "QR Code & Link Sharing", desc: "Gather feedback effortlessly in-store or online." },
+              { icon: Star, title: "Review & Complaint Forms", desc: "Capture both praise and complaints effectively." },
+              { icon: Users, title: "Employee Ratings", desc: "Let customers review individual employees." },
+              { icon: BarChart3, title: "Smart Reports", desc: "Visualize trends and satisfaction data clearly." },
+              { icon: Shield, title: "Data Security", desc: "Your feedback and business data are always protected." },
+              { icon: MessageCircle, title: "Instant Notifications", desc: "Get alerts the moment new feedback arrives." },
+            ].map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="p-6 bg-gray-50 dark:bg-slate-900 rounded-2xl shadow-sm hover:shadow-md transition">
+                <Icon className="text-[#16bf4c] mb-4" size={36} />
+                <h3 className="text-xl font-semibold text-[#4f595b] dark:text-white">{title}</h3>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Why Choose Custovra */}
+      <section className="bg-[#f9fff9] dark:bg-slate-900 py-24 px-6">
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="text-4xl font-bold text-[#4f595b] dark:text-white">Why Businesses Choose Custovra</h2>
+          <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+            Every successful business listens to its customers. Custovra helps you collect, understand, and respond to feedback so you can make smarter decisions and deliver exceptional experiences.
+          </p>
+          <div className="mt-10 grid sm:grid-cols-2 md:grid-cols-3 gap-8">
+            {[
+              "Get insights that drive business decisions",
+              "Measure satisfaction and service performance",
+              "Save hours with automation",
+              "Build stronger customer relationships",
+              "Reward top-performing employees",
+              "Turn every response into an opportunity",
+            ].map((text, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <CheckCircle className="text-[#16bf4c]" />
+                <p className="text-gray-700 dark:text-gray-300 text-left">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Custovra vs Google Forms */}
+      <section className="bg-white dark:bg-slate-950 py-24 px-6">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-4xl font-bold text-[#4f595b] dark:text-white">Why Choose Custovra Over Google Forms</h2>
+          <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
+            Google Forms is great for simple surveys — but Custovra is built specifically for business feedback, employee reviews, and insights.
+          </p>
+          <div className="overflow-x-auto mt-10">
+            <table className="w-full border border-gray-200 dark:border-gray-800 text-left">
+              <thead className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300">
+                <tr>
+                  <th className="p-4">Feature</th>
+                  <th className="p-4">Google Forms</th>
+                  <th className="p-4 text-[#16bf4c]">Custovra</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600 dark:text-gray-400">
+                {[
+                  ["Designed for Customer Feedback", "❌", "✅"],
+                  ["QR Code Printing", "⚠️ Manual", "✅ Auto-generated"],
+                  ["Employee Rating System", "❌", "✅ Built-in"],
+                  ["Real-Time Reports", "⚠️ Basic", "✅ Advanced Analytics"],
+                  ["Custom Branding", "⚠️ Limited", "✅ Full Control"],
+                  ["Feedback Dashboard", "❌", "✅ Centralized Insights"],
+                ].map(([feature, gform, custovra], i) => (
+                  <tr key={i} className="border-t border-gray-200 dark:border-gray-800">
+                    <td className="p-4">{feature}</td>
+                    <td className="p-4">{gform}</td>
+                    <td className="p-4 font-semibold text-[#16bf4c]">{custovra}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQs */}
+      <section className="bg-gray-50 dark:bg-slate-900 py-24 px-6">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-4xl font-bold text-center text-[#4f595b] dark:text-white">Frequently Asked Questions</h2>
+          <div className="mt-10 space-y-6">
+            {[
+              ["Is Custovra free to try?", "Yes, you can start with a free trial and explore all key features."],
+              ["Can I customize my forms?", "Absolutely! Add your brand logo, colors, and questions easily."],
+              ["Do I need technical skills?", "No. Custovra is beginner-friendly and simple to use."],
+              ["How do customers access my form?", "Each form has a unique link and QR code for easy sharing."],
+              ["Can I assign employees to forms?", "Yes, customers can rate specific employees through forms."],
+              ["Is my data secure?", "Yes. We use encryption and secure storage to protect all data."],
+            ].map(([q, a], i) => (
+              <div key={i} className="border border-gray-200 dark:border-gray-700 rounded-lg p-5">
+                <h3 className="text-lg font-semibold text-[#4f595b] dark:text-white">{q}</h3>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">{a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-[#4f595b] text-gray-200 py-12 px-6">
+        <div className="max-w-6xl mx-auto grid sm:grid-cols-1 md:grid-cols-3 gap-8">
+          <div>
+            <h3 className="text-2xl font-bold text-white">Custovra</h3>
+            <p className="mt-3 text-gray-300">
+              Feedback platform that helps businesses collect, track, and grow through customer insights.
+            </p>
+          </div>
+          <div>
+            <h4 className="text-lg font-semibold text-white">Quick Links</h4>
+            <ul className="mt-3 space-y-2">
+              <li><a href="#pricing" className="hover:underline">Pricing</a></li>
+              <li><a href="#faq" className="hover:underline">FAQs</a></li>
+              <li><a href="#contact" className="hover:underline">Contact</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-lg font-semibold text-white">Contact</h4>
+            <p className="mt-3 flex items-center gap-2">
+              <Mail className="text-[#16bf4c]" size={18} /> info@custovra.com
+            </p>
+          </div>
+        </div>
+        <div className="text-center mt-10 text-gray-400 text-sm">
+          © 2025 Custovra. All rights reserved.
+        </div>
+      </footer>
+    </>
+  );
 };
 
 export default HomePage;

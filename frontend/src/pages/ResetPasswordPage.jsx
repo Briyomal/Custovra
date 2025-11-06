@@ -8,6 +8,7 @@ import { Lock } from "lucide-react";
 //import toast from "react-hot-toast";
 import FloatingBackground from "../components/FloatingBackground";
 import toast from "react-hot-toast";
+import logo from "../assets/Logo.png";
 
 const ResetPasswordPage = () => {
 	const [password, setPassword] = useState("");
@@ -49,6 +50,9 @@ const ResetPasswordPage = () => {
 				className='m-4 md:m-0 max-w-md w-full bg-gray-50 bg-opacity-20 backdrop-filter backdrop-blur-xl rounded-2xl shadow-xl overflow-hidden'
 			>
 				<div className='p-8'>
+					<a href="/" className="flex items-center justify-center mb-4">
+						<img src={logo} className="h-10 mr-3" alt="Custovra" />
+					</a>	
 					<h2 className='text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text
 					dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-blue-500 dark:to-indigo-400'>
 						Reset Password

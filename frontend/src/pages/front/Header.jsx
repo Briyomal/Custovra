@@ -39,7 +39,7 @@ export default function Header() {
 			<nav className={`fixed w-full z-20 top-0 start-0 border-b border-slate-900/5 transition duration-300 ${scrolled ? "bg-white/30 dark:bg-slate-900/30 backdrop-blur-md shadow-md" : "bg-transparent"}`}>
 				<div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-2">
 					<a href="/" className="flex items-center">
-						<img src={logo} className="h-16 mr-3" alt="Flowbite Logo" />
+						<img src={logo} className="h-10 mr-3" alt="Flowbite Logo" />
 					</a>
 					<div className="flex items-center text-right md:order-2 gap-3">
 						<DropdownMenu>

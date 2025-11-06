@@ -6,6 +6,7 @@ import Input from "../components/Input";
 import { useAuthStore } from "../store/authStore";
 import FloatingBackground from "../components/FloatingBackground";
 import TwoFactorAuthDialog from "../components/TwoFactorAuthDialog";
+import logo from "../assets/Logo.png";
 
 const LoginPage = () => {
 	const [email, setEmail] = useState("");
@@ -64,7 +65,12 @@ const LoginPage = () => {
 				dark:bg-slate-800 dark:bg-opacity-40 dark:backdrop-filter dark:backdrop-blur-xl
 			'
 		>
+
 			<div className='p-8'>
+							
+					<a href="/" className="flex items-center justify-center mb-4">
+						<img src={logo} className="h-10 mr-3" alt="Custovra" />
+					</a>
 				<h2 className='text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text
 					dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-blue-500 dark:to-indigo-400	
 				'>
