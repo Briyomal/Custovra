@@ -35,7 +35,7 @@ const HomePage = () => {
 
                 {/* Content */}
                 <div className="relative z-10 mx-auto max-w-3xl text-center px-6 pt-20 sm:pt-32">
-                    <h1 className="text-4xl md:text-5xl font-bold text-white dark:text-white sm:text-6xl">
+                    <h1 className="text-3xl md:text-5xl font-bold text-white dark:text-white sm:text-6xl">
                         Turn Customer Feedback Into{" "}
                         <span className="inline-block text-[#16bf4c]">
                             <RotatingText

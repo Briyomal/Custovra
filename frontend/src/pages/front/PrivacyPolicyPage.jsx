@@ -2,6 +2,7 @@ import { Separator } from "@/components/ui/separator";
 import { Mail } from "lucide-react";
 import Header from "./Header";
 import herobg from "../../assets/herobg.webp";
+import Footer from "./Footer";
 
 export default function PrivacyPolicy() {
   return (
@@ -12,7 +13,7 @@ export default function PrivacyPolicy() {
                       <img src={herobg} alt="Hero Background" className="absolute inset-0 object-cover w-full h-32 z-0" />
     </section>
     <div className="max-w-4xl mx-auto px-6 py-16 text-[#1E1E1E] dark:text-white">
-      <h1 className="text-4xl font-bold mb-6 text-[#16bf4c]">Privacy Policy</h1>
+      <h1 className="text-3xl md:text-4xl font-bold mb-6 text-[#16bf4c]">Privacy Policy</h1>
       <p className="text-sm text-gray-500 mb-10">Last Updated: October 22, 2025</p>
 
       <section className="space-y-6">
@@ -185,6 +186,7 @@ export default function PrivacyPolicy() {
         </div>
       </section>
     </div>
+    <Footer />
     </>
   );
 }
