@@ -7,6 +7,8 @@ import CustomerDashboardPage from "./pages/customer/index";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import HomePage from "./pages/front/HomePage";
+import TermsAndConditionsPage from "./pages/front/TermsAndConditionsPage";
+import PrivacyPolicyPage from "./pages/front/PrivacyPolicyPage";
 import AdminDashboardPage from "./pages/admin/index";
 import UsersPage from "./pages/admin/UsersPage";
 import FormsPage from "./pages/admin/FormsPage";
@@ -91,6 +93,9 @@ function App() {
         <>
             <Routes>
                 <Route path="/" element={<HomePage />} />
+                <Route path="/terms-and-conditions" element={<TermsAndConditionsPage />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                
                 {/* Customer Dashboard */}
                 <Route
                     path="/dashboard"

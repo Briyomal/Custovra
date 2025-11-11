@@ -1,4 +1,5 @@
-import logo from "../../assets/Logo.png";
+//import logo from "../../assets/Logo.png";
+import logoWhite from "../../assets/logo-white.png";
 //import userIcon from "../../assets/user-icon.png";
 import { UserRound, LayoutDashboard, UserPlus, LogIn, LogOut } from "lucide-react";
 //import { Menu, MenuButton, MenuItem, MenuItems, } from "@headlessui/react";
@@ -36,15 +37,15 @@ export default function Header() {
 
 	return (
 		<header>
-			<nav className={`fixed w-full z-20 top-0 start-0 border-b border-slate-900/5 transition duration-300 ${scrolled ? "bg-white/30 dark:bg-slate-900/30 backdrop-blur-md shadow-md" : "bg-transparent"}`}>
+			<nav className={`fixed w-full z-30 top-0 pt-4 start-0 border-b border-slate-900/5 transition duration-300 ${scrolled ? "bg-neutral-900/80 dark:bg-neutral-900/50 backdrop-blur-md shadow-md pt-2" : "bg-transparent"}`}>
 				<div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-2">
 					<a href="/" className="flex items-center">
-						<img src={logo} className="h-10 mr-3" alt="Flowbite Logo" />
+						<img src={scrolled ? logoWhite : logoWhite} className="h-10 md:h-12 mr-3" alt="Flowbite Logo" />
 					</a>
 					<div className="flex items-center text-right md:order-2 gap-3">
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
-								<Button variant="outline" size="icon">
+								<Button variant="outline" size="icon" className="bg-transparent text-[#16bf4c] hover:text-white hover:hover:bg-[#16bf4b75]">
 									<UserRound className="h-[1.2rem] w-[1.2rem]" />
 									<span className="sr-only">My Account</span>
 								</Button>
@@ -52,26 +53,27 @@ export default function Header() {
 							<DropdownMenuContent align="end">
 								{isAuthenticated ? (
 									<>
-										<DropdownMenuItem>
+										<DropdownMenuItem className="bg-transparent text-neutral-800 dark:text-white hover:text-white hover:bg-[#16bf4b] dark:hover:bg-[#16bf4b75]">
 											<a href="/dashboard" className="group flex w-full items-center gap-2">
 												<LayoutDashboard className="size-4" />
 												Dashboard
 											</a>
-										</DropdownMenuItem>
-										<DropdownMenuItem onClick={handleLogout} className="group flex w-full items-center gap-2">
+										</DropdownMenuItem >
+										<DropdownMenuItem 
+											onClick={handleLogout} className="group flex w-full items-center gap-2 bg-transparent text-neutral-800 dark:text-white hover:text-white hover:bg-[#16bf4b] dark:hover:bg-[#16bf4b75]">
 											<LogOut className="size-4" />
 											Logout
 										</DropdownMenuItem>
 									</>
 								) : (
 									<>
-										<DropdownMenuItem>
+										<DropdownMenuItem className="bg-transparent text-neutral-800 dark:text-white hover:text-white hover:bg-[#16bf4b] dark:hover:bg-[#16bf4b75]">
 											<a href="/signup" className="group flex w-full items-center gap-2">
 												<UserPlus className="size-4" />
 												Sign Up
 											</a>
 										</DropdownMenuItem>
-										<DropdownMenuItem>
+										<DropdownMenuItem className="bg-transparent text-neutral-800 dark:text-white hover:text-white hover:bg-[#16bf4b] dark:hover:bg-[#16bf4b75] ">
 											<a href="/login" className="group flex w-full items-center gap-2">
 												<LogIn className="size-4" />
 												Login
@@ -84,16 +86,16 @@ export default function Header() {
 						<div className="ml-auto">
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
-									<Button variant="outline" size="icon">
+									<Button variant="outline" size="icon" className="bg-transparent text-[#16bf4c] hover:text-white hover:hover:bg-[#16bf4b75]">
 										<Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
 										<Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
 										<span className="sr-only">Toggle theme</span>
 									</Button>
 								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end">
-									<DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
-									<DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
-									<DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
+								<DropdownMenuContent align="end" className="dark:bg-neutral-950">
+									<DropdownMenuItem onClick={() => setTheme("light")} className="bg-transparent text-neutral-800 dark:text-white hover:text-white hover:bg-[#16bf4b] dark:hover:bg-[#16bf4b75]">Light</DropdownMenuItem>
+									<DropdownMenuItem onClick={() => setTheme("dark")} className="bg-transparent text-neutral-800 dark:text-white hover:text-white hover:bg-[#16bf4b] dark:hover:bg-[#16bf4b75]">Dark</DropdownMenuItem>
+									<DropdownMenuItem onClick={() => setTheme("system")} className="bg-transparent text-neutral-800 dark:text-white hover:text-white hover:bg-[#16bf4b] dark:hover:bg-[#16bf4b75]">System</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>
 						</div>
@@ -107,22 +109,22 @@ export default function Header() {
 					<div className="items-center justify-between hidden w-full md:flex md:w-auto md:order-1" id="mobile-menu-2">
 						<ul className="flex flex-col font-medium p-4 md:p-0 mt-4 border border-gray-100 rounded-lg md:flex-row md:space-x-8 md:mt-0 md:border-0">
 							<li>
-								<a href="/" className="block py-2 pl-3 pr-4 text-white bg-blue-700 rounded md:bg-transparent md:text-blue-700 md:p-0 md:dark:text-blue-500" aria-current="page">
+								<a href="/" className="block py-2 pl-3 pr-4 uppercase text-white bg-text-[#16bf4c] rounded md:bg-transparent md:text-[#16bf4c] md:p-0 md:dark:text-[#16bf4c]" aria-current="page">
 									Home
 								</a>
 							</li>
 							<li>
-								<a href="#about" className="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:p-0 md:dark:hover:text-blue-300 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700">
+								<a href="#about" className="block py-2 pl-3 pr-4 uppercase text-white rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-[#16bf4c] md:p-0 md:dark:hover:text-blue-300 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700">
 									About
 								</a>
 							</li>
 							<li>
-								<a href="#pricing" className="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:p-0 md:dark:hover:text-blue-300 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700">
+								<a href="#pricing" className="block py-2 pl-3 pr-4 uppercase text-white rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-[#16bf4c] md:p-0 md:dark:hover:text-blue-300 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700">
 									Pricing
 								</a>
 							</li>
 							<li>
-								<a href="#contact" className="block py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:p-0 md:dark:hover:text-blue-300 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700">
+								<a href="#contact" className="block py-2 pl-3 pr-4 uppercase text-white rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-[#16bf4c] md:p-0 md:dark:hover:text-blue-300 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700">
 									Contact
 								</a>
 							</li>
