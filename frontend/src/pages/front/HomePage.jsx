@@ -21,9 +21,9 @@ const HomePage = () => {
                 <div className="absolute inset-0 h-full w-full z-1" aria-hidden="true">
                     <LightRays
                         raysOrigin="top-center"
-                        raysColor="#16bf4c"
+                        raysColor="#70ff9e"
                         raysSpeed={1.5}
-                        lightSpread={0.8}
+                        lightSpread={1}
                         rayLength={1.5}
                         followMouse={true}
                         mouseInfluence={0.1}
@@ -98,7 +98,7 @@ const HomePage = () => {
 
                 </div>
             </section>
-<section className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white dark:from-[rgba(13,13,13,0.23)] dark:to-[rgba(13,13,13,1)] mt-[-10%] flex items-center justify-center relative z-20 py-20">
+<section className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white dark:from-[rgba(13,13,13,0.23)] dark:to-[rgba(13,13,13,1)] mt-[-30%] md:mt-[-10%] flex items-center justify-center relative z-20 py-6 md:pt-0">
   <div className="container mx-auto max-w-6xl px-6 relative ">
     <HeroVideoDialog
       className="block dark:hidden"

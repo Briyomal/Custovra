@@ -27,6 +27,10 @@ import manualPlanRoutes from './routes/manualPlan.route.js';
 import manualSubscriptionRoutes from './routes/manualSubscription.route.js';
 import manualBillingRoutes from './routes/manualBilling.route.js';
 
+import genieRoutes from "./routes/genie.route.js";
+//import geniePaymentRoutes from "./routes/geniePayment.route.js";
+import { handleGeniePaymentWebhook } from './controllers/geniePayment.controller.js';
+
 import { fileURLToPath } from 'url';
 import path from 'path';
 import './utils/cronJobs.js';
@@ -35,7 +39,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config();
-
+console.log("Using Genie Key:", process.env.GENIE_SECRET_KEY);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -59,7 +63,8 @@ app.use(cors({
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // app.use("/api/payments", paymentRoutes);
-app.use("/api/payments/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
+app.use('/api/payments/webhook', express.raw({ type: "application/json" }), handleStripeWebhook);
+app.use('/api/genie/webhook', express.raw({ type: "application/json" }), handleGeniePaymentWebhook);
 
 app.use(express.json());
 app.use(cookieParser());
@@ -84,6 +89,8 @@ app.use('/api/manual-payments', manualPaymentRoutes);
 app.use('/api/manual-plans', manualPlanRoutes);
 app.use('/api/manual-subscriptions', manualSubscriptionRoutes);
 app.use('/api/manual-billing', manualBillingRoutes);
+app.use("/api/genie", genieRoutes);
+//app.use("/api/genie-payments", geniePaymentRoutes);
 
 app.listen(PORT, () => {
 	connectDB();

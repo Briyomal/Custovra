@@ -261,7 +261,6 @@ const ManualSubscriptionsTable = () => {
     }
     
     const planIdToSet = plan ? plan._id.toString() : "";
-    
     setAssignFormData({
       userId: subscription.user_id?._id || "",
       planId: planIdToSet,
@@ -288,6 +287,12 @@ const ManualSubscriptionsTable = () => {
       const selectedPlan = plans.find(plan => plan._id === assignFormData.planId);
       const amount = assignFormData.billingPeriod === 'yearly' ? selectedPlan.price_yearly : selectedPlan.price_monthly;
       
+      // Determine status: if editing a canceled subscription, allow reactivating it
+      const originalSubscription = subscriptions.find(sub => sub._id === editingSubscription._id);
+      const newStatus = originalSubscription.status === 'cancelled' || originalSubscription.status === 'canceled' 
+        ? 'active' 
+        : originalSubscription.status;
+      
       await axios.put(
         `${import.meta.env.VITE_SERVER_URL}/api/manual-subscriptions/${editingSubscription._id}`,
         {
@@ -298,7 +303,7 @@ const ManualSubscriptionsTable = () => {
           amount: amount,
           subscription_start: startDateObj,
           subscription_end: endDateObj,
-          status: 'active'
+          status: newStatus
         },
         { withCredentials: true }
       );
@@ -319,13 +324,13 @@ const ManualSubscriptionsTable = () => {
       return;
     }
     
-    // Check if user already has an active subscription (only when assigning, not editing)
-    const userHasActiveSubscription = subscriptions.some(
-      sub => sub.user_id?._id === assignFormData.userId && sub.status === 'active'
+    // Check if user already has ANY subscription (not just active)
+    const userHasAnySubscription = subscriptions.some(
+      sub => sub.user_id?._id === assignFormData.userId
     );
     
-    if (userHasActiveSubscription) {
-      toast.error("This user already has an active subscription. Please cancel the existing subscription first.");
+    if (userHasAnySubscription) {
+      toast.error("This user already has a subscription. Please edit their existing subscription instead.");
       return;
     }
     
@@ -455,11 +460,11 @@ const ManualSubscriptionsTable = () => {
                           .filter(user => {
                             // When editing, show all users including those with active subscriptions
                             if (editingSubscription) return true;
-                            // When assigning, filter out users with active subscriptions
-                            const hasActiveSubscription = subscriptions.some(
-                              sub => sub.user_id?._id === user._id && sub.status === 'active'
+                            // When assigning, filter out users with ANY subscription (active, canceled, expired, etc.)
+                            const hasAnySubscription = subscriptions.some(
+                              sub => sub.user_id?._id === user._id
                             );
-                            return !hasActiveSubscription;
+                            return !hasAnySubscription;
                           })
                           .filter(user => user._id) // Filter out users without valid IDs
                           .map((user) => (
@@ -471,7 +476,7 @@ const ManualSubscriptionsTable = () => {
                       </SelectContent>
                     </Select>
                     <p className="text-sm text-gray-500 mt-1">
-                      Only users without active subscriptions are shown
+                      Only users without any subscriptions are shown
                     </p>
                   </div>
                 </div>

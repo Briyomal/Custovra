@@ -1,15 +1,18 @@
-import { User } from '../models/User.js';
-import { ManualSubscription } from '../models/ManualSubscription.js';
+import { ManualSubscription } from "../models/ManualSubscription.js";
+import { GenieSubscription } from "../models/GenieSubscription.js";
 
 const checkSubscription = async (req, res, next) => {
     try {
-        const userId = req.userId;
-        const user = await User.findById(userId);
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
+        // Allow access to auth routes for all users
+        const authRoutes = [
+            '/api/auth/signup',
+            '/api/auth/login',
+            '/api/auth/logout',
+            '/api/auth/forgot-password',
+            '/api/auth/reset-password',
+            '/api/auth/verify-email'
+        ];
+        
         // Allow access to billing-related routes even when subscription has expired
         // These routes should always be accessible so users can manage their subscriptions
         const billingRoutes = [
@@ -29,54 +32,75 @@ const checkSubscription = async (req, res, next) => {
             '/api/manual-billing/payment-history',
             '/api/manual-billing/available-plans',
             '/api/manual-billing/payment-request',
-            '/api/manual-billing/pending-payments',
             '/billing',
             '/api/usage/stats'
         ];
         
         const currentRoute = req.originalUrl;
+        
+        // Check if the current route is an auth route or billing route
+        const isAuthRoute = authRoutes.some(route => currentRoute.includes(route));
         const isBillingRoute = billingRoutes.some(route => currentRoute.includes(route));
         
-        // Check manual subscription
-        let manualSubscription = null;
-        if (user.subscription_plan_id) {
-            manualSubscription = await ManualSubscription.findOne({
-                user_id: userId,
-                status: 'active'
+        if (isAuthRoute || isBillingRoute) {
+            return next();
+        }
+        
+        // For all other routes, check subscription status
+        const userId = req.userId;
+        
+        if (!userId) {
+            return res.status(401).json({ message: "User not authenticated" });
+        }
+        
+        // Check for active manual subscription
+        const manualSubscription = await ManualSubscription.findOne({
+            user_id: userId,
+            status: 'active',
+            subscription_end: { $gte: new Date() }
+        });
+        
+        // Check for active Genie subscription
+        const genieSubscription = await GenieSubscription.findOne({
+            user_id: userId,
+            status: 'active',
+            subscription_end: { $gte: new Date() }
+        });
+        
+        // If either subscription is active, allow access
+        if (manualSubscription || genieSubscription) {
+            return next();
+        }
+        
+        // If no active subscription, check if user has an expired subscription
+        const expiredManualSubscription = await ManualSubscription.findOne({
+            user_id: userId,
+            status: 'active',
+            subscription_end: { $lt: new Date() }
+        });
+        
+        const expiredGenieSubscription = await GenieSubscription.findOne({
+            user_id: userId,
+            status: 'active',
+            subscription_end: { $lt: new Date() }
+        });
+        
+        if (expiredManualSubscription || expiredGenieSubscription) {
+            return res.status(403).json({
+                message: "Subscription expired. Please renew your subscription to continue.",
+                subscriptionExpired: true
             });
         }
         
-        // Check if user has any active subscription
-        const now = new Date();
-        const hasActiveSubscription = manualSubscription && manualSubscription.subscription_end > now;
-        
-        // If we have an active manual subscription, update user status
-        if (hasActiveSubscription) {
-            // Manual subscription is active
-            user.is_active = true;
-            user.subscription_status = 'active';
-            await user.save();
-        } else if (user.is_active) {
-            // No active subscription but user is marked as active, deactivate them
-            user.is_active = false;
-            user.subscription_status = 'expired';
-            await user.save();
-
-            // Redirect or block access based on route
-            if (!isBillingRoute && req.originalUrl !== '/billing') {
-                return res.status(403).json({ 
-                    message: 'Subscription expired. Please renew to continue.',
-                    redirectTo: '/billing'
-                });
-            }
-        }
-        
-        next(); // Proceed if subscription is valid or user is accessing a billing route
+        // If no subscription at all, deny access
+        return res.status(403).json({
+            message: "No active subscription. Please subscribe to access this feature.",
+            noSubscription: true
+        });
     } catch (error) {
-        console.error('Error checking subscription:', error);
-        res.status(500).json({ error: error.message });
+        console.error("Error in checkSubscription middleware:", error);
+        return res.status(500).json({ message: "Internal server error" });
     }
-
 };
 
 export default checkSubscription;

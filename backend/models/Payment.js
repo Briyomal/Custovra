@@ -28,6 +28,10 @@ const paymentSchema = new Schema({
         type: Date, 
         required: true,
     },
+    form_selection: {
+        type: Schema.Types.Mixed, // Store form selection data for processing after payment confirm
+        required: false,
+    },
     created_at: {
         type: Date,
         default: Date.now,

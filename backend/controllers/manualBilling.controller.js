@@ -3,70 +3,52 @@ import { ManualSubscription } from "../models/ManualSubscription.js";
 import { ManualPlan } from "../models/ManualPlan.js";
 import { User } from "../models/User.js";
 import { Form } from "../models/Form.js";
-import { Payment } from "../models/Payment.js";
 
-// Get current subscription details
+// Get current subscription details for the logged-in user
 export const getManualSubscriptionDetails = async (req, res) => {
     try {
         const userId = req.userId;
-
         if (!userId) {
             return res.status(401).json({ error: 'User not authenticated.' });
         }
 
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({ error: 'User not found.' });
-        }
-
-        // Get user's manual subscription
+        // Get user's current subscription
         const subscription = await ManualSubscription.findOne({ user_id: userId })
-            .populate('plan_id', 'name description features form_limit price_monthly price_yearly');
+            .populate('plan_id')
+            .sort({ created_at: -1 })
+            .limit(1);
 
-        // Get user's most recent payment
-        const recentPayment = await ManualPayment.findOne({ user_id: userId })
-            .sort({ created_at: -1 });
+        // Get user's form count
+        const formCount = await Form.countDocuments({ user_id: userId, is_active: true });
 
-        // Get user's forms count
-        const formCount = await Form.countDocuments({ user_id: userId });
-
-        const subscriptionDetails = {
-            subscription: subscription || null,
-            payment: recentPayment || null,
-            formCount: formCount,
-            user: {
-                name: user.name,
-                email: user.email,
-                subscription_plan: user.subscription_plan,
-                subscription_status: user.subscription_status,
-                subscription_expiry: user.subscription_expiry,
-                is_active: user.is_active
+        res.json({
+            success: true,
+            data: {
+                subscription: subscription,
+                formCount: formCount
             }
-        };
-
-        res.json({ success: true, data: subscriptionDetails });
+        });
     } catch (error) {
         console.error('Error getting subscription details:', error);
-        res.status(500).json({ error: 'Failed to get subscription details: ' + error.message });
+        res.status(500).json({ error: 'Failed to get subscription details.' });
     }
 };
 
-// Get payment history
+// Get payment history for the logged-in user
 export const getManualPaymentHistory = async (req, res) => {
     try {
         const userId = req.userId;
-
         if (!userId) {
             return res.status(401).json({ error: 'User not authenticated.' });
         }
 
-        // Get manual payments for this user
-        const manualPayments = await ManualPayment.find({ user_id: userId })
+        // Get user's payment history
+        const payments = await ManualPayment.find({ user_id: userId })
             .sort({ created_at: -1 })
             .limit(20);
 
         // Format payment history
-        const paymentHistory = manualPayments.map(payment => ({
+        const paymentHistory = payments.map(payment => ({
             id: payment._id,
             source: 'manual',
             amount: payment.amount,
@@ -76,7 +58,8 @@ export const getManualPaymentHistory = async (req, res) => {
             plan: payment.plan_name,
             description: `${payment.plan_name} (${payment.billing_period})`,
             billing_period: payment.billing_period,
-            payment_method: payment.payment_method
+            payment_method: payment.payment_method,
+            admin_notes: payment.admin_notes
         }));
 
         // Sort by date (newest first)
@@ -93,23 +76,21 @@ export const getManualPaymentHistory = async (req, res) => {
 // Get available subscription plans
 export const getManualAvailablePlans = async (req, res) => {
     try {
-        // Get all active manual plans
-        const plans = await ManualPlan.find({ is_active: true });
+        // Get all active plans
+        const plans = await ManualPlan.find({ is_active: true }).sort({ price_monthly: 1 });
 
         // Format plans for frontend
-        const subscriptionPlans = plans.map(plan => ({
+        const formattedPlans = plans.map(plan => ({
             id: plan._id,
             name: plan.name,
             description: plan.description,
             price_monthly: plan.price_monthly,
             price_yearly: plan.price_yearly,
             form_limit: plan.form_limit,
-            submission_limit: plan.submission_limit,
-            features: plan.features,
-            is_active: plan.is_active
-        })).sort((a, b) => a.price_monthly - b.price_monthly);
+            features: plan.features || []
+        }));
 
-        res.json({ success: true, data: subscriptionPlans });
+        res.json({ success: true, data: formattedPlans });
     } catch (error) {
         console.error('Error getting available plans:', error);
         res.status(500).json({ error: 'Failed to get available plans.' });
@@ -122,7 +103,7 @@ export const createManualPaymentRequest = async (req, res) => {
         const userId = req.userId;
         const { planId, billingPeriod, paymentMethod, paymentProof, formSelection } = req.body;
 
-        console.log('Creating payment request with data:', { planId, billingPeriod, paymentMethod, userId, formSelection });
+        console.log('Creating manual payment request with data:', { planId, billingPeriod, paymentMethod, userId });
 
         if (!userId) {
             return res.status(401).json({ error: 'User not authenticated.' });
@@ -176,63 +157,6 @@ export const createManualPaymentRequest = async (req, res) => {
     } catch (error) {
         console.error('Error creating payment request:', error);
         res.status(500).json({ error: 'Failed to create payment request.' });
-    }
-};
-
-// Get user's pending payment requests
-export const getUserPendingPayments = async (req, res) => {
-    try {
-        const userId = req.userId;
-
-        if (!userId) {
-            return res.status(401).json({ error: 'User not authenticated.' });
-        }
-
-        // Get pending payments for this user
-        const pendingPayments = await ManualPayment.find({ 
-            user_id: userId, 
-            payment_status: 'pending' 
-        }).sort({ created_at: -1 });
-
-        res.json({ success: true, data: pendingPayments });
-    } catch (error) {
-        console.error('Error getting pending payments:', error);
-        res.status(500).json({ error: 'Failed to get pending payments.' });
-    }
-};
-
-// Cancel a pending payment request
-export const cancelManualPaymentRequest = async (req, res) => {
-    try {
-        const userId = req.userId;
-        const { paymentId } = req.params;
-
-        if (!userId) {
-            return res.status(401).json({ error: 'User not authenticated.' });
-        }
-
-        // Find the payment and check ownership
-        const payment = await ManualPayment.findOne({ 
-            _id: paymentId, 
-            user_id: userId,
-            payment_status: 'pending'
-        });
-
-        if (!payment) {
-            return res.status(404).json({ error: 'Pending payment request not found.' });
-        }
-
-        // Update payment status
-        payment.payment_status = 'cancelled';
-        await payment.save();
-
-        res.json({ 
-            success: true, 
-            message: 'Payment request cancelled successfully.' 
-        });
-    } catch (error) {
-        console.error('Error cancelling payment request:', error);
-        res.status(500).json({ error: 'Failed to cancel payment request.' });
     }
 };
 

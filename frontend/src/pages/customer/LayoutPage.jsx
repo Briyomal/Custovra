@@ -11,56 +11,20 @@ import { useTheme } from "@/components/theme-provider";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
 import UsageIndicators from "@/components/ui/usage-indicators";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useMemo, useState, useEffect } from "react";
 import axios from "axios";
-import toast from "react-hot-toast";
+//import toast from "react-hot-toast";
 
 function CustomerLayoutPage({ children }) {
 	const { user } = useAuthStore();
 	const location = useLocation();
-	const navigate = useNavigate();
+	//const navigate = useNavigate();
 	const [formNames, setFormNames] = useState({});
 
 	const { setTheme } = useTheme();
 
-	// Check subscription status and redirect if needed
-	useEffect(() => {
-		const checkSubscriptionStatus = async () => {
-			// Skip subscription check for billing pages
-			if (location.pathname.includes('/billing') || location.pathname === '/billing') {
-				return;
-			}
 
-			try {
-				// Check if user has active subscription
-				const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/manual-billing/subscription-details`, {
-					withCredentials: true
-				});
-
-				// If no active subscription, redirect to billing
-				if (!response.data?.data?.subscription || response.data.data.subscription.status !== 'active') {
-					// Only show toast once and not on billing page
-					if (!location.pathname.includes('/billing')) {
-						toast.error("No active subscription. Redirecting to billing page.");
-						navigate('/billing');
-					}
-				}
-			} catch (error) {
-				console.error('Error checking subscription status:', error);
-				// If there's an error checking subscription, redirect to billing
-				if (!location.pathname.includes('/billing')) {
-					toast.error("Subscription check failed. Redirecting to billing page.");
-					navigate('/billing');
-				}
-			}
-		};
-
-		// Only check subscription for authenticated users
-		if (user) {
-			checkSubscriptionStatus();
-		}
-	}, [user, location.pathname, navigate]);
 
 	// Fetch form names when paths change
 	useEffect(() => {

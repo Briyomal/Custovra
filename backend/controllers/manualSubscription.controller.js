@@ -108,15 +108,14 @@ export const assignPlanToUser = async (req, res) => {
     try {
         const { userId, planId, billingPeriod, startDate, duration } = req.body;
         
-        // Check if user already has an active subscription
-        const existingActiveSubscription = await ManualSubscription.findOne({
-            user_id: userId,
-            status: 'active'
+        // Check if user already has ANY subscription (not just active)
+        const existingSubscription = await ManualSubscription.findOne({
+            user_id: userId
         });
         
-        if (existingActiveSubscription) {
+        if (existingSubscription) {
             return res.status(400).json({ 
-                message: 'User already has an active subscription. Please cancel the existing subscription first.' 
+                message: 'User already has a subscription. Please edit their existing subscription instead.' 
             });
         }
         
@@ -148,7 +147,7 @@ export const assignPlanToUser = async (req, res) => {
             subscription_end: endDateObj,
             auto_renew: false
         };
-        
+
         const subscription = new ManualSubscription(subscriptionData);
         await subscription.save();
         

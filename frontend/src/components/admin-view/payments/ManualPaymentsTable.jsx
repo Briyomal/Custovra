@@ -137,6 +137,7 @@ const ManualPaymentsTable = () => {
   };
 
   const formatCurrency = (amount) => {
+    // For LKR, we don't need to divide by 100 as the amount is already in the correct format
     return `Rs ${new Intl.NumberFormat('en-LK', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,

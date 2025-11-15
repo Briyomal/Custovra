@@ -15,18 +15,6 @@ export const getAllManualPayments = async (req, res) => {
     }
 };
 
-// Get all pending manual payments
-export const getAllPendingPayments = async (req, res) => {
-    try {
-        const payments = await ManualPayment.find({ payment_status: 'pending' })
-            .populate('user_id', 'name email')
-            .populate('plan_id', 'name');
-        res.status(200).json(payments);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
 // Get a manual payment by ID
 export const getManualPaymentById = async (req, res) => {
     try {
