@@ -15,7 +15,7 @@ export const generateTokenAndSetCookie = (res, userId) => {
 		//sameSite: "strict",
 		//sameSite: "none",
 		secure: isProduction,               // true only in production
-		sameSite: isProduction ? "none" : "strict", // "none" for cross-site prod, "strict" for local testing
+		sameSite: isProduction ? "none" : "lax", // "none" for cross-site prod, "strict" for local testing
 		maxAge: 7 * 24 * 60 * 60 * 1000,
 	});
 

@@ -9,6 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { 
   PlusCircle, 
   Paperclip, 
   Send, 
@@ -17,7 +23,8 @@ import {
   User,
   Shield,
   Search,
-  ArrowLeft
+  ArrowLeft,
+  ChevronDown
 } from "lucide-react";
 import { format } from "date-fns";
 import CustomerLayoutPage from "./LayoutPage";
@@ -350,7 +357,12 @@ const SupportPage = () => {
           </div>
           <Button 
             onClick={() => setIsCreatingTicket(true)}
-            className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
+            className="w-full md:w-auto rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400"
             disabled={isSubmitting}
           >
             <PlusCircle className="mr-2 h-4 w-4" />
@@ -360,12 +372,12 @@ const SupportPage = () => {
 
         {isCreatingTicket ? (
           <Card className="max-w-2xl">
-            <CardHeader>
+            <CardHeader className="border-b dark:bg-[#161616]">
               <CardTitle>Create New Support Ticket</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreateTicket} className="space-y-4">
-                <div className="space-y-2">
+                <div className="space-y-2 mt-2">
                   <Label htmlFor="subject">Subject</Label>
                   <Input
                     id="subject"
@@ -441,7 +453,14 @@ const SupportPage = () => {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSubmitting}>
+                  <Button className="rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400"
+                  
+                    type="submit" disabled={isSubmitting}>
                     {isSubmitting ? "Sending..." : (
                       <>
                         <Send className="mr-2 h-4 w-4" />
@@ -464,9 +483,9 @@ const SupportPage = () => {
                     <Badge 
                       variant={getStatusVariant(selectedTicket.status)}
                       className={`
-                        ${selectedTicket.status === "open" ? "bg-blue-500" : ""}
-                        ${selectedTicket.status === "in_progress" ? "bg-purple-500" : ""}
-                        ${selectedTicket.status === "resolved" ? "bg-green-500" : ""}
+                        ${selectedTicket.status === "open" ? "bg-lime-500" : ""}
+                        ${selectedTicket.status === "in_progress" ? "bg-yellow-500" : ""}
+                        ${selectedTicket.status === "resolved" ? "bg-green-600" : ""}
                         ${selectedTicket.status === "closed" ? "bg-gray-500" : ""}
                       `}
                     >
@@ -498,14 +517,14 @@ const SupportPage = () => {
                       <div 
                         className={`max-w-[80%] rounded-lg p-4 ${
                           message.sender._id === user._id 
-                            ? 'bg-blue-100 dark:bg-blue-900' 
-                            : 'bg-gray-100 dark:bg-gray-800'
+                            ? 'bg-green-100 dark:bg-green-950/50' 
+                            : 'bg-gray-100 dark:bg-[#1d1d1d]'
                         }`}
                       >
                         <div className="flex items-center gap-2 mb-2">
                           <div className="flex items-center gap-2">
                             {message.sender.role === "admin" ? (
-                              <Shield className="h-4 w-4 text-blue-500" />
+                              <Shield className="h-4 w-4 text-green-500" />
                             ) : (
                               <User className="h-4 w-4 text-gray-500" />
                             )}
@@ -528,7 +547,7 @@ const SupportPage = () => {
                               href={`${import.meta.env.VITE_SERVER_URL}/api/support/file/${encodeURIComponent(message.file_url)}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 text-blue-600 hover:underline"
+                              className="inline-flex items-center gap-2 text-lime-600 hover:underline"
                             >
                               <Paperclip className="h-4 w-4" />
                               {formatFileName(message.file_url)}
@@ -618,7 +637,13 @@ const SupportPage = () => {
                       >
                         Close Ticket
                       </Button>
-                      <Button type="submit" disabled={isSubmitting}>
+                      <Button className="rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400" 
+                      type="submit" disabled={isSubmitting}>
                         {isSubmitting ? "Sending..." : (
                           <>
                             <Send className="mr-2 h-4 w-4" />
@@ -669,17 +694,35 @@ const SupportPage = () => {
                   
                   <div className="flex gap-2">
                     <div className="relative">
-                      <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="pl-4 pr-8 py-2 border rounded-md bg-white dark:bg-gray-800 dark:border-gray-700"
-                      >
-                        <option value="all">All Statuses</option>
-                        <option value="open">Open</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="resolved">Resolved</option>
-                        <option value="closed">Closed</option>
-                      </select>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className="w-full justify-between">
+                            {statusFilter === "all" && "All Statuses"}
+                            {statusFilter === "open" && "Open"}
+                            {statusFilter === "in_progress" && "In Progress"}
+                            {statusFilter === "resolved" && "Resolved"}
+                            {statusFilter === "closed" && "Closed"}
+                            <ChevronDown className="ml-2 h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[200px]">
+                          <DropdownMenuItem onClick={() => setStatusFilter("all")}>
+                            All Statuses
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setStatusFilter("open")}>
+                            Open
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setStatusFilter("in_progress")}>
+                            In Progress
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setStatusFilter("resolved")}>
+                            Resolved
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setStatusFilter("closed")}>
+                            Closed
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 </div>
@@ -715,7 +758,12 @@ const SupportPage = () => {
                   </p>
                   <Button 
                     onClick={() => setIsCreatingTicket(true)}
-                    className="mt-4"
+                    className="mt-4 rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400"
                     disabled={isSubmitting}
                   >
                     <PlusCircle className="mr-2 h-4 w-4" />
@@ -743,8 +791,8 @@ const SupportPage = () => {
                           <Badge 
                             variant={getStatusVariant(ticket.status)}
                             className={`
-                              ${ticket.status === "open" ? "bg-blue-500" : ""}
-                              ${ticket.status === "in_progress" ? "bg-purple-500" : ""}
+                              ${ticket.status === "open" ? "bg-lime-500" : ""}
+                              ${ticket.status === "in_progress" ? "bg-yellow-500" : ""}
                               ${ticket.status === "resolved" ? "bg-green-500" : ""}
                               ${ticket.status === "closed" ? "bg-gray-500" : ""}
                             `}
@@ -764,7 +812,7 @@ const SupportPage = () => {
                           <div className="flex items-start gap-3">
                             <div className="mt-0.5">
                               {ticket.messages[0].sender.role === "admin" ? (
-                                <Shield className="h-4 w-4 text-blue-500" />
+                                <Shield className="h-4 w-4 text-lime-500" />
                               ) : (
                                 <User className="h-4 w-4 text-gray-500" />
                               )}

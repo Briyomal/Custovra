@@ -580,7 +580,12 @@ function ReportExport({
         <Button 
             onClick={exportToPDF}
             disabled={isExporting || (!chartData.length && ratingData.ratingData.every(r => r.value === 0))}
-            className="flex items-center gap-2 h-10 px-4 shrink-0"
+            className="flex items-center gap-2 h-10 px-4 shrink-0 rounded-md font-semibold border 
+               											border-[#16bf4c] text-[#16bf4c] dark:text-white bg-transparent 
+               											hover:!text-[#000000] hover:border-lime-500 hover:bg-lime-500
+               											transition-all duration-200 ease-in-out 
+               											hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] 
+               											focus:outline-none focus:ring-2 focus:ring-lime-500"
             variant="outline"
             size="sm"
         >

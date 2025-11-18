@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Plus, Edit, Trash2, Users, User, ArrowUpDown } from "lucide-react";
+import { Plus, Edit, Trash2, Users, User, ArrowUpDown, Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
@@ -18,6 +18,7 @@ import {
   useReactTable,
   getSortedRowModel,
 } from "@tanstack/react-table";
+import { Separator } from "@/components/ui/separator";
 
 function EmployeePage() {
   const { user, isAuthenticated } = useAuthStore();
@@ -124,7 +125,7 @@ function EmployeePage() {
       }
 
       setProfilePhoto(file);
-      
+
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -181,7 +182,7 @@ function EmployeePage() {
     setSubmitting(true);
     try {
       const submitFormData = new FormData();
-      
+
       // Append form fields
       Object.keys(formData).forEach(key => {
         if (formData[key] && formData[key].toString().trim() !== '') {
@@ -275,8 +276,8 @@ function EmployeePage() {
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
-            <AvatarImage 
-              src={row.original.profile_photo?.url} 
+            <AvatarImage
+              src={row.original.profile_photo?.url}
               alt={row.original.name}
               className="object-cover"
             />
@@ -369,7 +370,12 @@ function EmployeePage() {
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={openCreateDialog} className="w-full sm:w-fit mt-4 mb-4 left-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800">
+              <Button onClick={openCreateDialog} className="w-full sm:w-fit mt-4 mb-4 left-0 rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400">
                 <Plus className="h-4 w-4" />
                 Add Employee
               </Button>
@@ -442,8 +448,8 @@ function EmployeePage() {
                     Cancel
                   </Button>
                   <Button
-                   className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
-                   onClick={handleSubmit} disabled={submitting}>
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
+                    onClick={handleSubmit} disabled={submitting}>
                     {submitting ? 'Saving...' : (editingEmployee ? 'Update Employee' : 'Add Employee')}
                   </Button>
                 </div>
@@ -452,152 +458,155 @@ function EmployeePage() {
           </Dialog>
         </div>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                  <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          <Separator className="my-4" />
+          <div className="grid auto-rows-min gap-4 grid-cols-1 md:grid-cols-3 xl:grid-cols-5 ">
+            <Card className="border-b-4 border-b-[#16bf4c] mt-4">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-md font-regular">Total Employees</CardTitle>
+                <Users className="text-[#16bf4c]" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {loading ? (
+                    <Loader2 className="animate-spin" size={36} />
+                  ) : (
+                    <span className="text-2xl font-bold">{employees.length}</span>
+                  )}
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Employees</p>
-                  <p className="text-2xl font-bold">{employees.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Employees Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
-              <Users className="h-5 w-5" />
-              Employees List
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {employees.length === 0 ? (
-              <div className="text-center py-12">
-                <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg mb-2">No employees found</p>
-                <p className="text-gray-400 text-sm mb-4">Add your first employee to get started</p>
-                <Button onClick={openCreateDialog} className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Employee
-                </Button>
-              </div>
-            ) : (
-              <div className="rounded-md border flex">
-                <ScrollArea className="w-1 flex-1" orientation="horizontal">
-                  <Table className="relative w-full">
-                    <TableHeader className="bg-white dark:bg-slate-900">
-                      {table.getHeaderGroups().map((headerGroup) => (
-                        <TableRow key={headerGroup.id}>
-                          {headerGroup.headers.map((header) => (
-                            <TableHead key={header.id} className="p-0">
-                              {header.isPlaceholder
-                                ? null
-                                : flexRender(
+
+          {/* Employees Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                <Users className="h-5 w-5" />
+                Employees List
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {employees.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500 text-lg mb-2">No employees found</p>
+                  <p className="text-gray-400 text-sm mb-4">Add your first employee to get started</p>
+                  <Button onClick={openCreateDialog} className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Employee
+                  </Button>
+                </div>
+              ) : (
+                <div className="rounded-md border flex">
+                  <ScrollArea className="w-1 flex-1" orientation="horizontal">
+                    <Table className="relative w-full">
+                      <TableHeader className="bg-white dark:bg-slate-900">
+                        {table.getHeaderGroups().map((headerGroup) => (
+                          <TableRow key={headerGroup.id}>
+                            {headerGroup.headers.map((header) => (
+                              <TableHead key={header.id} className="p-0">
+                                {header.isPlaceholder
+                                  ? null
+                                  : flexRender(
                                     header.column.columnDef.header,
                                     header.getContext()
                                   )}
-                            </TableHead>
-                          ))}
-                          <TableHead className="text-right whitespace-nowrap px-4 min-w-[120px]">Actions</TableHead>
-                        </TableRow>
-                      ))}
-                    </TableHeader>
-                    <TableBody>
-                      {table.getRowModel().rows.map((row) => (
-                        <TableRow key={row.id}>
-                          {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id} className="whitespace-nowrap px-4 min-w-[120px]">
-                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                            </TableCell>
-                          ))}
-                          <TableCell className="text-right whitespace-nowrap px-4 min-w-[120px]">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => openEditDialog(row.original)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                                <AlertDialogTrigger asChild>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="text-red-600 hover:text-red-700"
-                                    onClick={() => setEmployeeToDelete(row.original._id)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent className="max-w-[calc(100%-2rem)] rounded-md">
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Employee</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to delete {row.original.name}? This action cannot be undone and will permanently remove all employee data.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <div className="my-4">
-                                    <label className="text-sm mb-1 block">
-                                      To confirm, type <span className="font-bold text-destructive">Delete</span> below:
-                                    </label>
-                                    <Input
-                                      type="text"
-                                      placeholder="Type 'Delete' to confirm"
-                                      value={deleteConfirmationText}
-                                      onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                                    />
-                                  </div>
-                                  <AlertDialogFooter className="flex flex-row md:flex-none space-x-2">
+                              </TableHead>
+                            ))}
+                            <TableHead className="text-right whitespace-nowrap px-4 min-w-[120px]">Actions</TableHead>
+                          </TableRow>
+                        ))}
+                      </TableHeader>
+                      <TableBody>
+                        {table.getRowModel().rows.map((row) => (
+                          <TableRow key={row.id}>
+                            {row.getVisibleCells().map((cell) => (
+                              <TableCell key={cell.id} className="whitespace-nowrap px-4 min-w-[120px]">
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-right whitespace-nowrap px-4 min-w-[120px]">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openEditDialog(row.original)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                                  <AlertDialogTrigger asChild>
                                     <Button
-                                      className="w-1/2 md:w-auto mt-2"
                                       variant="outline"
-                                      onClick={() => {
-                                        setDeleteConfirmationText("");
-                                        setDeleteDialogOpen(false);
-                                      }}
+                                      size="sm"
+                                      className="text-red-600 hover:text-red-700"
+                                      onClick={() => setEmployeeToDelete(row.original._id)}
                                     >
-                                      Cancel
+                                      <Trash2 className="h-4 w-4" />
                                     </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent className="max-w-[calc(100%-2rem)] rounded-md">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Employee</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete {row.original.name}? This action cannot be undone and will permanently remove all employee data.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <div className="my-4">
+                                      <label className="text-sm mb-1 block">
+                                        To confirm, type <span className="font-bold text-destructive">Delete</span> below:
+                                      </label>
+                                      <Input
+                                        type="text"
+                                        placeholder="Type 'Delete' to confirm"
+                                        value={deleteConfirmationText}
+                                        onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                                      />
+                                    </div>
+                                    <AlertDialogFooter className="flex flex-row md:flex-none space-x-2">
+                                      <Button
+                                        className="w-1/2 md:w-auto mt-2"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setDeleteConfirmationText("");
+                                          setDeleteDialogOpen(false);
+                                        }}
+                                      >
+                                        Cancel
+                                      </Button>
 
-                                    <Button
-                                      className="w-1/2 md:w-auto mt-2"
-                                      variant="destructive"
-                                      onClick={() => {
-                                        handleDelete(employeeToDelete);
-                                        setDeleteConfirmationText("");
-                                        setDeleteDialogOpen(false);
-                                      }}
-                                      disabled={!isDeleteConfirmed}
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      Delete
-                                    </Button>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                                      <Button
+                                        className="w-1/2 md:w-auto mt-2"
+                                        variant="destructive"
+                                        onClick={() => {
+                                          handleDelete(employeeToDelete);
+                                          setDeleteConfirmationText("");
+                                          setDeleteDialogOpen(false);
+                                        }}
+                                        disabled={!isDeleteConfirmed}
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete
+                                      </Button>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
     </CustomerLayoutPage>
   );
-}
+};
 
 export default EmployeePage;

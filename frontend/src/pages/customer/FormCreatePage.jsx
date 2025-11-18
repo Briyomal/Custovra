@@ -127,7 +127,7 @@ const FormCreatePage = () => {
 				setLoadingForm(false);
 				return;
 			}
-			
+
 			// Validate essential form fields
 			if (!formDetails.form_name || !formDetails.form_type) {
 				toast.error("Form name and type are required");
@@ -208,12 +208,12 @@ const FormCreatePage = () => {
 			const formData = new FormData();
 			for (const key in formPayload) {
 				const value = formPayload[key];
-				
+
 				// Skip undefined or null values
 				if (value === undefined || value === null) {
 					continue;
 				}
-				
+
 				if (key === "default_fields") {
 					formData.append(key, JSON.stringify(value));
 				} else {
@@ -234,15 +234,15 @@ const FormCreatePage = () => {
 
 			// Save the form
 			formData.append("custom_fields", JSON.stringify(customFieldPayloads));
-			
+
 			await updateForm(formDetails._id, formData);
 
 			toast.success("Form saved successfully!");
-			
+
 			// Reset logo states after successful save
 			setRemoveLogo(false);
 			setSelectedImage(null);
-			
+
 			// Refresh form details to get updated logo info
 			try {
 				const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/forms/${formId}`);
@@ -271,9 +271,14 @@ const FormCreatePage = () => {
 					<p className="text-gray-600 mt-2">Please check if the form ID is correct or ensure that you are authorized to view this form.</p>
 					{error.includes('locked') && (
 						<div className="mt-4">
-							<Button 
+							<Button
 								onClick={() => window.open('/billing', '_blank')}
-								ClassName="bg-blue-600 hover:bg-blue-700 text-white"
+								ClassName="rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400"
 							>
 								🚀 Upgrade Plan
 							</Button>
@@ -299,7 +304,12 @@ const FormCreatePage = () => {
 						<div className="flex gap-2 items-center">
 							<Dialog>
 								<DialogTrigger asChild>
-									<Button variant="outline" onClick={fetchPreviewDetails}>
+									<Button className="rounded-md font-semibold border 
+               											border-[#16bf4c] text-[#16bf4c] dark:text-white bg-transparent 
+               											hover:!text-[#000000] hover:border-lime-500 hover:bg-lime-500
+               											transition-all duration-200 ease-in-out 
+               											hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] 
+               											focus:outline-none focus:ring-2 focus:ring-lime-500" onClick={fetchPreviewDetails}>
 										<ScanSearch /> Preview
 									</Button>
 								</DialogTrigger>
@@ -308,7 +318,12 @@ const FormCreatePage = () => {
 
 							<Dialog>
 								<DialogTrigger asChild>
-									<Button variant="secondary" onClick={() => setIsShareDialogOpen(true)}>
+									<Button className="rounded-md font-semibold text-white border
+                                                          border-lime-700
+                                                            bg-gradient-to-r from-lime-700 to-green-800
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-green-600 hover:to-lime-600 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-500" onClick={() => setIsShareDialogOpen(true)}>
 										<QrCode />
 										Share
 									</Button>
@@ -317,7 +332,12 @@ const FormCreatePage = () => {
 							</Dialog>
 
 							{formDetails.is_active ? (
-								<Button className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800" onClick={handlePublish} disabled={loadingForm}>
+								<Button className="rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400" onClick={handlePublish} disabled={loadingForm}>
 									{loadingForm ? (
 										<>
 											<Loader className="animate-spin mx-auto mr-0.5" size={28} />
@@ -331,7 +351,7 @@ const FormCreatePage = () => {
 									)}
 								</Button>
 							) : (
-								<Button className="bg-gradient-to-r dark:from-slate-900 dark:to-indigo-950 text-white dark:hover:from-slate-800 dark:hover:to-indigo-800" onClick={handlePublish} disabled={loadingForm}>
+								<Button className="bg-gradient-to-r dark:from-green-900 dark:to-green-950 text-white dark:hover:from-green-800 dark:hover:to-green-800" onClick={handlePublish} disabled={loadingForm}>
 									{loadingForm ? (
 										<>
 											<Loader className="animate-spin mx-auto mr-0.5" size={28} />
@@ -348,16 +368,16 @@ const FormCreatePage = () => {
 						</div>
 					</div>
 					<div className="flex w-full flex-grow items-center justify-center relative overflow-y-auto h-[80vh]">
-						<FormBuilder 
-							formDetails={formDetails} 
-							onFieldUpdate={handleFieldUpdate} 
-							onFileSelect={handleFileSelect} 
-							fields={fields} 
-							setFields={setFields} 
+						<FormBuilder
+							formDetails={formDetails}
+							onFieldUpdate={handleFieldUpdate}
+							onFileSelect={handleFileSelect}
+							fields={fields}
+							setFields={setFields}
 						/>
-						<FormSidebar 
-							formDetails={formDetails} 
-							onFieldUpdate={handleFieldUpdate} 
+						<FormSidebar
+							formDetails={formDetails}
+							onFieldUpdate={handleFieldUpdate}
 							onFileSelect={handleFileSelect}
 							onRemoveImage={handleRemoveLogo}
 						/>

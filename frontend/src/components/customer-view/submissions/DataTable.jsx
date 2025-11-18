@@ -351,8 +351,9 @@ const exportToCSV = () => {
 
 	return (
 		<div>
-			<div className="flex flex-col items-stretch justify-between py-4 gap-2">
-				<div className="flex flex-col md:flex-row items-stretch gap-2">
+			<div className="flex flex-col items-stretch justify-between pt-0 pb-4 gap-2">
+				<div className="flex flex-col md:flex-row gap-2 justify-between">
+				<div className="flex flex-col md:flex-row basis-10/12 items-stretch gap-2">
 					{data.some((row) => row.submissions?.email) ? (
 						<Input
 							placeholder="Filter emails..."
@@ -463,7 +464,7 @@ const exportToCSV = () => {
 						)}
 					</div>
 				</div>
-				<div className="flex items-center gap-2">
+				<div className="flex items-center justify-end basis-2/12 gap-2">
 					{selectedCount > 0 && (
 						<AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
 							<AlertDialogTrigger asChild>
@@ -514,10 +515,16 @@ const exportToCSV = () => {
 					)}
 					<Button
 						onClick={exportToCSV}
-						className="w-full md:w-fit bg-green-600 text-white hover:bg-green-700"
+						className="w-full md:w-fit rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400"
 					>
 						<FileDown /> Export as CSV
 					</Button>
+				</div>
 				</div>
 			</div>
 			<div className="rounded-md border flex">

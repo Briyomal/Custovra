@@ -248,11 +248,11 @@ const CustomerDashboardPage = () => {
   const chartConfig = {
     submissions: {
       label: "Submissions",
-      color: "#3b82f6",
+      color: "#16bf4c",
     },
-    avgRating: { label: "Average Rating", color: "#f59e0b" },
-    avgGeneralRating: { label: "General Rating", color: "#8b5cf6" },
-    avgEmployeeRating: { label: "Employee Rating", color: "#f97316" },
+    avgRating: { label: "Average Rating", color: "#16bf4c" },
+    avgGeneralRating: { label: "General Rating", color: "#abdb18" },
+    avgEmployeeRating: { label: "Employee Rating", color: "#dbb118" },
   };
 
 
@@ -260,7 +260,7 @@ const CustomerDashboardPage = () => {
   return (
     <CustomerLayoutPage>
       <div className="flex flex-col gap-2 pt-4 md:gap-4 md:p-4">
-        <h2 className="text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">
+        <h2 className="text-xl md:text-2xl font-bold text-[#16bf4c] dark:text-[#16bf4c]">
           Welcome Back, <span className="text-slate-800 dark:text-slate-200">{user.name}</span>
         </h2>
         <p className="text-sm md:text-base">
@@ -290,7 +290,7 @@ const CustomerDashboardPage = () => {
           <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-medium flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-blue-500" />
+                <TrendingUp className="h-5 w-5 text-[#16bf4c]" />
                 Submissions Over Time
               </CardTitle>
             </CardHeader>
@@ -332,7 +332,7 @@ const CustomerDashboardPage = () => {
                         />
                         <Bar
                           dataKey="submissions"
-                          fill={chartConfig.submissions.color}
+                          fill="#16bf4c"
                           radius={[4, 4, 0, 0]}
                         />
                       </BarChart>

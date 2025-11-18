@@ -161,9 +161,9 @@ const ImageUpload = ({ existingImageUrl, onFileSelect, onRemoveImage, showRemove
                 <div
                     {...getRootProps()}
                     className={`border-2 border-dashed rounded-lg p-6 w-full max-w-lg min-h-[160px] content-center relative ${isDragActive
-                            ? "border-blue-500 bg-blue-50 dark:bg-slate-900 dark:border-gray-500"
-                            : "border-gray-300 bg-gray-50 dark:bg-slate-950 dark:border-gray-600"
-                        } cursor-pointer hover:border-blue-500 transition dark:hover:border-blue-400`}
+                            ? "border-[#16bf4c] bg-blue-50 dark:bg-[#0D0D0D] dark:border-gray-500"
+                            : "border-gray-300 bg-gray-50 dark:bg-[#0D0D0D] dark:border-gray-600"
+                        } cursor-pointer hover:border-[#16bf4c] transition dark:hover:border-blue-400`}
                 >
                     <input {...getInputProps()} />
                     
@@ -194,15 +194,15 @@ const ImageUpload = ({ existingImageUrl, onFileSelect, onRemoveImage, showRemove
                         <div className="text-center">
                             {isDragActive ? (
                                 <div className="flex flex-col items-center">
-                                    <ImageUp strokeWidth={0.8} className="w-12 h-16 text-blue-500" />
-                                    <p className="text-blue-500">Drop your image here...</p>
+                                    <ImageUp strokeWidth={0.8} className="w-12 h-16 text-[#16bf4c]" />
+                                    <p className="text-[#16bf4c]">Drop your image here...</p>
                                 </div>
                             ) : (
                                 <div className="text-gray-500 flex flex-col items-center text-sm dark:text-gray-400">
                                     <ImageUp strokeWidth={0.8} className="w-12 h-16 text-gray-400" />
                                     <p>
                                         Drop your image here, or{" "}
-                                        <span className="text-blue-400">browse</span>
+                                        <span className="text-[#16bf4c]">browse</span>
                                     </p>
                                 </div>
                             )}

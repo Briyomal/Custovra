@@ -127,7 +127,7 @@ const FormQR = ({ formLink }) => {
                     <Button
                         type="submit"
                         size="sm"
-                        className="px-3"
+                        className="px-3 bg-[#16bf4c] hover:bg-lime-500 transition-colors duration-300 ease-in-out"
                         onClick={handleCopy}
                     >
                         <span className="sr-only">Copy</span>
@@ -146,10 +146,20 @@ const FormQR = ({ formLink }) => {
                         size={300} // Set the QR Code size to 500px
                     />
                     <div className="space-x-2">
-                        <Button variant="outline" onClick={handlePrint}>
+                        <Button className="ounded-md font-semibold border 
+               											border-[#16bf4c] text-[#16bf4c] dark:text-white bg-transparent 
+               											hover:border-lime-500 hover:bg-lime-500 hover:!text-black
+               											transition-all duration-700 ease-in-out 
+               											hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] 
+               											focus:outline-none focus:ring-2 focus:ring-lime-500" onClick={handlePrint}>
                             <Printer /> Print
                         </Button>
-                        <Button variant="secondary" onClick={handleDownload}>
+                        <Button className="rounded-md font-semibold text-black border
+                                        border-lime-500
+                                          bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                          transition-all duration-700 ease-in-out 
+                                          hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                          focus:outline-none focus:ring-2 focus:ring-lime-400" onClick={handleDownload}>
                             <Download /> Download
                         </Button>
                     </div>

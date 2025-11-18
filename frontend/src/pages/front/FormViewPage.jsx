@@ -414,7 +414,7 @@ const FormViewPage = () => {
                 className="max-w-lg w-full"
             >
                 {!formDetails?.is_active ? (
-                    <Card className="text-center p-4">
+                    <Card className="text-center p-4 backdrop-blur-md">
                         <CardHeader>
                             <Ban size={48} className="mx-auto mb-2 text-red-500" />
                             <CardTitle>Form Unavailable</CardTitle>
@@ -437,14 +437,24 @@ const FormViewPage = () => {
                                         <small>Your review text will be copied to your clipboard. Please paste it on Google Reviews.</small>
                                         <div className="flex justify-center gap-2 md:gap-4 mt-4">
                                             <Button
-                                                className="text-md bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:from-blue-700 hover:to-indigo-800"
+                                                className="text-md rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400"
                                                 //onClick={() => window.open(googleLink, "_blank")}
                                                 onClick={handleGoogleReview}
                                             >
                                                 Yes, Review on Google
                                             </Button>
                                             <Button
-
+                                                className="rounded-md font-semibold border 
+               											border-[#16bf4c] text-[#16bf4c] dark:text-white bg-transparent 
+               											hover:!text-[#000000] hover:border-lime-500 hover:bg-lime-500
+               											transition-all duration-200 ease-in-out 
+               											hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] 
+               											focus:outline-none focus:ring-2 focus:ring-lime-500"
                                                 onClick={() => setShowGooglePrompt(false)}
                                             >
                                                 No, Thanks
@@ -464,7 +474,7 @@ const FormViewPage = () => {
                                 </Card>
                             )
                         ) : (
-                            <Card className="text-center p-0 md:p-4 my-16 mx-4 md:my-6 md:mx-4">
+                            <Card className=" border-b-[#16bf4c] text-center p-0 md:p-4 my-16 mx-4 md:my-6 md:mx-4 backdrop-blur-lg bg-gray-50/80 dark:bg-[#0d0d0d91]">
                                 {loading ? (
                                     <FormPreviewSkelton />
                                 ) : (
@@ -694,7 +704,12 @@ const FormViewPage = () => {
 
                                                 <Button
                                                     type="submit"
-                                                    className="text-md w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white hover:from-blue-700 hover:to-indigo-800"
+                                                    className="text-md w-full rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400"
                                                     disabled={submitLoading}
                                                 >
                                                     {submitLoading ? (

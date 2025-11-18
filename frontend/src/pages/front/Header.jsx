@@ -40,7 +40,7 @@ export default function Header() {
 			<nav className={`fixed w-full z-30 top-0 pt-4 start-0 border-b border-slate-900/5 transition duration-300 ${scrolled ? "bg-neutral-900/80 dark:bg-neutral-900/50 backdrop-blur-md shadow-md pt-2" : "bg-transparent"}`}>
 				<div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-2">
 					<a href="/" className="flex items-center">
-						<img src={scrolled ? logoWhite : logoWhite} className="h-10 md:h-12 mr-3" alt="Flowbite Logo" />
+						<img src={scrolled ? logoWhite : logoWhite} className="h-10 md:h-12 mr-3" alt="Custovra Logo" />
 					</a>
 					<div className="flex items-center text-right md:order-2 gap-3">
 						<DropdownMenu>

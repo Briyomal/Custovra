@@ -204,17 +204,16 @@ function ProfilePage() {
         <CustomerLayoutPage>
             <div className="container mx-auto py-6">
                 <div className="mb-8">
-                    <h1 className="text-xl md:text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                        <User className="h-6 w-6 text-blue-600" />
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
                         Profile Settings
-                    </h1>
+                    </h2>
                     <p className="text-gray-600 dark:text-gray-400 mt-2">
                         Manage your profile information and account settings
                     </p>
                 </div>
 
                 <Tabs defaultValue="info" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-[#1d1d1d] text-[#16bf4c]">
                         <TabsTrigger value="info" className="flex items-center gap-2 col-span-1">
                             <BadgeInfo className="h-4 w-4" />
                             Profile & Activity
@@ -237,7 +236,7 @@ function ProfilePage() {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Profile Information Card */}
                             <Card>
-                                <CardHeader className="border-b">
+                                <CardHeader className="border-b dark:bg-[#161616]">
                                     <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                                         <User className="h-5 w-5" />
                                         <span>Profile Information</span>
@@ -279,7 +278,7 @@ function ProfilePage() {
 
                             {/* Account Activity Card */}
                             <Card>
-                                <CardHeader className="border-b">
+                                <CardHeader className="border-b dark:bg-[#161616]">
                                     <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                                         <Calendar className="h-5 w-5" />
                                         <span>Account Activity</span>
@@ -336,7 +335,7 @@ function ProfilePage() {
                     
                     <TabsContent value="profile" className="mt-6">
                         <Card>
-                            <CardHeader className="border-b">
+                            <CardHeader className="border-b dark:bg-[#161616]">
                                 <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                                     <User className="h-5 w-5" />
                                     <span>Update Profile Information</span>
@@ -407,7 +406,12 @@ function ProfilePage() {
                                     <div className="flex justify-end">
                                         <Button
                                             type="submit"
-                                            className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
+                                            className="w-full md:w-auto rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400"
                                             disabled={loadingForm}>
                                             {loadingForm ? (
                                                 <>
@@ -425,7 +429,7 @@ function ProfilePage() {
                     
                     <TabsContent value="security" className="mt-6">
                         <Card>
-                            <CardHeader className="border-b">
+                            <CardHeader className="border-b dark:bg-[#161616]">
                                 <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                                     <Key className="h-5 w-5" />
                                     <span>Password & Security</span>
@@ -489,7 +493,12 @@ function ProfilePage() {
                                     <div className="flex justify-end">
                                         <Button
                                             type="submit"
-                                            className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
+                                            className="w-full md:w-auto rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400"
                                             disabled={loadingPWForm}>
                                             {loadingPWForm ? (
                                                 <>
@@ -507,7 +516,7 @@ function ProfilePage() {
                     
                     <TabsContent value="2fa" className="mt-6">
                         <Card>
-                            <CardHeader className="border-b">
+                            <CardHeader className="border-b dark:bg-[#161616]">
                                 <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                                     <Lock className="h-5 w-5" />
                                     <span>Two-Factor Authentication</span>
@@ -515,9 +524,9 @@ function ProfilePage() {
                             </CardHeader>
                             <CardContent className="pt-6">
                                 <div className="space-y-6">
-                                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#161616] rounded-lg">
                                         <div className="flex items-center gap-3">
-                                            <QrCode className="h-6 w-6 text-blue-600" />
+                                            <QrCode className="h-6 w-6 text-[#16bf4c]" />
                                             <div>
                                                 <h3 className="font-medium">Authenticator App</h3>
                                                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -603,6 +612,12 @@ function ProfilePage() {
                                                         Cancel
                                                     </Button>
                                                     <Button
+                                                        className="rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400"
                                                         onClick={handleVerify2FA}
                                                         disabled={is2FALoading}
                                                     >

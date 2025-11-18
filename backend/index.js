@@ -18,81 +18,86 @@ import submissionRoutes from "./routes/submission.route.js";
 import reportRoutes from "./routes/report.route.js";
 import profileRoutes from "./routes/profile.route.js";
 import usageRoutes from "./routes/usage.route.js";
-import { handleStripeWebhook  } from './controllers/payment.controller.js';
-import billingRoutes from './routes/billing.route.js';
-import supportRoutes from './routes/support.route.js';
-import planDowngradeRoutes from './routes/planDowngrade.route.js';
-import manualPaymentRoutes from './routes/manualPayment.route.js';
-import manualPlanRoutes from './routes/manualPlan.route.js';
-import manualSubscriptionRoutes from './routes/manualSubscription.route.js';
-import manualBillingRoutes from './routes/manualBilling.route.js';
+import { handleStripeWebhook } from "./controllers/payment.controller.js";
+import billingRoutes from "./routes/billing.route.js";
+import supportRoutes from "./routes/support.route.js";
+import planDowngradeRoutes from "./routes/planDowngrade.route.js";
+import manualPaymentRoutes from "./routes/manualPayment.route.js";
+import manualPlanRoutes from "./routes/manualPlan.route.js";
+import manualSubscriptionRoutes from "./routes/manualSubscription.route.js";
+import manualBillingRoutes from "./routes/manualBilling.route.js";
 
 import genieRoutes from "./routes/genie.route.js";
-//import geniePaymentRoutes from "./routes/geniePayment.route.js";
-import { handleGeniePaymentWebhook } from './controllers/geniePayment.controller.js';
+import { handleGeniePaymentWebhook } from "./controllers/genieController.js";
 
-import { fileURLToPath } from 'url';
-import path from 'path';
-import './utils/cronJobs.js';
+import { fileURLToPath } from "url";
+import path from "path";
+import "./utils/cronJobs.js";
+
+dotenv.config();
+console.log("Using Genie Key:", process.env.GENIE_SECRET_KEY);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config();
-console.log("Using Genie Key:", process.env.GENIE_SECRET_KEY);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Multer middleware for handling FormData
-const upload = multer();
+// --- CORS CONFIG ---
+const allowedOrigins = [
+    process.env.CLIENT_URL,        // https://localhost:5173
+    process.env.CLIENT_URL_NGROK,  // https://xxxxx.ngrok-free.dev
+];
 
-app.get("/", (req, res) => {
-	res.send("hello World!");
-});
+app.use(
+    cors({
+        origin: function (origin, callback) {
+            if (!origin || allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+            console.log("Blocked by CORS:", origin);
+            return callback(new Error("Not allowed by CORS"), false);
+        },
+        credentials: true,
+    })
+);
 
-const CLIENT_URL = process.env.CLIENT_URL?.replace(/\/$/, ''); // Remove trailing slash if present
+// Static files
+app.use("/public", express.static(path.join(__dirname, "public")));
 
-app.use(cors({ 
-    origin: CLIENT_URL, // Replace with your frontend's URL http://localhost:5173
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
-    crossDomain: true,
-    xhrFields: { withCredentials: true },
-    credentials: true,
-}));
+// Webhook routes BEFORE body parser
+app.use("/api/payments/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
+app.use("/api/genie/webhook", express.raw({ type: "application/json" }), handleGeniePaymentWebhook);
 
-app.use('/public', express.static(path.join(__dirname, 'public')));
-
-// app.use("/api/payments", paymentRoutes);
-app.use('/api/payments/webhook', express.raw({ type: "application/json" }), handleStripeWebhook);
-app.use('/api/genie/webhook', express.raw({ type: "application/json" }), handleGeniePaymentWebhook);
-
+// Normal JSON parsing
 app.use(express.json());
 app.use(cookieParser());
 
-
+// API Routes
 app.use("/api/auth", authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/subscriptions', subscriptionRoutes);
-app.use('/api/forms', formRoutes);
-app.use('/api/form-fields', formFieldRoutes);
-app.use('/api/employees', employeeRoutes);
-app.use('/api/responses', responseRoutes);
-app.use('/api/submissions', submissionRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/profile', profileRoutes);
-app.use('/api/billing', billingRoutes);
-app.use('/api/usage', usageRoutes);
-app.use('/api/plan-downgrade', planDowngradeRoutes);
-app.use('/api/support', supportRoutes);
-app.use('/api/manual-payments', manualPaymentRoutes);
-app.use('/api/manual-plans', manualPlanRoutes);
-app.use('/api/manual-subscriptions', manualSubscriptionRoutes);
-app.use('/api/manual-billing', manualBillingRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/forms", formRoutes);
+app.use("/api/form-fields", formFieldRoutes);
+app.use("/api/employees", employeeRoutes);
+app.use("/api/responses", responseRoutes);
+app.use("/api/submissions", submissionRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/profile", profileRoutes);
+app.use("/api/billing", billingRoutes);
+app.use("/api/usage", usageRoutes);
+app.use("/api/plan-downgrade", planDowngradeRoutes);
+app.use("/api/support", supportRoutes);
+app.use("/api/manual-payments", manualPaymentRoutes);
+app.use("/api/manual-plans", manualPlanRoutes);
+app.use("/api/manual-subscriptions", manualSubscriptionRoutes);
+app.use("/api/manual-billing", manualBillingRoutes);
 app.use("/api/genie", genieRoutes);
-//app.use("/api/genie-payments", geniePaymentRoutes);
 
+// --- START HTTP SERVER ---
 app.listen(PORT, () => {
-	connectDB();
-	console.log("server is running on port: ", PORT);
+    connectDB();
+    console.log(`HTTP Server running on http://localhost:${PORT}`);
 });
+

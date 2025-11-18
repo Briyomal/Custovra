@@ -62,20 +62,61 @@ function BillingPage() {
             setTimeout(() => {
                 switch (paymentStatus) {
                     case "success":
-                        toast({ title: "Payment Successful", description: message || "Your payment was successful" });
+                        toast({ 
+                            title: "Payment Successful", 
+                            description: message || "Your payment was successful",
+                            variant: "default"
+                        });
+                        console.log("Payment successful:", message);
+                        // Refresh billing data after successful payment
+                        fetchBillingData();
                         break;
                     case "cancelled":
-                        toast({ title: "Payment Cancelled", description: message || "Payment was cancelled", variant: "destructive" });
+                        toast({ 
+                            title: "Payment Cancelled", 
+                            description: message || "Payment was cancelled", 
+                            variant: "destructive" 
+                        });
+                        console.log("Payment cancelled:", message);
+                        break;
+                    case "failed":
+                        toast({ 
+                            title: "Payment Failed", 
+                            description: message || "Payment failed. Please try again.", 
+                            variant: "destructive" 
+                        });
+                        console.log("Payment failed:", message);
+                        break;
+                    case "error":
+                        toast({ 
+                            title: "Payment Error", 
+                            description: message || "Something went wrong with your payment", 
+                            variant: "destructive" 
+                        });
+                        console.log("Payment error:", message);
                         break;
                     default:
-                        toast({ title: "Payment Error", description: message || "Something went wrong", variant: "destructive" });
+                        // Handle unknown payment states
+                        toast({ 
+                            title: "Payment Status", 
+                            description: message || `Payment status: ${paymentStatus}`, 
+                            variant: "default" 
+                        });
+                        console.log("Payment status:", message);
+                        // Still refresh billing data in case of success
+                        if (paymentStatus.toLowerCase() === "success") {
+                            fetchBillingData();
+                        }
                         break;
                 }
             }, 100); // small delay ensures toast renders
 
-            navigate(location.pathname, { replace: true });
+            // Clean up URL parameters after a short delay to ensure toast is shown
+            setTimeout(() => {
+                navigate(location.pathname, { replace: true });
+            }, 2000);
         }
-    }, []);
+    }, [location.search, navigate]);
 
     const fetchBillingData = async () => {
         try {

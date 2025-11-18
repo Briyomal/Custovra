@@ -8,6 +8,8 @@ import { useAuthStore } from "../store/authStore";
 import FloatingBackground from "../components/FloatingBackground";
 import { Turnstile } from "@marsidev/react-turnstile";
 import logo from "../assets/Logo.png";
+import logoWhite from "../assets/logo-white.png";
+import { useTheme } from "@/components/theme-provider";
 
 const SignUpPage = () => {
 
@@ -16,6 +18,7 @@ const SignUpPage = () => {
     const [password, setPassword] = useState("");
     const [captchaToken, setCaptchaToken] = useState(null);
     const navigate = useNavigate();
+	const { theme } = useTheme();
 
     const { signup, error, isLoading } = useAuthStore();
 
@@ -40,15 +43,15 @@ const SignUpPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className='m-4 md:m-0 max-w-md w-full bg-white bg-opacity-60 backdrop-filter backdrop-blur-2xl rounded-2xl shadow-xl overflow-hidden
-				dark:bg-slate-800 dark:bg-opacity-40 dark:backdrop-filter dark:backdrop-blur-xl'
+                className='m-4 md:m-0 max-w-md w-full border bg-white bg-opacity-60 backdrop-filter backdrop-blur-2xl rounded-2xl shadow-xl overflow-hidden
+				dark:bg-[#0D0D0D] dark:bg-opacity-40 dark:backdrop-filter dark:backdrop-blur-xl'
             >
                 <div className='p-8'>
                     <a href="/" className="flex items-center justify-center mb-4">
-                        <img src={logo} className="h-10 mr-3" alt="Custovra" />
+                        <img src={theme === "dark" ? logoWhite : logo} className="h-10 mr-3" alt="Custovra" />
                     </a>
-                    <h2 className='text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text
-					dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-blue-500 dark:to-indigo-400'>
+                    <h2 className='text-3xl font-bold mb-6 text-center bg-gradient-to-r from-[#16bf4c] to-lime-500 text-transparent bg-clip-text
+					dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-[#16bf4c] dark:to-lime-500'>
                         Create Account
                     </h2>
 
@@ -88,7 +91,12 @@ const SignUpPage = () => {
                         </div>
 
                         <motion.button
-                            className='mt-5 w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-lg shadow-lg hover:from-blue-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-blue-200 transition duration-200'
+                            className='mt-5 w-full py-3 px-4 rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400'
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             type='submit'
@@ -98,10 +106,10 @@ const SignUpPage = () => {
                         </motion.button>
                     </form>
                 </div>
-                <div className='px-8 py-4 bg-blue-800 opacity-80 dark:bg-slate-700 dark:bg-opacity-90 flex justify-center'>
-                    <p className='text-sm text-gray-50'>
+                <div className='px-8 py-4 bg-[#11963b] opacity-100 dark:bg-[#16bf4c] dark:bg-opacity-50 flex justify-center'>
+                    <p className='text-sm text-white'>
                         Already have an account?{" "}
-                        <Link to={"/login"} className='text-blue-200 hover:underline'>
+                        <Link to={"/login"} className='text-lime-300 hover:underline transition-all duration-200 ease-in-out'>
                             Login
                         </Link>
                     </p>

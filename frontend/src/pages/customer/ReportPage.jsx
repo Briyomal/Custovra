@@ -24,7 +24,7 @@ import ReportExport from "@/components/customer-view/ReportExport";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-const PIE_COLORS = ["#bedcfe", "#a3c8f7", "#7aaff7", "#5197f7", "#3b86f7", "#2563eb"];
+const PIE_COLORS = ["#ABDB18", "#A4D71D", "#8EE025", "#66D532", "#3ECA3F", "#16bf4c"];
 
 function ReportPage() {
     const { user, isAuthenticated } = useAuthStore();
@@ -515,10 +515,10 @@ function ReportPage() {
     }, [filteredSubmissions, selectedEmployee]);
     
     const chartConfig = {
-        submissions: { label: "Submissions", color: "#2563eb" },
-        avgRating: { label: "Average Rating", color: "#f59e0b" },
-        avgGeneralRating: { label: "General Rating", color: "#8b5cf6" },
-        avgEmployeeRating: { label: "Employee Rating", color: "#f97316" },
+        submissions: { label: "Submissions", color: "#16bf4c" },
+    avgRating: { label: "Average Rating", color: "#16bf4c" },
+    avgGeneralRating: { label: "General Rating", color: "#abdb18" },
+    avgEmployeeRating: { label: "Employee Rating", color: "#dbb118" },
     };
 
     const starChartConfig = {
@@ -608,7 +608,7 @@ function ReportPage() {
             </div>
 
             {/* Filters */}
-            <div className="bg-white dark:bg-gray-900 rounded-lg border p-6 mb-8 shadow-sm">
+            <div className="bg-white dark:bg-[#161616] rounded-lg border p-6 mb-8 shadow-sm">
                 <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Filter Options</h3>
                 <div className="flex flex-col sm:flex-row gap-4">
                     <div className="flex flex-col gap-2 sm:flex-1">
@@ -708,7 +708,7 @@ function ReportPage() {
                 
                 {/* Custom Date Range Date Pickers */}
                 {isCustomDateRange && (
-                    <div className="mt-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                    <div className="mt-4 p-4 border rounded-lg bg-gray-50 dark:bg-[#161616] border-gray-200 dark:border-gray-700">
                         <h4 className="text-sm font-semibold mb-3 text-gray-900 dark:text-white">Custom Date Range</h4>
                         <div className="flex flex-col lg:flex-row gap-4">
                             <div className="flex flex-col gap-2 flex-1">
@@ -800,7 +800,7 @@ function ReportPage() {
             </div>
 
             {/* Charts */}
-            <div id="report-container" className="bg-white dark:bg-gray-900 p-4 rounded-lg">
+            <div id="report-container" className="bg-white dark:bg-[#161616] p-4 rounded-lg">
                 {loading ? (
                     <div className="flex justify-center items-center h-64">
                         <Loader className="animate-spin h-8 w-8 text-slate-800 dark:text-white" />
@@ -814,22 +814,22 @@ function ReportPage() {
                     <>
                         {/* Report Summary */}
                         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-blue-800 border-blue-200 dark:border-blue-700">
+                            <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-emerald-900/50 dark:to-green-800 border-green-200 dark:border-green-700">
                                 <CardContent className="p-4 md:p-6">
                                     <div className="text-center">
-                                        <p className="text-sm text-blue-700 dark:text-blue-300 font-medium mb-2">Total Submissions</p>
+                                        <p className="text-sm text-green-700 dark:text-green-300 font-medium mb-2">Total Submissions</p>
                                         <div className="flex items-center justify-center gap-2">
-                                            <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                                            <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{filteredSubmissions.length}</p>
+                                            <FileText className="h-6 w-6 text-green-600 dark:text-green-400" />
+                                            <p className="text-3xl font-bold text-green-600 dark:text-green-400">{filteredSubmissions.length}</p>
                                         </div>
                                     </div>
 
                                 </CardContent>
                             </Card>
-                            <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/50 dark:to-green-800 border-green-200 dark:border-green-700">
+                            <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/50 dark:to-lime-800 border-green-200 dark:border-green-700">
                                 <CardContent className="p-4 md:p-6">
                                     <div className="text-center">
-                                        <p className="text-sm text-green-700 dark:text-green-300 font-medium mb-2">
+                                        <p className="text-sm text-lime-700 dark:text-lime-300 font-medium mb-2">
                                             {selectedEmployee === "" ? "General Ratings" : 
                                              selectedEmployee !== "all" ? "Average Rating" : "Overall Average"}
                                         </p>
@@ -843,7 +843,7 @@ function ReportPage() {
                                             ))}
 
                                             </div>
-                                            <p className="text-3xl font-bold text-green-600 dark:text-green-400 ml-2">{ratingData.averageRating}</p>
+                                            <p className="text-3xl font-bold text-lime-600 dark:text-lime-400 ml-2">{ratingData.averageRating}</p>
                                         </div>
                                     </div>
 
@@ -852,10 +852,10 @@ function ReportPage() {
                             
                             {/* Conditional rating cards based on employee selection */}
                             {ratingData.averageGeneralRating && selectedEmployee !== "" && (
-                                <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/50 dark:to-purple-800 border-purple-200 dark:border-purple-700">
+                                <Card className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/50 dark:to-teal-800 border-teal-200 dark:border-teal-700">
                                     <CardContent className="p-4 md:p-6">
                                         <div className="text-center">
-                                            <p className="text-sm text-purple-700 dark:text-purple-300 font-medium mb-2">General Ratings</p>
+                                            <p className="text-sm text-teal-700 dark:text-teal-300 font-medium mb-2">General Ratings</p>
                                             <div className="flex flex-col items-center justify-center gap-2">
                                                 
                                                 <div className="flex items-center gap-1">
@@ -866,9 +866,9 @@ function ReportPage() {
                                                     />
                                                 ))}
                                                 </div>
-                                                <p className="text-3xl font-bold text-purple-600 dark:text-purple-400 ml-2">{ratingData.averageGeneralRating}</p>
+                                                <p className="text-3xl font-bold text-teal-600 dark:text-teal-400 ml-2">{ratingData.averageGeneralRating}</p>
                                             </div>
-                                            <p className="text-xs text-purple-500 dark:text-purple-300 mt-1">{ratingData.generalRatingCount} ratings</p>
+                                            <p className="text-xs text-teal-500 dark:text-teal-300 mt-1">{ratingData.generalRatingCount} ratings</p>
                                         </div>
 
                                     </CardContent>
@@ -876,10 +876,10 @@ function ReportPage() {
                             )}
                             
                             {selectedEmployee === "all" && ratingData.averageEmployeeRating && (
-                                <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/50 dark:to-orange-800 border-orange-200 dark:border-orange-700">
+                                <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-900/50 dark:to-cyan-800 border-cyan-200 dark:border-cyan-700">
                                     <CardContent className="p-4 md:p-6">
                                         <div className="text-center">
-                                            <p className="text-sm text-orange-700 dark:text-orange-300 font-medium mb-2">Employees Average</p>
+                                            <p className="text-sm text-cyan-700 dark:text-cyan-300 font-medium mb-2">Employees Average</p>
                                             <div className="flex flex-col items-center justify-center gap-2">
                                                 
                                             <div className="flex items-center gap-1">
@@ -890,9 +890,9 @@ function ReportPage() {
                                                     />
                                                 ))}
                                                 </div>
-                                                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400 ml-2">{ratingData.averageEmployeeRating}</p>
+                                                <p className="text-3xl font-bold text-cyan-600 dark:text-cyan-400 ml-2">{ratingData.averageEmployeeRating}</p>
                                             </div>
-                                            <p className="text-xs text-orange-500 dark:text-orange-300 mt-1">{ratingData.employeeRatingCount} ratings</p>
+                                            <p className="text-xs text-cyan-500 dark:text-cyan-300 mt-1">{ratingData.employeeRatingCount} ratings</p>
                                         </div>
 
                                     </CardContent>
@@ -900,10 +900,10 @@ function ReportPage() {
                             )}
                             
                             {selectedEmployee !== "" && selectedEmployee !== "all" && ratingData.averageEmployeeRating && (
-                                <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/50 dark:to-orange-800 border-orange-200 dark:border-orange-700">
+                                <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-900/50 dark:to-cyan-800 border-cyan-200 dark:border-cyan-700">
                                     <CardContent className="p-4 md:p-6">
                                         <div className="text-center">
-                                            <p className="text-sm text-orange-700 dark:text-orange-300 font-medium mb-2">Employee Ratings</p>
+                                            <p className="text-sm text-cyan-700 dark:text-cyan-300 font-medium mb-2">Employee Ratings</p>
                                             <div className="flex flex-col items-center justify-center gap-2">
                                                 <div className="flex items-center gap-1"> 
                                                 {[...Array(5)].map((_, i) => (
@@ -913,9 +913,9 @@ function ReportPage() {
                                                     />
                                                 ))}
                                                 </div>
-                                                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400 ml-2">{ratingData.averageEmployeeRating}</p>
+                                                <p className="text-3xl font-bold text-cyan-600 dark:text-cyan-400 ml-2">{ratingData.averageEmployeeRating}</p>
                                             </div>
-                                            <p className="text-xs text-orange-500 dark:text-orange-300 mt-1">{ratingData.employeeRatingCount} ratings</p>
+                                            <p className="text-xs text-cyan-500 dark:text-cyan-300 mt-1">{ratingData.employeeRatingCount} ratings</p>
                                         </div>
 
                                     </CardContent>
@@ -925,25 +925,25 @@ function ReportPage() {
                             {/* Date Range and Form Selection cards when not showing specialized ratings */}
                             {(!ratingData.averageGeneralRating || selectedEmployee === "") && (
                                 <>
-                                    <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800 border-purple-200 dark:border-purple-700">
+                                    <Card className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900 dark:to-teal-800 border-teal-200 dark:border-teal-700">
                                         <CardContent className="p-4 md:p-6">
                                             <div className="text-center">
-                                                <p className="text-sm text-purple-700 dark:text-purple-300 font-medium mb-2">Date Range</p>
+                                                <p className="text-sm text-teal-700 dark:text-teal-300 font-medium mb-2">Date Range</p>
                                                 <div className="flex items-center justify-center gap-2">
-                                                    <CalendarRange className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                                                    <p className="text-sm font-semibold text-purple-600 dark:text-purple-400 truncate" title={getDateRangeDisplay()}>{getDateRangeDisplay()}</p>
+                                                    <CalendarRange className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+                                                    <p className="text-sm font-semibold text-teal-600 dark:text-teal-400 truncate" title={getDateRangeDisplay()}>{getDateRangeDisplay()}</p>
                                                 </div>
                                             </div>
 
                                         </CardContent>
                                     </Card>
-                                    <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900 dark:to-orange-800 border-orange-200 dark:border-orange-700">
+                                    <Card className="bg-gradient-to-br from-cyan-50 to-orange-100 dark:from-cyan-900 dark:to-cyan-800 border-cyan-200 dark:border-cyan-700">
                                         <CardContent className="p-4 md:p-6">
                                             <div className="text-center">
-                                                <p className="text-sm text-orange-700 dark:text-orange-300 font-medium mb-2">Selected Form</p>
+                                                <p className="text-sm text-cyan-700 dark:text-cyan-300 font-medium mb-2">Selected Form</p>
                                                 <div className="flex items-center justify-center gap-2">
-                                                    <FormInput className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                                                    <p className="text-sm font-semibold text-orange-600 dark:text-orange-400 truncate" title={selectedForm === "all" ? "All Forms" : forms.find(f => f._id === selectedForm)?.form_name || "Unknown"}>
+                                                    <FormInput className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                                                    <p className="text-sm font-semibold text-cyan-600 dark:text-cyan-400 truncate" title={selectedForm === "all" ? "All Forms" : forms.find(f => f._id === selectedForm)?.form_name || "Unknown"}>
                                                         {selectedForm === "all" ? "All Forms" : 
                                                          forms.find(f => f._id === selectedForm)?.form_name || "Unknown"}
                                                     </p>
@@ -960,12 +960,12 @@ function ReportPage() {
                         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                             {/* Bar Chart */}
                             <Card className="xl:col-span-2 shadow-sm">
-                                <CardHeader className="border-b bg-gray-50 dark:bg-gray-800">
+                                <CardHeader className="border-b bg-gray-50 dark:bg-[#1d1d1d]">
                                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                                         <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">Submissions Timeline</CardTitle>
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm text-gray-600 dark:text-gray-400">Total:</span>
-                                            <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{filteredSubmissions.length}</span>
+                                            <span className="text-lg font-bold text-[#16bf4c] dark:text-[#16bf4c]">{filteredSubmissions.length}</span>
                                         </div>
                                     </div>
                                 </CardHeader>
@@ -1011,7 +1011,7 @@ function ReportPage() {
 
                             {/* Pie Chart */}
                             <Card className="shadow-sm">
-                                <CardHeader className="border-b bg-gray-50 dark:bg-gray-800">
+                                <CardHeader className="border-b bg-gray-50 dark:bg-[#1d1d1d]">
                                     <CardTitle className="text-xl font-semibold text-center text-gray-900 dark:text-white">Ratings Distribution</CardTitle>
                                 </CardHeader>
                                 <CardContent className="p-6">
@@ -1038,8 +1038,8 @@ function ReportPage() {
                                         </PieChart>
                                     </ChartContainer>
                                 </CardContent>
-                                <CardFooter className="flex-col border-t pt-4 bg-gray-50 dark:bg-gray-800">
-                                    <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+                                <CardFooter className="flex-col border-t pt-4 bg-gray-50 dark:bg-[#1d1d1d]">
+                                    <p className="text-center text-sm font-medium text-gray-600 dark:text-gray-400">
                                         {selectedEmployee === "" ? "General Ratings" : 
                                          selectedEmployee !== "all" ? "Average Rating" : "Overall Average"}
                                     </p>
@@ -1049,17 +1049,17 @@ function ReportPage() {
                                     {/* Additional rating information */}
                                     <div className="mt-2 text-center">
                                         {selectedEmployee !== "" && ratingData.averageGeneralRating && (
-                                            <p className="text-xs text-purple-600 dark:text-purple-400">
+                                            <p className="text-sm font-medium text-teal-600 dark:text-teal-400">
                                                 General: {ratingData.averageGeneralRating} ({ratingData.generalRatingCount} ratings)
                                             </p>
                                         )}
                                         {selectedEmployee === "all" && ratingData.averageEmployeeRating && (
-                                            <p className="text-xs text-orange-600 dark:text-orange-400">
+                                            <p className="text-sm font-medium text-cyan-600 dark:text-cyan-400">
                                                 All Employees: {ratingData.averageEmployeeRating} ({ratingData.employeeRatingCount} ratings)
                                             </p>
                                         )}
                                         {selectedEmployee !== "" && selectedEmployee !== "all" && ratingData.averageEmployeeRating && (
-                                            <p className="text-xs text-orange-600 dark:text-orange-400">
+                                            <p className="text-sm font-medium text-cyan-600 dark:text-cyan-400">
                                                 Employee: {ratingData.averageEmployeeRating} ({ratingData.employeeRatingCount} ratings)
                                             </p>
                                         )}
@@ -1079,7 +1079,7 @@ function ReportPage() {
                         {ratingTrendData.length > 0 && (
                             <div className="grid grid-cols-1 xl:grid-cols-3 mt-6">
                                 <Card className="shadow-sm col-span-2">
-                                    <CardHeader className="border-b bg-gray-50 dark:bg-gray-800">
+                                    <CardHeader className="border-b bg-gray-50 dark:bg-[#1d1d1d]">
                                         <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">Rating Trend Over Time</CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-6">
@@ -1194,20 +1194,20 @@ function ReportPage() {
                                         </LineChart>
                                     </ChartContainer>
                                     </CardContent>
-                                    <CardFooter className="flex-col border-t pt-4 bg-gray-50 dark:bg-gray-800">
+                                    <CardFooter className="flex-col border-t pt-4 bg-gray-50 dark:bg-[#1d1d1d]">
                                         <div className="flex flex-wrap justify-center gap-4">
                                             <div className="flex items-center">
-                                                <div className="w-3 h-3 rounded-full bg-[#f59e0b] mr-2"></div>
+                                                <div className="w-3 h-3 rounded-full bg-[#16bf4c] mr-2"></div>
                                                 <span className="text-sm">Average Rating</span>
                                             </div>
                                             {selectedEmployee !== "" && (
                                                 <>
                                                     <div className="flex items-center">
-                                                        <div className="w-3 h-3 rounded-full bg-[#8b5cf6] mr-2"></div>
+                                                        <div className="w-3 h-3 rounded-full bg-[#abdb18] mr-2"></div>
                                                         <span className="text-sm">General Rating</span>
                                                     </div>
                                                     <div className="flex items-center">
-                                                        <div className="w-3 h-3 rounded-full bg-[#f97316] mr-2"></div>
+                                                        <div className="w-3 h-3 rounded-full bg-[#dbb118] mr-2"></div>
                                                         <span className="text-sm">Employee Rating</span>
                                                     </div>
                                                 </>

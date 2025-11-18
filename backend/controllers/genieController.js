@@ -65,8 +65,33 @@ export const testGeniePaymentIntegration = async (req, res) => {
 // Webhook handler for Genie payment notifications
 export const handleGeniePaymentWebhook = async (req, res) => {
     try {
-        const event = req.body;
-        console.log("Genie Payment Webhook received:", event);
+        // Log raw request for debugging
+        console.log("Genie Payment Webhook raw request:", {
+            headers: req.headers,
+            body: req.body,
+            rawBody: req.rawBody // If available
+        });
+        
+        let event = req.body;
+        
+        // If body is a Buffer or string, try to parse it as JSON
+        if (Buffer.isBuffer(event)) {
+            try {
+                event = JSON.parse(event.toString());
+            } catch (parseError) {
+                console.error("Error parsing webhook body as JSON:", parseError);
+                return res.status(400).json({ error: 'Invalid JSON in webhook body' });
+            }
+        } else if (typeof event === 'string') {
+            try {
+                event = JSON.parse(event);
+            } catch (parseError) {
+                console.error("Error parsing webhook body string as JSON:", parseError);
+                return res.status(400).json({ error: 'Invalid JSON in webhook body' });
+            }
+        }
+        
+        console.log("Genie Payment Webhook received parsed event:", event);
         
         // Verify webhook signature if available
         // const signature = req.headers['x-genie-signature'];
@@ -74,51 +99,72 @@ export const handleGeniePaymentWebhook = async (req, res) => {
         //     return res.status(400).json({ error: 'Invalid webhook signature' });
         // }
         
+        // Handle case where event structure is different
+        if (!event || !event.type) {
+            // Try to find type in different possible locations
+            const eventType = event?.type || event?.data?.type || req.headers['x-genie-event-type'];
+            if (!eventType) {
+                console.log('Webhook event type not found in request. Full event data:', event);
+                // Still send 200 to avoid retries
+                return res.sendStatus(200);
+            }
+            event.type = eventType;
+        }
+        
         // Handle different event types
         switch (event.type) {
             case 'payment.success':
-                await handlePaymentSuccess(event.data);
+            case 'transaction.success':
+            case 'payment.completed':
+            case 'transaction.completed':
+                await handlePaymentSuccess(event.data || event);
                 break;
             case 'payment.failed':
-                await handlePaymentFailed(event.data);
+            case 'transaction.failed':
+                await handlePaymentFailed(event.data || event);
                 break;
             case 'payment.cancelled':
-                await handlePaymentCancelled(event.data);
+            case 'transaction.cancelled':
+                await handlePaymentCancelled(event.data || event);
                 break;
             default:
                 console.log('Unhandled Genie payment event type:', event.type);
+                console.log('Full event data:', event);
+                // Even for unhandled events, we should still acknowledge receipt
+                // but log for debugging purposes
         }
         
+        // Always send a 200 response to acknowledge receipt of the webhook
         res.sendStatus(200);
     } catch (error) {
         console.error('Error handling Genie payment webhook:', error);
-        res.status(500).json({ error: 'Failed to process webhook' });
+        // We still send 200 to avoid Genie retrying the webhook
+        res.sendStatus(200);
     }
 };
 
 
 export const createGeniePaymentRequest = async (req, res) => {
- try {
+    try {
         const userId = req.userId;
         const { planId, billingPeriod, formSelection } = req.body;
 
-        console.log("Request Body:", req.body);
-        console.log('Payment Transaction ID:', req.transaction_id);
-
-        console.log('Creating Genie payment request with data:', { planId, billingPeriod, userId, formSelection });
-
         if (!userId) {
-            return res.status(401).json({ error: 'User not authenticated.' });
+            return res.status(401).json({ 
+                success: false,
+                error: 'User not authenticated.' 
+            });
         }
 
         // Get plan details
         const plan = await ManualPlan.findById(planId);
         if (!plan) {
             console.log('Plan not found for ID:', planId);
-            return res.status(404).json({ error: 'Plan not found.' });
+            return res.status(404).json({ 
+                success: false,
+                error: 'Plan not found.' 
+            });
         }
-
-        console.log('Found plan:', plan.name);
 
         // Calculate amount
         const amount = billingPeriod === 'yearly' ? plan.price_yearly : plan.price_monthly;
@@ -135,7 +181,10 @@ export const createGeniePaymentRequest = async (req, res) => {
         // Get user details for customer creation
         const user = await User.findById(userId);
         if (!user) {
-            return res.status(404).json({ error: 'User not found.' });
+            return res.status(404).json({ 
+                success: false,
+                error: 'User not found.' 
+            });
         }
 
         // Check if this is an upgrade by looking at form selection data
@@ -157,6 +206,25 @@ export const createGeniePaymentRequest = async (req, res) => {
             }
         }
 
+        // Create payment request in our system with pending status (do this early to get payment ID)
+        const paymentData = {
+            user_id: userId,
+            plan_id: planId,
+            plan_name: plan.name,
+            amount: amount,
+            payment_method: 'genie_card',
+            payment_status: 'pending', // Start with pending status
+            billing_period: billingPeriod,
+            subscription_start: startDate,
+            subscription_end: endDate,
+            // Store form selection data for processing after payment confirmation
+            form_selection: formSelection,
+            customer_id: null // Will be updated later
+        };
+
+        const newPayment = new GeniePayment(paymentData);
+        await newPayment.save();
+
         // Create customer in Genie if not exists
         let customerId = null;
         let customerResponse = null;
@@ -169,6 +237,10 @@ export const createGeniePaymentRequest = async (req, res) => {
             });
             customerId = customerResponse.data.id;
             console.log("Created Genie customer with ID:", customerId);
+            
+            // Update payment with customer ID
+            newPayment.customer_id = customerId;
+            await newPayment.save();
         } catch (customerError) {
             console.error("Error creating Genie customer:", customerError.response?.data || customerError.message);
             // If customer already exists, we'll use the payment link approach instead
@@ -185,81 +257,48 @@ export const createGeniePaymentRequest = async (req, res) => {
                     // If it's a string, parse it
                     parsedFormSelection = JSON.parse(formSelection);
                 }
+                
+                // Update payment with parsed form selection
+                newPayment.form_selection = parsedFormSelection;
+                await newPayment.save();
             } catch (parseError) {
                 console.error('Error parsing form selection data:', parseError);
                 parsedFormSelection = null;
             }
         }
 
-        // Create payment request in our system with pending status
-        const paymentData = {
-            user_id: userId,
-            plan_id: planId,
-            plan_name: plan.name,
-            amount: amount,
-            payment_method: 'genie_card',
-            payment_status: 'pending', // Start with pending status
-            billing_period: billingPeriod,
-            subscription_start: startDate,
-            subscription_end: endDate,
-            // Store form selection data for processing after payment confirmation
-            form_selection: parsedFormSelection,
-            customer_id: customerId
-        };
-
-        const newPayment = new GeniePayment(paymentData);
-        await newPayment.save();
-
         // Create a payment link or card payment request
         let paymentUrl = null;
         let transactionId = null;
         let errorMessage = null;
         
+        // Use the ngrok URL for redirect since Genie doesn't support localhost
+        const redirectBaseUrl = process.env.SERVER_URL_NGROK || process.env.SERVER_URL || "http://localhost:5173";
+        const billingPath = "/billing"; // The actual billing page path
+        
         try {
-            if (customerId) {
-                // Try to create a card payment request first
-                try {
-                    const paymentResponse = await genieClient.post("/connect/v1/payments/card", {
-                        amount: amount * 100, // Convert to cents for Genie API
-                        currency: "LKR",
-                        customer: {
-                            id: customerId
-                        },
-                        cardOnFile: true, // enables recurring setup
-                        redirectUrl: "https://inanimate-maritza-arousingly.ngrok-free.dev/api/genie/billing-redirect",
-                    });
-                    
-                    paymentUrl = paymentResponse.data.url;
-                    transactionId = paymentResponse.data.id;
-                    console.log("Successfully created card payment request");
-                } catch (cardPaymentError) {
-                    console.error("Error creating card payment request:", cardPaymentError.response?.data || cardPaymentError.message);
-                    errorMessage = cardPaymentError.response?.data?.message || cardPaymentError.message;
-                    // If card payment fails, fall back to transaction (payment link) with full customer details
-                    console.log("Falling back to transaction (payment link) creation with full customer details");
-                    try {
-                        const transactionResponse = await genieClient.post("/public/v2/transactions", {
-                            amount: amount * 100, // Convert to cents for Genie API
-                            currency: "LKR",
-                            localId: `payment_${newPayment._id}`,
-                            customer: {
-                                name: user.name,
-                                email: user.email,
-                                billingEmail: user.email
-                            },
-                                redirectUrl: "https://inanimate-maritza-arousingly.ngrok-free.dev/api/genie/billing-redirect",
-                            });
-                        
-                        paymentUrl = transactionResponse.data.url;
-                        transactionId = transactionResponse.data.id;
-                    } catch (transactionError) {
-                        console.error("Error creating transaction (payment link):", transactionError.response?.data || transactionError.message);
-                        // If both attempts fail, we'll handle it in the outer catch block
-                        throw transactionError;
-                    }
-                }
-            } else {
-                // If we don't have a customer ID, create a transaction (payment link) with customer details
+            // Try to create a card payment request first (faster for returning customers)
+            try {
+                const paymentResponse = await genieClient.post("/connect/v1/payments/card", {
+                    amount: amount * 100, // Convert to cents for Genie API
+                    currency: "LKR",
+                    customer: {
+                        id: customerId || undefined // Only include if we have a customer ID
+                    },
+                    cardOnFile: true, // enables recurring setup
+                    redirectUrl: `${redirectBaseUrl}`,
+                    webhook: `${process.env.SERVER_URL_NGROK}/api/genie/webhook`
+                });
+                
+                paymentUrl = paymentResponse.data.url;
+                transactionId = paymentResponse.data.id;
+                console.log("Successfully created card payment request");
+            } catch (cardPaymentError) {
+                console.error("Error creating card payment request:", cardPaymentError.response?.data || cardPaymentError.message);
+                errorMessage = cardPaymentError.response?.data?.message || cardPaymentError.message;
+                
+                // If card payment fails, fall back to transaction (payment link) with full customer details
+                console.log("Falling back to transaction (payment link) creation with full customer details");
                 try {
                     const transactionResponse = await genieClient.post("/public/v2/transactions", {
                         amount: amount * 100, // Convert to cents for Genie API
@@ -270,28 +309,40 @@ export const createGeniePaymentRequest = async (req, res) => {
                             email: user.email,
                             billingEmail: user.email
                         },
-                        redirectUrl: "https://inanimate-maritza-arousingly.ngrok-free.dev/api/genie/billing-redirect",
+                        redirectUrl: `${redirectBaseUrl}`,
+                        webhook: `${process.env.SERVER_URL_NGROK}/api/genie/webhook`
                     });
                     
                     paymentUrl = transactionResponse.data.url;
                     transactionId = transactionResponse.data.id;
                 } catch (transactionError) {
-                    console.error("Error creating transaction (payment link) without customer ID:", transactionError.response?.data || transactionError.message);
-                    errorMessage = transactionError.response?.data?.message || transactionError.message;
-                    // Re-throw to be handled by the outer catch block
+                    console.error("Error creating transaction (payment link):", transactionError.response?.data || transactionError.message);
+                    // If both attempts fail, we'll handle it in the outer catch block
                     throw transactionError;
                 }
             }
             
             // Update payment with transaction details
-            newPayment.transaction_id = transactionId;
-            newPayment.payment_url = paymentUrl;
+            if (transactionId) {
+                newPayment.transaction_id = transactionId;
+            }
+            if (paymentUrl) {
+                newPayment.payment_url = paymentUrl;
+            }
             await newPayment.save();
             
         } catch (paymentError) {
             console.error("Error creating Genie payment:", paymentError.response?.data || paymentError.message);
             errorMessage = paymentError.response?.data?.message || paymentError.message;
-            // We'll still return the payment request but without the payment URL
+            
+            // Return error response immediately
+            return res.status(500).json({ 
+                success: false, 
+                error: errorMessage || 'Failed to create payment link. Please contact support.',
+                data: {
+                    payment: newPayment
+                }
+            });
         }
 
         // If we don't have a payment URL, return an error
@@ -300,57 +351,109 @@ export const createGeniePaymentRequest = async (req, res) => {
                 success: false, 
                 error: errorMessage || 'Failed to create payment link. Please contact support.',
                 data: {
-                    payment: newPayment,
-                    paymentUrl: null
+                    payment: newPayment
                 }
             });
         }
 
-        // Fetch the updated payment object to ensure it includes the payment_url field
-        const updatedPayment = await GeniePayment.findById(newPayment._id);
-
+        // Return success response with payment URL for immediate redirect
         res.json({ 
             success: true, 
             data: {
-                payment: updatedPayment || newPayment,
+                payment: newPayment,
                 paymentUrl: paymentUrl
             },
             message: 'Payment request created successfully. Redirecting to payment page.'
         });
     } catch (error) {
         console.error('Error creating Genie payment request:', error);
-        res.status(500).json({ error: 'Failed to create Genie payment request.' });
+        res.status(500).json({ 
+            success: false,
+            error: 'Failed to create Genie payment request.',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };
 
 export const handleRedirect = async (req, res) => {
-    console.log("Redirect hit");
-    const { transactionId, state } = req.query;
+    console.log("Redirect hit with query params:", req.query);
+    const { paymentStatus, transactionId, message, state, signature } = req.query;
 
-    if (!transactionId || !state) {
-        return res.redirect(`${CLIENT_URL}/billing?paymentStatus=error&message=${encodeURIComponent('Invalid payment response')}`);
+    // Handle the case where Genie might send different parameter names
+    // Genie might send 'state' instead of 'paymentStatus'
+    const status = paymentStatus || state || req.query.status;
+    // Use the first transactionId if multiple are sent
+    const id = Array.isArray(transactionId) ? transactionId[0] : transactionId || req.query.id;
+
+    // Use the correct client URL with the full billing path
+    //const clientBaseUrl = process.env.CLIENT_URL_NGROK || process.env.CLIENT_URL || "http://localhost:5173";
+    const clientBaseUrl =
+    process.env.NODE_ENV === "production"
+        ? process.env.CLIENT_URL      // Production frontend URL
+        : process.env.CLIENT_URL || "http://localhost:5173";
+
+    const billingPath = "/billing"; // The actual billing page path
+
+    if (!status) {
+        console.log("No payment status received, redirecting with error");
+        return res.redirect(`${clientBaseUrl}${billingPath}?paymentStatus=error&message=${encodeURIComponent('Payment status not provided')}`);
     }
 
     try {
-        const payment = await GeniePayment.findOne({ transaction_id: transactionId });
+        let payment = null;
+        
+        // Try to find payment by transactionId first, then by _id
+        if (id) {
+            payment = await GeniePayment.findOne({ 
+                $or: [
+                    { transaction_id: id },
+                    { _id: id }
+                ]
+            });
+        }
+        
         if (!payment) {
-            return res.redirect(`${CLIENT_URL}/billing?paymentStatus=error&message=${encodeURIComponent('Payment record not found')}`);
+            console.log("Payment record not found for ID:", id);
+            return res.redirect(`${clientBaseUrl}${billingPath}?paymentStatus=error&message=${encodeURIComponent('Payment record not found')}`);
         }
 
-        if (state === "SUCCESS") {
-            payment.payment_status = "completed";
-            await payment.save();
-            return res.redirect(`${CLIENT_URL}/billing?paymentStatus=success&message=${encodeURIComponent('Payment completed')}`);
-        } else if (state === "CANCELLED") {
-            payment.payment_status = "cancelled";
-            await payment.save();
-            return res.redirect(`${CLIENT_URL}/billing?paymentStatus=cancelled&message=${encodeURIComponent('Payment cancelled')}`);
+        // Map Genie status to our status
+        let mappedStatus = 'error';
+        if (status === "SUCCESS" || status === "success" || status === "CONFIRMED") {
+            mappedStatus = "success";
+        } else if (status === "CANCELLED" || status === "cancelled") {
+            mappedStatus = "cancelled";
+        } else if (status === "FAILED" || status === "failed") {
+            mappedStatus = "failed";
         } else {
-            return res.redirect(`${CLIENT_URL}/billing?paymentStatus=error&message=${encodeURIComponent('Unknown payment state')}`);
+            // For unknown states, log and treat as error
+            console.log("Unknown payment state received:", status);
+            mappedStatus = "error";
         }
+
+        // Update payment status in our database
+        payment.payment_status = mappedStatus === "success" ? "completed" : mappedStatus;
+        await payment.save();
+
+        // If payment was successful, process the subscription
+        if (mappedStatus === "success") {
+            await handlePaymentSuccess({
+                id: payment.transaction_id,
+                paymentId: payment._id
+            });
+        }
+
+        // Redirect with proper parameters that frontend expects
+        const redirectMessage = message || 
+            (mappedStatus === "success" ? "Payment completed successfully" : 
+             mappedStatus === "cancelled" ? "Payment was cancelled" : 
+             mappedStatus === "failed" ? "Payment failed" :
+             "Payment processing completed");
+             
+        return res.redirect(`${clientBaseUrl}${billingPath}?paymentStatus=${mappedStatus}&message=${encodeURIComponent(redirectMessage)}`);
     } catch (err) {
-        console.error(err);
-        return res.redirect(`${CLIENT_URL}/billing?paymentStatus=error&message=${encodeURIComponent('Server error')}`);
+        console.error("Error in handleRedirect:", err);
+        return res.redirect(`${clientBaseUrl}${billingPath}?paymentStatus=error&message=${encodeURIComponent('Server error during payment processing')}`);
     }
 };
 
@@ -481,135 +584,139 @@ export const processFormSelectionAfterGeniePayment = async (userId, formSelectio
 
 // Handle successful payment
 const handlePaymentSuccess = async (paymentData) => {
-    try {
-        console.log('Processing successful Genie payment:', paymentData);
-        
-        // Find the payment record
-        const payment = await GeniePayment.findOne({ 
-            transaction_id: paymentData.id 
-        });
-        
-        if (!payment) {
-            console.log('Payment record not found for transaction:', paymentData.id);
-            return;
-        }
-        
-        // Update payment status
-        payment.payment_status = 'completed';
-        await payment.save();
-        
-        // Get plan details
-        const plan = await ManualPlan.findById(payment.plan_id);
-        if (!plan) {
-            console.log('Plan not found for payment:', payment._id);
-            return;
-        }
-        
-        // Check if this is an upgrade by looking at form selection data
-        const isUpgrade = payment.form_selection && payment.form_selection.isUpgrade;
-        
-        // Create or update subscription
-        let subscription = await GenieSubscription.findOne({ 
-            user_id: payment.user_id,
-            status: 'active'
-        });
-        
-        // Track if this is an upgrade/downgrade
-        let isUpgradeOrDowngrade = false;
-        let previousPlanId = null;
-        
-        if (!subscription) {
-            // Create new subscription for new user
-            subscription = new GenieSubscription({
-                user_id: payment.user_id,
-                plan_id: payment.plan_id,
-                plan_name: payment.plan_name,
-                billing_period: payment.billing_period,
-                amount: payment.amount,
-                status: 'active',
-                subscription_start: payment.subscription_start,
-                subscription_end: payment.subscription_end,
-                auto_renew: true, // Default to auto-renew
-                customer_id: payment.customer_id,
-                transaction_id: payment.transaction_id,
-                last_payment_id: payment._id
-            });
-        } else {
-            // This is an upgrade/downgrade or renewal
-            isUpgradeOrDowngrade = true;
-            previousPlanId = subscription.plan_id;
-            
-            // Store previous plan info for audit trail
-            subscription.previous_plan_id = subscription.plan_id;
-            subscription.upgrade_reason = isUpgrade ? 'immediate_upgrade' : 'plan_change';
-            
-            // For immediate upgrades, cancel current subscription and create new one
-            if (isUpgrade) {
-                // Mark current subscription as cancelled
-                subscription.status = 'cancelled';
-                subscription.cancelled_at = new Date();
-                await subscription.save();
-                
-                // Create a new subscription with the upgraded plan
-                subscription = new GenieSubscription({
-                    user_id: payment.user_id,
-                    plan_id: payment.plan_id,
-                    plan_name: payment.plan_name,
-                    billing_period: payment.billing_period,
-                    amount: payment.amount,
-                    status: 'active',
-                    subscription_start: payment.subscription_start,
-                    subscription_end: payment.subscription_end,
-                    auto_renew: true, // Default to auto-renew
-                    customer_id: payment.customer_id,
-                    transaction_id: payment.transaction_id,
-                    last_payment_id: payment._id,
-                    previous_plan_id: previousPlanId,
-                    upgrade_reason: 'immediate_upgrade'
-                });
-            } else {
-                // For regular renewals, update existing subscription
-                subscription.plan_id = payment.plan_id;
-                subscription.plan_name = payment.plan_name;
-                subscription.billing_period = payment.billing_period;
-                subscription.amount = payment.amount;
-                subscription.subscription_start = payment.subscription_start;
-                subscription.subscription_end = payment.subscription_end;
-                subscription.customer_id = payment.customer_id;
-                subscription.transaction_id = payment.transaction_id;
-                subscription.last_payment_id = payment._id;
-                
-                // Add to renewal history for recurring payments
-                subscription.renewal_history.push({
-                    payment_id: payment._id,
-                    date: new Date()
-                });
-            }
-        }
-        
-        await subscription.save();
-        console.log('Successfully created/updated Genie subscription:', subscription._id);
-        
-        // Update user subscription status
-        const user = await User.findById(payment.user_id);
-        if (user) {
-            user.subscription_plan = payment.plan_name;
-            user.subscription_status = 'active';
-            user.subscription_expiry = payment.subscription_end;
-            user.is_active = true;
-            await user.save();
-        }
-        
-        // Process form selection if it exists
-        if (payment.form_selection) {
-            await processFormSelectionAfterGeniePayment(payment.user_id, payment.form_selection);
-        }
-        
-        console.log('Successfully processed Genie payment and updated subscription');
-    } catch (error) {
-        console.error('Error processing successful Genie payment:', error);
+  try {
+    console.log('Processing Genie payment event:', paymentData);
+
+    // Find the payment
+    const payment = await GeniePayment.findOne({
+      $or: [
+        { transaction_id: paymentData.id },
+        { _id: paymentData.paymentId }
+      ]
+    });
+
+    if (!payment) {
+      console.log('Payment record not found for transaction:', paymentData.id);
+      return;
     }
+
+    // Only continue if SUCCESS
+    if (paymentData.state !== "SUCCESS") {
+      console.log("Payment not successful, skipping subscription creation.");
+      return;
+    }
+
+    // Mark payment as completed
+    if (payment.payment_status !== 'completed') {
+      payment.payment_status = 'completed';
+      await payment.save();
+    }
+
+    // Get plan
+    const plan = await ManualPlan.findById(payment.plan_id);
+    if (!plan) {
+      console.log('Plan not found for payment:', payment._id);
+      return;
+    }
+
+    // See if user already has subscription
+    let subscription = await GenieSubscription.findOne({
+      user_id: payment.user_id,
+      status: 'active'
+    });
+
+    const isUpgrade = payment.form_selection?.isUpgrade;
+    let previousPlanId = null;
+
+    if (!subscription) {
+      // Create new subscription
+      subscription = new GenieSubscription({
+        user_id: payment.user_id,
+        plan_id: payment.plan_id,
+        plan_name: payment.plan_name,
+        billing_period: payment.billing_period,
+        amount: payment.amount,
+        status: 'active',
+        subscription_start: payment.subscription_start,
+        subscription_end: payment.subscription_end,
+        auto_renew: true,
+        customer_id: payment.customer_id,
+        transaction_id: payment.transaction_id,
+        last_payment_id: payment._id
+      });
+    } else {
+      previousPlanId = subscription.plan_id;
+
+      if (isUpgrade) {
+        subscription.status = 'cancelled';
+        subscription.cancelled_at = new Date();
+        await subscription.save();
+
+        subscription = new GenieSubscription({
+          user_id: payment.user_id,
+          plan_id: payment.plan_id,
+          plan_name: payment.plan_name,
+          billing_period: payment.billing_period,
+          amount: payment.amount,
+          status: 'active',
+          subscription_start: payment.subscription_start,
+          subscription_end: payment.subscription_end,
+          auto_renew: true,
+          customer_id: payment.customer_id,
+          transaction_id: payment.transaction_id,
+          last_payment_id: payment._id,
+          previous_plan_id: previousPlanId,
+          upgrade_reason: 'immediate_upgrade'
+        });
+
+      } else {
+        // Renewal
+        subscription.plan_id = payment.plan_id;
+        subscription.plan_name = payment.plan_name;
+        subscription.billing_period = payment.billing_period;
+        subscription.amount = payment.amount;
+        subscription.subscription_start = payment.subscription_start;
+        subscription.subscription_end = payment.subscription_end;
+        subscription.customer_id = payment.customer_id;
+        subscription.transaction_id = payment.transaction_id;
+        subscription.last_payment_id = payment._id;
+
+        subscription.renewal_history = subscription.renewal_history || [];
+        subscription.renewal_history.push({
+          payment_id: payment._id,
+          date: new Date()
+        });
+      }
+    }
+
+    await subscription.save();
+
+    // Update user
+    const user = await User.findById(payment.user_id);
+    if (user) {
+      user.subscription_plan = payment.plan_name;
+      user.subscription_status = 'active';
+      user.subscription_expiry = payment.subscription_end;
+      user.is_active = true;
+      await user.save();
+    }
+
+    // Handle form selection
+    if (payment.form_selection) {
+      await processFormSelectionAfterGeniePayment(
+        payment.user_id,
+        payment.form_selection
+      );
+    }
+
+    console.log(
+      'Successfully processed Genie payment and updated subscription'
+    );
+  } catch (error) {
+    console.error('Error processing Genie payment:', error);
+  }
 };
+
 
 // Handle failed payment
 const handlePaymentFailed = async (paymentData) => {
@@ -618,7 +725,10 @@ const handlePaymentFailed = async (paymentData) => {
         
         // Find the payment record
         const payment = await GeniePayment.findOne({ 
-            transaction_id: paymentData.id 
+            $or: [
+                { transaction_id: paymentData.id },
+                { _id: paymentData.paymentId }
+            ]
         });
         
         if (!payment) {
@@ -643,7 +753,10 @@ const handlePaymentCancelled = async (paymentData) => {
         
         // Find the payment record
         const payment = await GeniePayment.findOne({ 
-            transaction_id: paymentData.id 
+            $or: [
+                { transaction_id: paymentData.id },
+                { _id: paymentData.paymentId }
+            ]
         });
         
         if (!payment) {

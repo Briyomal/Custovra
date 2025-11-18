@@ -5,9 +5,15 @@ import { NavUser } from "@/components/nav-user";
 import { useAuthStore } from "@/store/authStore";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import sidebarLogo from "../../assets/Logo.png";
+import logoWhite from "../../assets/logo-white.png";
 import { useLocation } from "react-router-dom";
 import { useUnreadSubmissions } from "@/hooks/useUnreadSubmissions";
 import { Badge } from "@/components/ui/badge";
+import { useTheme } from "@/components/theme-provider";
+
+
+
+	
 
 // Menu items.
 const items = [
@@ -24,6 +30,7 @@ export function CustomerSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const { unreadCount } = useUnreadSubmissions(user?._id);
+  const { theme } = useTheme();
 
   // Find the Submissions item and add the badge if there are unread submissions
   const itemsWithBadge = items.map(item => {
@@ -31,7 +38,7 @@ export function CustomerSidebar() {
       return {
         ...item,
         badge: (
-          <Badge className="ml-2 bg-red-500 hover:bg-red-600 text-white rounded-full h-5 px-2 text-xs">
+          <Badge className="ml-2 bg-red-600 hover:bg-red-700 text-white rounded-full h-5 px-2 text-xs">
             {unreadCount}
           </Badge>
         )
@@ -46,8 +53,8 @@ export function CustomerSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="xl" asChild className="hover:bg-gray-200 active:bg-gray-200 dark:hover:bg-gray-900 ">
-              <a href="#">
-                <img src={sidebarLogo} alt="Logo" className="w-32" />
+              <a href="/">
+                <img src={theme === "dark" ? logoWhite : sidebarLogo} alt="Custovra" className="w-32" />
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -93,7 +100,7 @@ export function CustomerSidebar() {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
-                      className={`${currentPath.startsWith(item.url) ? "bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-700 text-white font-medium" : ""
+                      className={`${currentPath.startsWith(item.url) ? "font-medium bg-gradient-to-r from-[#16bf4c] to-lime-500 text-black transition-all duration-200 ease-in-out hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] hover:text-black focus:outline-none focus:ring-2 focus:ring-lime-400" : "font-medium hover:bg-gradient-to-r hover:to-[#16bf4c] hover:from-lime-500 hover:text-black transition-all duration-700 ease-in-out hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] focus:outline-none focus:ring-2 focus:ring-lime-400"
                         }`}
                     >
                       <a href={item.url}>

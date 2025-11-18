@@ -130,7 +130,12 @@ const FormPage = () => {
 			<div className="flex flex-1 flex-col gap-4 md:p-4 pt-0">
 				<Dialog>
 					<DialogTrigger asChild>
-						<Button className="w-full sm:w-fit mt-4 mb-4 left-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800">
+						<Button className="w-full sm:w-fit mt-4 mb-4 left-0 rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400">
 							<FilePlus /> Create Form
 						</Button>
 					</DialogTrigger>

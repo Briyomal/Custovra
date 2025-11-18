@@ -65,7 +65,7 @@ const FormsGrid = ({ forms = [], getSubmissionCountForForm, submissions = [] }) 
                 const unreadCount = unreadCounts[form._id] || 0;
                 
                 return (
-                    <Card key={form._id} className="bg-slate-50 dark:bg-blue-950/20 backdrop-blur-lg">
+                    <Card key={form._id} className="bg-slate-50 dark:bg-[#161616] backdrop-blur-lg">
                         <CardHeader className="space-y-0 pb-2 pt-3 md:pt-4 px-2 md:px-4">
                             <div className="flex justify-between items-start">
                                 <div>
@@ -108,7 +108,12 @@ const FormsGrid = ({ forms = [], getSubmissionCountForForm, submissions = [] }) 
                         <CardFooter className="flex flex-row justify-between items-center pb-4 px-2 md:px-4">
                             <Button 
                                 variant="secondary"
-                                className="py-1 mt-4 gap-1 md:gap-2 w-full left-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
+                                className="py-1 mt-4 gap-1 md:gap-2 w-full left-0 rounded-md font-semibold border 
+               											border-[#16bf4c] text-[#16bf4c] dark:text-white bg-transparent 
+               											hover:!text-[#000000] hover:border-lime-500 hover:bg-lime-500
+               											transition-all duration-200 ease-in-out 
+               											hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] 
+               											focus:outline-none focus:ring-2 focus:ring-lime-500"
                                 submissions={submissions}
                                 onClick={() => handleViewSubmissions(form._id)}
                             >

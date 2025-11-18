@@ -6,12 +6,15 @@ import { ArrowLeft, Loader, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import FloatingBackground from "../components/FloatingBackground";
 import logo from "../assets/Logo.png";
+import logoWhite from "../assets/logo-white.png";
+import { useTheme } from "@/components/theme-provider";
 
 const ForgotPasswordPage = () => {
 	const [email, setEmail] = useState("");
 	const [isSubmitted, setIsSubmitted] = useState(false);
 
 	const { isLoading, forgotPassword } = useAuthStore();
+	const { theme } = useTheme();
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -25,16 +28,16 @@ const ForgotPasswordPage = () => {
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.5 }}
-				className='m-4 md:m-0 max-w-md w-full bg-white bg-opacity-60 backdrop-filter backdrop-blur-2xl rounded-2xl shadow-xl overflow-hidden
-				dark:bg-slate-800 dark:bg-opacity-40 dark:backdrop-filter dark:backdrop-blur-xl'
+				className='m-4 md:m-0 max-w-md w-full border bg-white bg-opacity-60 backdrop-filter backdrop-blur-2xl rounded-2xl shadow-xl overflow-hidden
+				dark:bg-[#0D0D0D] dark:bg-opacity-40 dark:backdrop-filter dark:backdrop-blur-xl'
 			>
 				<div className='p-8'>
 					
 					<a href="/" className="flex items-center justify-center mb-4">
-						<img src={logo} className="h-10 mr-3" alt="Custovra" />
+						<img src={theme === "dark" ? logoWhite : logo} className="h-10 mr-3" alt="Custovra" />
 					</a>
-					<h2 className='text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text
-					dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-blue-500 dark:to-indigo-400'>
+					<h2 className='text-3xl font-bold mb-6 text-center bg-gradient-to-r from-[#16bf4c] to-lime-500 text-transparent bg-clip-text
+					dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-[#16bf4c] dark:to-lime-500'>
 						Forgot Password
 					</h2>
 		
@@ -54,7 +57,12 @@ const ForgotPasswordPage = () => {
 							<motion.button
 								whileHover={{ scale: 1.02 }}
 								whileTap={{ scale: 0.98 }}
-								className='w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-lg shadow-lg hover:from-blue-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-blue-200 transition duration-200'
+								className='w-full py-3 px-4 rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400'
 								type='submit'
 							>
 								{isLoading ? <Loader className='size-6 animate-spin mx-auto' /> : "Send Reset Link"}
@@ -66,7 +74,7 @@ const ForgotPasswordPage = () => {
 								initial={{ scale: 0 }}
 								animate={{ scale: 1 }}
 								transition={{ type: "spring", stiffness: 500, damping: 30 }}
-								className='w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4'
+								className='w-16 h-16 bg-[#16bf4c] rounded-full flex items-center justify-center mx-auto mb-4'
 							>
 								<Mail className='h-8 w-8 text-white' />
 							</motion.div>
@@ -77,8 +85,8 @@ const ForgotPasswordPage = () => {
 					)}
 				</div>
 				
-				<div className='px-8 py-4 bg-blue-800 opacity-80 dark:bg-slate-700 dark:bg-opacity-90 flex justify-center'>
-					<Link to={"/login"} className='text-sm text-blue-200 hover:underline flex items-center'>
+				<div className='px-8 py-4 bg-[#11963b] opacity-100 dark:bg-[#16bf4c] dark:bg-opacity-50 flex justify-center'>
+					<Link to={"/login"} className='text-sm text-lime-300 hover:underline flex items-center'>
 						<ArrowLeft className='h-4 w-4 mr-2' /> Back to Login
 					</Link>
 				</div>

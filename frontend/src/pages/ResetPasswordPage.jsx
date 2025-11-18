@@ -9,6 +9,8 @@ import { Lock } from "lucide-react";
 import FloatingBackground from "../components/FloatingBackground";
 import toast from "react-hot-toast";
 import logo from "../assets/Logo.png";
+import logoWhite from "../assets/logo-white.png";
+import { useTheme } from "@/components/theme-provider";
 
 const ResetPasswordPage = () => {
 	const [password, setPassword] = useState("");
@@ -17,6 +19,7 @@ const ResetPasswordPage = () => {
 
 	const { token } = useParams();
 	const navigate = useNavigate();
+	const { theme } = useTheme();
 
 
 	const handleSubmit = async (e) => {
@@ -51,10 +54,10 @@ const ResetPasswordPage = () => {
 			>
 				<div className='p-8'>
 					<a href="/" className="flex items-center justify-center mb-4">
-						<img src={logo} className="h-10 mr-3" alt="Custovra" />
+						<img src={theme === "dark" ? logoWhite : logo} className="h-10 mr-3" alt="Custovra" />
 					</a>	
-					<h2 className='text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text
-					dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-blue-500 dark:to-indigo-400'>
+					<h2 className='text-3xl font-bold mb-6 text-center bg-gradient-to-r from-[#16bf4c] to-lime-500 text-transparent bg-clip-text
+					dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-[#16bf4c] dark:to-lime-500'>
 						Reset Password
 					</h2>
 					{error && <p className='text-red-500 text-sm mb-4'>{error}</p>}
@@ -82,7 +85,12 @@ const ResetPasswordPage = () => {
 						<motion.button
 							whileHover={{ scale: 1.02 }}
 							whileTap={{ scale: 0.98 }}
-							className='w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-lg shadow-lg hover:from-blue-700 hover:to-indigo-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-blue-200 transition duration-200'
+							className='w-full py-3 px-4 rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400'
 							type='submit'
 							disabled={isLoading}
 						>

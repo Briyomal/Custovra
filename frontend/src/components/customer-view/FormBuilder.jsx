@@ -321,7 +321,12 @@ const FormBuilder = ({ formDetails, fields, setFields }) => {
                             <div className="max-w-[900px] m-auto flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden px-4 xl:px-40 lg:px-6">
                                 <Button
                                     onClick={handleAddField}
-                                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800 transition"
+                                    className="w-full rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-700 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400"
                                 >
                                     Add Field
                                 </Button>
