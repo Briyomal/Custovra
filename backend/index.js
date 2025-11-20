@@ -8,7 +8,7 @@ import { connectDB } from "./db/connectDB.js";
 
 import authRoutes from "./routes/auth.route.js";
 import userRoutes from "./routes/user.route.js";
-import subscriptionRoutes from "./routes/subscription.route.js";
+//import subscriptionRoutes from "./routes/subscription.route.js";
 //import paymentRoutes from "./routes/payment.route.js";
 import formRoutes from "./routes/form.route.js";
 import formFieldRoutes from "./routes/formField.route.js";
@@ -74,7 +74,7 @@ app.use(cookieParser());
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/subscriptions", subscriptionRoutes);
+//app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/forms", formRoutes);
 app.use("/api/form-fields", formFieldRoutes);
 app.use("/api/employees", employeeRoutes);

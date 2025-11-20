@@ -1,5 +1,5 @@
 // controllers/SubscriptionController.js
-
+/*
 import { Subscription } from "../models/Subscription.js";
 import { Payment } from '../models/Payment.js';
 import { User } from '../models/User.js';
@@ -861,3 +861,4 @@ export const renewPreviousPlan = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+*/
