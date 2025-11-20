@@ -1,3 +1,4 @@
+/*
 import { stripe } from "../utils/stripe.js";
 import { User } from '../models/User.js';
 import { Payment } from '../models/Payment.js';
@@ -358,3 +359,5 @@ export const setDefaultPaymentMethod = async (req, res) => {
     res.status(500).json({ error: 'Failed to set default payment method.' });
   }
 };
+
+*/

@@ -9,7 +9,7 @@ import { connectDB } from "./db/connectDB.js";
 import authRoutes from "./routes/auth.route.js";
 import userRoutes from "./routes/user.route.js";
 import subscriptionRoutes from "./routes/subscription.route.js";
-import paymentRoutes from "./routes/payment.route.js";
+//import paymentRoutes from "./routes/payment.route.js";
 import formRoutes from "./routes/form.route.js";
 import formFieldRoutes from "./routes/formField.route.js";
 import employeeRoutes from "./routes/employee.route.js";
@@ -18,8 +18,8 @@ import submissionRoutes from "./routes/submission.route.js";
 import reportRoutes from "./routes/report.route.js";
 import profileRoutes from "./routes/profile.route.js";
 import usageRoutes from "./routes/usage.route.js";
-import { handleStripeWebhook } from "./controllers/payment.controller.js";
-import billingRoutes from "./routes/billing.route.js";
+//import { handleStripeWebhook } from "./controllers/payment.controller.js";
+//import billingRoutes from "./routes/billing.route.js";
 import supportRoutes from "./routes/support.route.js";
 import planDowngradeRoutes from "./routes/planDowngrade.route.js";
 import manualPlanRoutes from "./routes/manualPlan.route.js";
@@ -64,7 +64,7 @@ app.use(
 app.use("/public", express.static(path.join(__dirname, "public")));
 
 // Webhook routes BEFORE body parser
-app.use("/api/payments/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
+//app.use("/api/payments/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
 app.use("/api/genie/webhook", express.raw({ type: "application/json" }), handleGeniePaymentWebhook);
 
 // Normal JSON parsing
@@ -81,9 +81,9 @@ app.use("/api/employees", employeeRoutes);
 app.use("/api/responses", responseRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/reports", reportRoutes);
-app.use("/api/payments", paymentRoutes);
+//app.use("/api/payments", paymentRoutes);
 app.use("/api/profile", profileRoutes);
-app.use("/api/billing", billingRoutes);
+//app.use("/api/billing", billingRoutes);
 app.use("/api/usage", usageRoutes);
 app.use("/api/plan-downgrade", planDowngradeRoutes);
 app.use("/api/support", supportRoutes);

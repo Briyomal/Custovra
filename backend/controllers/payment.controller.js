@@ -1,4 +1,4 @@
-import { stripe } from "../utils/stripe.js";
+
 import { User } from "../models/User.js";
 import { Payment } from "../models/Payment.js";
 import { handlePlanChangeProtection } from "../middleware/planChangeProtection.js";
@@ -7,7 +7,7 @@ import { handlePlanChangeProtection } from "../middleware/planChangeProtection.j
 
 // Handle Stripe webhook events
 export const handleStripeWebhook = async (req, res) => {
-    const sig = req.headers['stripe-signature'];
+  /*  const sig = req.headers['stripe-signature'];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET; // Your Stripe Webhook secret
 
     if (!endpointSecret) {
@@ -283,6 +283,5 @@ const handlePaymentSucceeded = async (invoice) => {
     } catch (error) {
         console.error("❌ Error handling invoice.payment_succeeded:", error);
     }
+*/
 };
-
-
