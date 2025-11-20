@@ -27,10 +27,15 @@ const PaymentHistory = ({ paymentHistory, formatCurrency }) => {
                   <span className="font-medium">
                     {formatCurrency(payment.amount)}
                   </span>
-                  <Badge variant={
-                    payment.status === 'approved' ? 'default' : 
-                    payment.status === 'pending' ? 'secondary' : 'destructive'
-                  }>
+                  <Badge
+                    className={
+                      payment.status === "completed"
+                        ? "bg-green-500 hover:bg-green-600 text-white capitalize"
+                        : payment.status === "pending"
+                          ? "bg-yellow-500 hover:bg-yellow-600 text-white capitalize"
+                          : "bg-red-500 hover:bg-red-600 text-white capitalize"
+                    }
+                  >
                     {payment.status}
                   </Badge>
                 </div>

@@ -14,19 +14,28 @@ const FormsGrid = ({ forms = [], getSubmissionCountForForm, submissions = [] }) 
     // Fetch unread submission counts for all forms
     useEffect(() => {
         const fetchUnreadCounts = async () => {
-            const counts = {};
-            for (const form of forms) {
-                try {
-                    const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/submissions/unread/form/${form._id}`, {
+            try {
+                // Fetch all unread counts in parallel for better performance
+                const unreadCountPromises = forms.map(form => 
+                    axios.get(`${import.meta.env.VITE_SERVER_URL}/api/submissions/unread/form/${form._id}`, {
                         withCredentials: true
-                    });
-                    counts[form._id] = response.data.count;
-                } catch (error) {
-                    console.error(`Error fetching unread count for form ${form._id}:`, error);
-                    counts[form._id] = 0;
-                }
+                    }).catch(error => {
+                        console.error(`Error fetching unread count for form ${form._id}:`, error);
+                        return { data: { count: 0 } };
+                    })
+                );
+
+                const responses = await Promise.all(unreadCountPromises);
+                
+                const counts = {};
+                forms.forEach((form, index) => {
+                    counts[form._id] = responses[index].data.count;
+                });
+                
+                setUnreadCounts(counts);
+            } catch (error) {
+                console.error('Error fetching unread counts:', error);
             }
-            setUnreadCounts(counts);
         };
 
         if (forms.length > 0) {

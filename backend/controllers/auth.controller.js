@@ -15,7 +15,7 @@ import {
 import {
 	User
 } from "../models/User.js";
-import { ManualSubscription } from "../models/ManualSubscription.js";
+import { GenieSubscription } from "../models/GenieSubscription.js";
 
 export const signup = async (req, res) => {
 	try {
@@ -360,8 +360,8 @@ export const checkAuth = async (req, res) => {
 			});
 		}
 
-		// Get user's manual subscription
-		const manualSubscription = await ManualSubscription.findOne({ 
+		// Get user's Genie subscription
+		const genieSubscription = await GenieSubscription.findOne({ 
 			user_id: req.userId,
 			status: 'active'
 		}).populate('plan_id');
@@ -371,7 +371,7 @@ export const checkAuth = async (req, res) => {
 			user: {
 				...user._doc,
 				password: undefined, // Exclude sensitive information
-				subscription: manualSubscription || null,
+				subscription: genieSubscription || null,
 			},
 		});
 	} catch (error) {

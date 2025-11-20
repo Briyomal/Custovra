@@ -60,6 +60,10 @@ const geniePaymentSchema = new Schema({
         type: String, // URL to redirect user to complete payment
         required: false,
     },
+    signature: {
+        type: String, // Signature from payment gateway
+        required: false,
+    },
     created_at: {
         type: Date,
         default: Date.now,

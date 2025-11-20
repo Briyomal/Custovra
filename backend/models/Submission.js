@@ -27,4 +27,9 @@ const submissionSchema = new Schema(
     { timestamps: true }
 );
 
+// Add indexes for better query performance
+submissionSchema.index({ form_id: 1 });
+submissionSchema.index({ is_read: 1 });
+submissionSchema.index({ form_id: 1, is_read: 1 });
+
 export const Submission = mongoose.model('Submission', submissionSchema);

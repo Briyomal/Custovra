@@ -1,7 +1,7 @@
 import { Form } from "../models/Form.js";
 import { User } from "../models/User.js";
 import { ManualPlan } from "../models/ManualPlan.js";
-import { ManualSubscription } from "../models/ManualSubscription.js";
+import { GenieSubscription } from "../models/GenieSubscription.js";
 import { getUserPlanLimits } from "../middleware/checkSubscriptionLimits.js";
 
 /**
@@ -24,25 +24,25 @@ export const checkDowngradeImpact = async (req, res) => {
             });
         }
 
-        // Get user's manual subscription
-        const manualSubscription = await ManualSubscription.findOne({ 
+        // Get user's Genie subscription
+        const genieSubscription = await GenieSubscription.findOne({ 
             user_id: userId, 
             status: 'active' 
         }).populate('plan_id');
 
-        if (!manualSubscription || !manualSubscription.plan_id) {
+        if (!genieSubscription || !genieSubscription.plan_id) {
             return res.status(400).json({
                 success: false,
-                error: "Active manual subscription not found"
+                error: "Active Genie subscription not found"
             });
         }
 
-        // Get current plan limits from manual subscription
+        // Get current plan limits from Genie subscription
         const currentLimits = {
-            formLimit: manualSubscription.plan_id.form_limit,
-            submissionLimit: manualSubscription.plan_id.submission_limit
+            formLimit: genieSubscription.plan_id.form_limit,
+            submissionLimit: genieSubscription.plan_id.submission_limit
         };
-        const currentPlanName = manualSubscription.plan_id.name;
+        const currentPlanName = genieSubscription.plan_id.name;
 
         console.log('User current plan:', currentPlanName, 'limits:', currentLimits);
 
@@ -64,30 +64,21 @@ export const checkDowngradeImpact = async (req, res) => {
             }
         }
 
-        // Get user's current active forms (all active forms, regardless of lock status)
-        const activeForms = await Form.find({
-            user_id: userId,
-            is_active: true
+        // Get all user's forms (both active and inactive/draft forms, regardless of lock status)
+        const userForms = await Form.find({
+            user_id: userId
         }).sort({ createdAt: -1 }); // Most recent first
 
-        console.log('Found active forms for user:', userId, 'count:', activeForms.length);
-        console.log('Active forms details:', activeForms.map(f => ({ id: f._id, name: f.form_name, isActive: f.is_active, isLocked: f.is_locked })));
+        console.log('Found all forms for user:', userId, 'count:', userForms.length);
+        console.log('All forms details:', userForms.map(f => ({ id: f._id, name: f.form_name, isActive: f.is_active, isLocked: f.is_locked })));
 
-        // Also get all user's forms for debugging
-        const allUserForms = await Form.find({
-            user_id: userId
-        }).sort({ createdAt: -1 });
-        
-        console.log('All forms for user:', userId, 'count:', allUserForms.length);
-        console.log('All forms details:', allUserForms.map(f => ({ id: f._id, name: f.form_name, isActive: f.is_active, isLocked: f.is_locked, lockedAt: f.lockedAt, lockReason: f.lockReason })));
-
-        const currentFormCount = activeForms.length;
+        const currentFormCount = userForms.length;
         const newPlanLimit = targetPlanLimits.formLimit;
         // Fix the downgrade detection logic
-        // A downgrade occurs when the user has MORE active forms than the new plan allows
+        // A downgrade occurs when the user has MORE forms than the new plan allows
         const isDowngrade = currentFormCount > newPlanLimit;
 
-        console.log('Current active forms:', currentFormCount, 'new plan limit:', newPlanLimit, 'is downgrade:', isDowngrade);
+        console.log('Current forms:', currentFormCount, 'new plan limit:', newPlanLimit, 'is downgrade:', isDowngrade);
 
         // Additional debugging to check what the user actually has
         if (!isDowngrade && currentFormCount < newPlanLimit) {
@@ -122,16 +113,18 @@ export const checkDowngradeImpact = async (req, res) => {
                 currentFormCount,
                 newPlanLimit,
                 excessFormCount,
-                activeForms: activeForms.map(form => ({
+                activeForms: userForms.map(form => ({
                     _id: form._id,
                     form_name: form.form_name,
                     form_note: form.form_note,
                     form_type: form.form_type,
+                    is_active: form.is_active, // Include is_active status
+                    is_locked: form.is_locked, // Include is_locked status
                     // Support both createdAt (new format) and created_at (old format)
                     created_at: form.createdAt || form.created_at,
                     submissionCount: form.submission_count || 0
                 })),
-                message: `Your ${currentPlanName} plan allows ${currentFormCount} active form(s), but the new ${targetPlanName} plan only allows ${newPlanLimit} active form(s). Please select which ${newPlanLimit} form(s) will remain active and which ${excessFormCount} will be locked.`
+                message: `Your ${currentPlanName} plan allows ${currentFormCount} form(s), but the new ${targetPlanName} plan only allows ${newPlanLimit} form(s). Please select which ${newPlanLimit} form(s) will remain active and which ${excessFormCount} will be locked.`
             }
         });
 
@@ -221,35 +214,34 @@ export const handleFormSelection = async (req, res) => {
             });
         }
 
-        // Get user's manual subscription
-        const manualSubscription = await ManualSubscription.findOne({ 
+        // Get user's Genie subscription
+        const genieSubscription = await GenieSubscription.findOne({ 
             user_id: userId, 
             status: 'active' 
         }).populate('plan_id');
 
-        if (!manualSubscription) {
+        if (!genieSubscription) {
             return res.status(404).json({
                 success: false,
-                error: "Active manual subscription not found"
+                error: "Active Genie subscription not found"
             });
         }
 
-        console.log('User manual subscription:', manualSubscription);
+        console.log('User Genie subscription:', genieSubscription);
 
-        // Get all user's active forms (all active forms, regardless of lock status)
-        const allActiveForms = await Form.find({ 
-            user_id: userId, 
-            is_active: true 
+        // Get all user's forms (both active and inactive/draft forms, regardless of lock status)
+        const allUserForms = await Form.find({ 
+            user_id: userId
         });
 
-        console.log('All active forms before processing:', allActiveForms.map(f => ({ id: f._id, name: f.form_name, isActive: f.is_active, isLocked: f.is_locked })));
+        console.log('All user forms before processing:', allUserForms.map(f => ({ id: f._id, name: f.form_name, isActive: f.is_active, isLocked: f.is_locked })));
 
-        // Check if we have more active forms than the new plan allows
-        // We need to lock forms if the user has more active forms than the new plan limit
-        if (allActiveForms.length > newPlanLimit) {
+        // Check if we have more forms than the new plan allows
+        // We need to lock forms if the user has more forms than the new plan limit
+        if (allUserForms.length > newPlanLimit) {
             // Need to lock some forms
-            // Lock the forms that are active but not selected
-            const formsToLock = allActiveForms.filter(form => !selectedFormIds.includes(form._id.toString()));
+            // Lock the forms that are not selected
+            const formsToLock = allUserForms.filter(form => !selectedFormIds.includes(form._id.toString()));
             
             console.log('Forms to lock:', formsToLock.map(f => ({ id: f._id, name: f.form_name })));
             
@@ -285,13 +277,13 @@ export const handleFormSelection = async (req, res) => {
         
         console.log('Unlock result:', unlockResult);
 
-        // Update the manual subscription with selected forms
-        manualSubscription.forms_selected = selectedFormIds;
-        await manualSubscription.save();
-        console.log('Updated manual subscription with selected forms:', selectedFormIds);
+        // Update the Genie subscription with selected forms
+        genieSubscription.forms_selected = selectedFormIds;
+        await genieSubscription.save();
+        console.log('Updated Genie subscription with selected forms:', selectedFormIds);
 
         // Count forms that should be locked (the excess forms)
-        const lockedFormCount = Math.max(0, allActiveForms.length - newPlanLimit);
+        const lockedFormCount = Math.max(0, allUserForms.length - newPlanLimit);
 
         console.log('Form selection handled successfully. Active forms:', selectedFormIds.length, 'Locked forms:', lockedFormCount);
 
@@ -353,8 +345,7 @@ export const autoHandleDowngrade = async (req, res) => {
 
         // Get user's forms ordered by creation date (most recent first)
         const userForms = await Form.find({
-            user_id: userId,
-            is_active: true
+            user_id: userId
         }).sort({ createdAt: -1 });
 
         if (userForms.length <= newPlanLimit) {
@@ -392,7 +383,7 @@ export const autoHandleDowngrade = async (req, res) => {
         return res.status(200).json({
             success: true,
             data: {
-                message: `Successfully updated forms. Kept ${formsToKeep.length} most recent form(s) active, locked ${formsToLock.length} older form(s).`,
+                message: `Successfully updated forms. Kept ${formsToKeep.length} most recent form(s), locked ${formsToLock.length} older form(s).`,
                 activeForms: formsToKeep.length,
                 lockedForms: formsToLock.length,
                 planName,
@@ -471,8 +462,7 @@ export const getAllUserFormsForUpgrade = async (req, res) => {
 
         // Get all user's forms sorted by creation date (most recent first)
         const allForms = await Form.find({
-            user_id: userId,
-            is_active: true
+            user_id: userId
         }).sort({ createdAt: -1 });
 
         return res.status(200).json({
@@ -578,20 +568,20 @@ export const handleFormSelectionForUpgrade = async (req, res) => {
             });
         }
 
-        // Get user's manual subscription
-        const manualSubscription = await ManualSubscription.findOne({ 
+        // Get user's Genie subscription
+        const genieSubscription = await GenieSubscription.findOne({ 
             user_id: userId, 
             status: 'active' 
         }).populate('plan_id');
 
-        if (!manualSubscription) {
+        if (!genieSubscription) {
             return res.status(404).json({
                 success: false,
-                error: "Active manual subscription not found"
+                error: "Active Genie subscription not found"
             });
         }
 
-        console.log('User manual subscription:', manualSubscription);
+        console.log('User Genie subscription:', genieSubscription);
 
         // For upgrades, we want to unlock the selected forms (both previously locked and already unlocked)
         // Unlock the selected forms
@@ -611,13 +601,13 @@ export const handleFormSelectionForUpgrade = async (req, res) => {
         
         console.log('Unlock result:', unlockResult);
 
-        // Update the manual subscription with selected forms (add to existing forms_selected or replace if needed)
+        // Update the Genie subscription with selected forms (add to existing forms_selected or replace if needed)
         // For upgrades, we want to add the newly unlocked forms to the existing selected forms
-        const existingSelectedForms = manualSubscription.forms_selected || [];
+        const existingSelectedForms = genieSubscription.forms_selected || [];
         const updatedSelectedForms = [...new Set([...existingSelectedForms, ...selectedFormIds])];
-        manualSubscription.forms_selected = updatedSelectedForms;
-        await manualSubscription.save();
-        console.log('Updated manual subscription with selected forms:', updatedSelectedForms);
+        genieSubscription.forms_selected = updatedSelectedForms;
+        await genieSubscription.save();
+        console.log('Updated Genie subscription with selected forms:', updatedSelectedForms);
 
         // Count forms that were unlocked
         const unlockedFormCount = selectedFormIds.length;
@@ -714,20 +704,20 @@ export const autoHandleUpgrade = async (req, res) => {
             );
         }
 
-        // Get user's manual subscription and update forms_selected
-        const manualSubscription = await ManualSubscription.findOne({ 
+        // Get user's Genie subscription and update forms_selected
+        const genieSubscription = await GenieSubscription.findOne({ 
             user_id: userId, 
             status: 'active' 
         });
 
-        if (manualSubscription) {
+        if (genieSubscription) {
             // Add unlocked forms to existing selected forms
-            const existingSelectedForms = manualSubscription.forms_selected || [];
+            const existingSelectedForms = genieSubscription.forms_selected || [];
             const unlockedFormIds = formsToUnlock.map(f => f._id.toString());
             const updatedSelectedForms = [...new Set([...existingSelectedForms, ...unlockedFormIds])];
-            manualSubscription.forms_selected = updatedSelectedForms;
-            await manualSubscription.save();
-            console.log('Updated manual subscription with newly unlocked forms:', updatedSelectedForms);
+            genieSubscription.forms_selected = updatedSelectedForms;
+            await genieSubscription.save();
+            console.log('Updated Genie subscription with newly unlocked forms:', updatedSelectedForms);
         }
 
         return res.status(200).json({

@@ -94,22 +94,18 @@ export const handlePlanChangeProtection = async (userId, previousPlanName = null
         console.log('  - fromLimit:', planComparison.fromLimit);
         console.log('  - toLimit:', planComparison.toLimit);
 
-        // Get user's current active forms
-        const activeForms = await Form.find({
-            user_id: userId,
-            is_active: true
+        // Get all user's forms (both active and inactive/draft forms)
+        const allUserForms = await Form.find({
+            user_id: userId
         }).sort({ createdAt: -1 }); // Most recent first
 
-        // Get user's locked forms (for potential unlocking)
-        const lockedForms = await Form.find({
-            user_id: userId,
-            is_active: false,
-            lockedAt: { $exists: true }
-        }).sort({ createdAt: -1 });
+        // Separate active and locked forms
+        const activeForms = allUserForms.filter(form => form.is_active);
+        const lockedForms = allUserForms.filter(form => !form.is_active && form.lockedAt);
 
         const currentFormCount = activeForms.length;
         const newPlanLimit = limits.formLimit;
-        const totalFormsCount = currentFormCount + lockedForms.length;
+        const totalFormsCount = allUserForms.length;
 
         console.log(`User ${userId} has ${currentFormCount} active forms, ${lockedForms.length} locked forms, new plan allows ${newPlanLimit}`);
 

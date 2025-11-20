@@ -18,9 +18,7 @@ import reportRoutes from "./../routes/report.route.js";
 import profileRoutes from "./../routes/profile.route.js";
 import supportRoutes from "./../routes/support.route.js";
 // Removed Stripe-related imports
-import manualPaymentRoutes from "./../routes/manualPayment.route.js";
 import manualPlanRoutes from "./../routes/manualPlan.route.js";
-import manualSubscriptionRoutes from "./../routes/manualSubscription.route.js";
 import manualBillingRoutes from "./../routes/manualBilling.route.js";
 
 import { fileURLToPath } from 'url';
@@ -79,9 +77,7 @@ app.use('/api/reports', reportRoutes);
 // app.use("/api/payments", paymentRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/support", supportRoutes);
-app.use('/api/manual-payments', manualPaymentRoutes);
 app.use('/api/manual-plans', manualPlanRoutes);
-app.use('/api/manual-subscriptions', manualSubscriptionRoutes);
 app.use('/api/manual-billing', manualBillingRoutes);
 
 /*

@@ -34,8 +34,8 @@ const DowngradeDialog = ({
         
         {downgradeInfo && (
           <div className="space-y-6">
-            <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
-              <p className="text-amber-800">
+            <div className="bg-yellow-600/50 border border-amber-200 rounded-md p-4">
+              <p className="text-yellow-200">
                 {downgradeInfo?.isUpgrade 
                   ? `You have ${downgradeInfo.totalFormCount} form(s). Please select up to ${downgradeInfo.targetPlanLimit} form(s) to use with your new ${downgradeInfo.targetPlanName} plan.`
                   : `Your ${downgradeInfo.currentPlan} plan allows ${downgradeInfo.currentFormCount} active form(s), 
@@ -55,6 +55,12 @@ const DowngradeDialog = ({
                   {selectedFormIds.length} of {downgradeInfo?.isUpgrade ? Math.min(downgradeInfo.targetPlanLimit, downgradeInfo.totalFormCount) : downgradeInfo.newPlanLimit} selected
                 </span>
                 <Button 
+                  className="rounded-md font-semibold border 
+                  border-[#16bf4c] text-[#16bf4c] dark:text-white bg-transparent 
+                  hover:!text-[#000000] hover:border-lime-500 hover:bg-lime-500
+                  transition-all duration-200 ease-in-out 
+                  hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] 
+                  focus:outline-none focus:ring-1 focus:ring-lime-500"
                   variant="outline" 
                   size="sm"
                   onClick={handleAutoSelect}
@@ -64,7 +70,7 @@ const DowngradeDialog = ({
               </div>
             </div>
             
-            <div className="grid gap-3 max-h-96 overflow-y-auto">
+            <div className="grid gap-3 max-h-96 overflow-y-auto p-2">
               {(downgradeInfo?.isUpgrade ? downgradeInfo?.allForms : downgradeInfo?.activeForms)?.map((form) => {
                 const isSelected = selectedFormIds.includes(form._id);
                 return (
@@ -72,8 +78,8 @@ const DowngradeDialog = ({
                     key={form._id} 
                     className={`cursor-pointer transition-colors ${
                       isSelected 
-                        ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-slate-900' 
-                        : 'hover:bg-slate-100 dark:hover:bg-slate-900'
+                        ? 'ring-1 ring-lime-500 bg-blue-50 dark:bg-[#161616]' 
+                        : 'hover:bg-slate-100 dark:hover:bg-[#161616]'
                     }`}
                     onClick={() => handleFormToggle(form._id)}
                   >
@@ -83,7 +89,7 @@ const DowngradeDialog = ({
                           <div 
                             className={`w-5 h-5 rounded border flex items-center justify-center cursor-pointer ${
                               isSelected 
-                                ? 'bg-blue-500 border-blue-500' 
+                                ? 'bg-green-500 border-green-500' 
                                 : 'border-gray-300'
                             }`}
                             onClick={(e) => {
@@ -127,7 +133,7 @@ const DowngradeDialog = ({
                                 <span>Currently locked</span>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-1 text-blue-600 text-sm">
+                              <div className="flex items-center gap-1 text-lime-600 text-sm">
                                 <CheckCircle className="h-4 w-4" />
                                 <span>Already unlocked</span>
                               </div>
@@ -161,7 +167,7 @@ const DowngradeDialog = ({
             
             {/* Show message when user hasn't selected enough forms */}
             {(!downgradeInfo?.isUpgrade && selectedFormIds.length < (downgradeInfo?.newPlanLimit || 0)) && (
-              <div className="bg-blue-50 dark:bg-slate-900 border border-orange-500 rounded-md p-3">
+              <div className="bg-blue-50 dark:bg-[#161616] border border-orange-500 rounded-md p-3">
                 <p className="text-orange-500 text-sm">
                   Please select {downgradeInfo?.newPlanLimit || 0} form(s) to continue. 
                   Currently selected: {selectedFormIds.length}
@@ -170,7 +176,7 @@ const DowngradeDialog = ({
             )}
             
             {((downgradeInfo?.isUpgrade && selectedFormIds.length < Math.min(downgradeInfo.totalFormCount, downgradeInfo.targetPlanLimit || 0))) && (
-              <div className="bg-blue-50 dark:bg-slate-900 border border-orange-500 rounded-md p-3">
+              <div className="bg-blue-50 dark:bg-[#161616] border border-orange-500 rounded-md p-3">
                 <p className="text-orange-500 text-sm">
                   Please select up to {Math.min(downgradeInfo.totalFormCount, downgradeInfo.targetPlanLimit || 0)} form(s) to unlock. 
                   Currently selected: {selectedFormIds.length}
@@ -187,6 +193,12 @@ const DowngradeDialog = ({
                 Cancel
               </Button>
               <Button 
+              className="rounded-md font-semibold text-white border
+                                                          border-lime-700
+                                                            bg-gradient-to-r from-lime-700 to-green-800
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-green-600 hover:to-lime-600 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-500"
                 onClick={downgradeInfo?.isUpgrade ? handleUpgradeSubmit : handleDowngradeSubmit}
                 disabled={isSubmittingDowngrade || 
                   (downgradeInfo?.isUpgrade && selectedFormIds.length < Math.min(downgradeInfo.totalFormCount, downgradeInfo.targetPlanLimit)) ||

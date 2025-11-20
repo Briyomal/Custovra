@@ -22,9 +22,7 @@ import { handleStripeWebhook } from "./controllers/payment.controller.js";
 import billingRoutes from "./routes/billing.route.js";
 import supportRoutes from "./routes/support.route.js";
 import planDowngradeRoutes from "./routes/planDowngrade.route.js";
-import manualPaymentRoutes from "./routes/manualPayment.route.js";
 import manualPlanRoutes from "./routes/manualPlan.route.js";
-import manualSubscriptionRoutes from "./routes/manualSubscription.route.js";
 import manualBillingRoutes from "./routes/manualBilling.route.js";
 
 import genieRoutes from "./routes/genie.route.js";
@@ -89,9 +87,7 @@ app.use("/api/billing", billingRoutes);
 app.use("/api/usage", usageRoutes);
 app.use("/api/plan-downgrade", planDowngradeRoutes);
 app.use("/api/support", supportRoutes);
-app.use("/api/manual-payments", manualPaymentRoutes);
 app.use("/api/manual-plans", manualPlanRoutes);
-app.use("/api/manual-subscriptions", manualSubscriptionRoutes);
 app.use("/api/manual-billing", manualBillingRoutes);
 app.use("/api/genie", genieRoutes);
 

@@ -2,7 +2,7 @@ import { User } from "../models/User.js";
 import { Form } from "../models/Form.js";
 import { Submission } from "../models/Submission.js";
 import { Payment } from "../models/Payment.js";
-import { ManualSubscription } from "../models/ManualSubscription.js";
+import { GenieSubscription } from "../models/GenieSubscription.js";
 
 export const getAllUsers = async (req, res, next) =>{
    try {
@@ -34,14 +34,14 @@ export const getAllUsers = async (req, res, next) =>{
         user_id: user._id
       }).sort({ created_at: -1 }).select('plan subscription_id subscription_expiry');
 
-      // Get the most recent active manual subscription
-      const activeManualSubscription = await ManualSubscription.findOne({
+      // Get the most recent active Genie subscription
+      const activeGenieSubscription = await GenieSubscription.findOne({
         user_id: user._id,
         status: 'active'
       }).sort({ subscription_end: -1 });
 
-      // Get the most recent manual subscription (active or inactive)
-      const recentManualSubscription = await ManualSubscription.findOne({
+      // Get the most recent Genie subscription (active or inactive)
+      const recentGenieSubscription = await GenieSubscription.findOne({
         user_id: user._id
       }).sort({ subscription_end: -1 });
 
@@ -49,15 +49,15 @@ export const getAllUsers = async (req, res, next) =>{
       let planName = 'Free'; // Default plan
       let subscriptionStatus = userObject.subscription_status || 'inactive';
       
-      // Priority 1: Use plan from active manual subscription if available
-      if (activeManualSubscription && activeManualSubscription.plan_name) {
-        planName = activeManualSubscription.plan_name;
-        subscriptionStatus = activeManualSubscription.status;
+      // Priority 1: Use plan from active Genie subscription if available
+      if (activeGenieSubscription && activeGenieSubscription.plan_name) {
+        planName = activeGenieSubscription.plan_name;
+        subscriptionStatus = activeGenieSubscription.status;
       }
-      // Priority 2: Use plan from recent manual subscription if available
-      else if (recentManualSubscription && recentManualSubscription.plan_name) {
-        planName = recentManualSubscription.plan_name;
-        subscriptionStatus = recentManualSubscription.status;
+      // Priority 2: Use plan from recent Genie subscription if available
+      else if (recentGenieSubscription && recentGenieSubscription.plan_name) {
+        planName = recentGenieSubscription.plan_name;
+        subscriptionStatus = recentGenieSubscription.status;
       }
       // Priority 3: Use user's subscription_plan from User model
       else if (userObject.subscription_plan) {
@@ -80,10 +80,10 @@ export const getAllUsers = async (req, res, next) =>{
       
       // Determine subscription ID with priority
       let subscriptionId = userObject.subscription_id || null;
-      if (activeManualSubscription) {
-        subscriptionId = activeManualSubscription._id;
-      } else if (recentManualSubscription) {
-        subscriptionId = recentManualSubscription._id;
+      if (activeGenieSubscription) {
+        subscriptionId = activeGenieSubscription._id;
+      } else if (recentGenieSubscription) {
+        subscriptionId = recentGenieSubscription._id;
       } else if (activePayment) {
         subscriptionId = activePayment.subscription_id;
       } else if (recentPayment) {
@@ -92,10 +92,10 @@ export const getAllUsers = async (req, res, next) =>{
 
       // Determine subscription expiry with priority
       let subscriptionExpiry = userObject.subscription_expiry || null;
-      if (activeManualSubscription) {
-        subscriptionExpiry = activeManualSubscription.subscription_end;
-      } else if (recentManualSubscription) {
-        subscriptionExpiry = recentManualSubscription.subscription_end;
+      if (activeGenieSubscription) {
+        subscriptionExpiry = activeGenieSubscription.subscription_end;
+      } else if (recentGenieSubscription) {
+        subscriptionExpiry = recentGenieSubscription.subscription_end;
       }
 
       return {

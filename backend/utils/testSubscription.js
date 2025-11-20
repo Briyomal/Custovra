@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { User } from '../models/User.js';
-import { ManualSubscription } from '../models/ManualSubscription.js';
+import { GenieSubscription } from '../models/GenieSubscription.js';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -30,10 +30,10 @@ const testSubscription = async () => {
     console.log('Subscription Status:', user.subscription_status);
     console.log('Subscription Expiry (Stripe field):', user.subscription_expiry);
     
-    // Get all manual subscriptions for this user
-    const manualSubscriptions = await ManualSubscription.find({ user_id: userId });
-    console.log('\nManual Subscriptions:');
-    manualSubscriptions.forEach((sub, index) => {
+    // Get all Genie subscriptions for this user
+    const genieSubscriptions = await GenieSubscription.find({ user_id: userId });
+    console.log('\nGenie Subscriptions:');
+    genieSubscriptions.forEach((sub, index) => {
       console.log(`Subscription ${index + 1}:`);
       console.log('  Plan Name:', sub.plan_name);
       console.log('  Status:', sub.status);
@@ -42,15 +42,15 @@ const testSubscription = async () => {
       console.log('  Is Active:', new Date() < new Date(sub.subscription_end) && sub.status === 'active');
     });
     
-    // Check if user should be active based on manual subscriptions
+    // Check if user should be active based on Genie subscriptions
     const now = new Date();
-    const hasActiveManualSubscription = await ManualSubscription.exists({
+    const hasActiveGenieSubscription = await GenieSubscription.exists({
       user_id: userId,
       subscription_end: { $gt: now },
       status: 'active'
     });
     
-    console.log('\nHas Active Manual Subscription:', hasActiveManualSubscription);
+    console.log('\nHas Active Genie Subscription:', hasActiveGenieSubscription);
     
   } catch (error) {
     console.error('Error:', error);

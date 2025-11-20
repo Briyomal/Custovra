@@ -117,6 +117,8 @@ export const handleGeniePaymentWebhook = async (req, res) => {
             case 'transaction.success':
             case 'payment.completed':
             case 'transaction.completed':
+            case 'payment.confirmed':
+            case 'transaction.confirmed':
                 await handlePaymentSuccess(event.data || event);
                 break;
             case 'payment.failed':
@@ -433,13 +435,18 @@ export const handleRedirect = async (req, res) => {
 
         // Update payment status in our database
         payment.payment_status = mappedStatus === "success" ? "completed" : mappedStatus;
+        // Save signature if provided
+        if (signature) {
+            payment.signature = signature;
+        }
         await payment.save();
 
         // If payment was successful, process the subscription
         if (mappedStatus === "success") {
             await handlePaymentSuccess({
                 id: payment.transaction_id,
-                paymentId: payment._id
+                paymentId: payment._id,
+                state: status  // Pass the actual status to handlePaymentSuccess
             });
         }
 
@@ -505,13 +512,12 @@ export const processFormSelectionAfterGeniePayment = async (userId, formSelectio
             };
         } else {
             // For downgrades, lock/unlock forms based on selection
-            // Get all user's active forms
-            const allActiveForms = await Form.find({ 
-                user_id: userId, 
-                is_active: true 
+            // Get all user's forms (both active and inactive/draft forms)
+            const allUserForms = await Form.find({ 
+                user_id: userId
             });
             
-            // Check if we have more active forms than the new plan allows
+            // Check if we have more forms than the new plan allows
             const targetPlan = await ManualPlan.findById(targetPlanId);
             if (!targetPlan) {
                 throw new Error('Target plan not found');
@@ -519,8 +525,8 @@ export const processFormSelectionAfterGeniePayment = async (userId, formSelectio
             
             const newPlanLimit = targetPlan.form_limit;
             
-            // Lock the forms that are active but not selected
-            const formsToLock = allActiveForms.filter(form => !selectedFormIds.includes(form._id.toString()));
+            // Lock the forms that are not selected
+            const formsToLock = allUserForms.filter(form => !selectedFormIds.includes(form._id.toString()));
             
             console.log('Forms to lock for downgrade:', formsToLock.map(f => ({ id: f._id, name: f.form_name })));
             
@@ -567,11 +573,11 @@ export const processFormSelectionAfterGeniePayment = async (userId, formSelectio
             }
             
             // Count forms that should be locked (the excess forms)
-            const lockedFormCount = Math.max(0, allActiveForms.length - newPlanLimit);
+            const lockedFormCount = Math.max(0, allUserForms.length - newPlanLimit);
             
             return { 
                 success: true, 
-                message: `Successfully updated form status after payment completion. ${selectedFormIds.length} form(s) kept active, ${lockedFormCount} form(s) locked.`,
+                message: `Successfully updated form status after payment completion. ${selectedFormIds.length} form(s) kept, ${lockedFormCount} form(s) locked.`,
                 activeForms: selectedFormIds.length,
                 lockedForms: lockedFormCount
             };
@@ -600,9 +606,9 @@ const handlePaymentSuccess = async (paymentData) => {
       return;
     }
 
-    // Only continue if SUCCESS
-    if (paymentData.state !== "SUCCESS") {
-      console.log("Payment not successful, skipping subscription creation.");
+    // Only continue if SUCCESS or CONFIRMED
+    if (paymentData.state !== "SUCCESS" && paymentData.state !== "CONFIRMED") {
+      console.log("Payment not successful, skipping subscription creation. State:", paymentData.state);
       return;
     }
 

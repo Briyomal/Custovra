@@ -227,11 +227,12 @@ function BillingPage() {
                 return prev.filter(id => id !== formId);
             } else {
                 // Add form (check limit)
-                const limit = downgradeInfo?.lockedForms ? downgradeInfo.targetPlanLimit : downgradeInfo?.newPlanLimit;
+                // For upgrades, use targetPlanLimit; for downgrades, use newPlanLimit
+                const limit = downgradeInfo?.isUpgrade ? downgradeInfo.targetPlanLimit : downgradeInfo?.newPlanLimit;
                 if (limit && prev.length >= limit) {
                     toast({
                         title: "Error",
-                        description: `You can only select ${limit} form(s)`,
+                        description: `You can only select ${limit} form(s)` ,
                         variant: "destructive",
                     });
                     return prev;

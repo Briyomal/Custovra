@@ -15,9 +15,9 @@ const SubscriptionPlans = ({
     isCheckingDowngrade,
     formatCurrency
 }) => {
-    // Filter plans by interval
-    const monthlyPlans = availablePlans.filter(plan => plan.price_monthly > 0);
-    const yearlyPlans = availablePlans.filter(plan => plan.price_yearly > 0);
+    // Filter plans by interval - for manual plans, show all plans since they have both monthly and yearly prices
+    const monthlyPlans = availablePlans;
+    const yearlyPlans = availablePlans;
 
     // State for billing period toggle
     const [isYearlyBilling, setIsYearlyBilling] = useState(false);
@@ -111,8 +111,9 @@ const SubscriptionPlans = ({
                 <div className="space-y-6">
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-6">
                         {plans.map((plan) => {
-                            const isCurrentPlan = subscriptionDetails?.subscription?.plan_id?._id === plan.id;
-                            const currentFormLimit = subscriptionDetails?.subscription?.plan_id?.form_limit || 0;
+                            // For manual plans, we compare plan names since we don't have plan_id
+                            const isCurrentPlan = subscriptionDetails?.subscription?.plan_name === plan.name;
+                            const currentFormLimit = subscriptionDetails?.plan?.formLimit || 0;
                             const isDowngrade = plan.form_limit < currentFormLimit;
                             const actionText = isCurrentPlan
                                 ? "Current Plan"
@@ -157,12 +158,23 @@ const SubscriptionPlans = ({
                                                     <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
                                                     {plan.form_limit} forms
                                                 </li>
-                                                {plan.features.map((feature, index) => (
-                                                    <li key={index} className="flex items-center">
+                                                <li className="flex items-center">
+                                                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                                    {plan.submission_limit} submissions/month
+                                                </li>
+                                                {plan.features && plan.features.length > 0 ? (
+                                                    plan.features.map((feature, index) => (
+                                                        <li key={index} className="flex items-center">
+                                                            <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                                            {feature}
+                                                        </li>
+                                                    ))
+                                                ) : (
+                                                    <li className="flex items-center">
                                                         <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                                        {feature}
+                                                        Basic features
                                                     </li>
-                                                ))}
+                                                )}
                                             </ul>
                                         </div>
                                     </CardContent>
@@ -170,11 +182,11 @@ const SubscriptionPlans = ({
                                         {isCurrentPlan ? (
                                             <Button
                                                 className="w-full rounded-md font-semibold text-black border
-                                                          border-lime-500
-                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
-                                                            transition-all duration-700 ease-in-out 
-                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] 
-                                                            focus:outline-none focus:ring-2 focus:ring-lime-400"
+                                                  border-lime-500
+                                                    bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                    transition-all duration-700 ease-in-out 
+                                                    hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] 
+                                                    focus:outline-none focus:ring-2 focus:ring-lime-400"
                                                 onClick={() => handlePayForNextClick(plan.id)}
                                                 disabled={isAnyProcessing}
                                             >
@@ -190,17 +202,17 @@ const SubscriptionPlans = ({
                                         ) : (
                                             <Button
                                                 className={`w-full
-                                                            rounded-md
-                                                            font-semibold
-                                                            text-black
-                                                            border
-                                                            ${isDowngrade ? 'border-lime-700 bg-gradient-to-r from-[#1f6334] to-lime-700 hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] focus:ring-lime-700'
-                                                        : 'border-lime-500 bg-gradient-to-r from-[#16bf4c] to-lime-500 hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] focus:ring-lime-400'}
-                                                            transition-all
-                                                            duration-700
-                                                            ease-in-out
-                                                            focus:outline-none
-                                                            `}
+                                                    rounded-md
+                                                    font-semibold
+                                                    text-black
+                                                    border
+                                                    ${isDowngrade ? 'border-lime-700 bg-gradient-to-r from-[#1f6334] to-lime-700 hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] focus:ring-lime-700'
+                                                : 'border-lime-500 bg-gradient-to-r from-[#16bf4c] to-lime-500 hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] focus:ring-lime-400'}
+                                                    transition-all
+                                                    duration-700
+                                                    ease-in-out
+                                                    focus:outline-none
+                                                    `}
                                                 onClick={() => handlePlanAction(plan.id, isDowngrade)}
                                                 disabled={isAnyProcessing}
                                             >

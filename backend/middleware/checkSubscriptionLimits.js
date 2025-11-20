@@ -1,7 +1,7 @@
 import { User } from "../models/User.js";
 import { Form } from "../models/Form.js";
 import { Submission } from "../models/Submission.js";
-import { ManualSubscription } from "../models/ManualSubscription.js";
+import { GenieSubscription } from "../models/GenieSubscription.js";
 
 /**
  * Subscription Limits Middleware
@@ -16,28 +16,28 @@ export const getUserPlanLimits = async (userId) => {
             return { error: "User not found or inactive", limits: null };
         }
 
-        // Check for manual subscription
-        const manualSubscription = await ManualSubscription.findOne({
+        // Check for Genie subscription
+        const genieSubscription = await GenieSubscription.findOne({
             user_id: userId,
             status: 'active'
         }).populate('plan_id');
 
-        if (manualSubscription && manualSubscription.plan_id) {
-            // Use manual plan limits
+        if (genieSubscription && genieSubscription.plan_id) {
+            // Use Genie plan limits
             const limits = {
-                formLimit: manualSubscription.plan_id.form_limit,
-                submissionLimit: manualSubscription.plan_id.submission_limit
+                formLimit: genieSubscription.plan_id.form_limit,
+                submissionLimit: genieSubscription.plan_id.submission_limit
             };
             
-            console.log(`User ${userId} has active manual subscription:`, {
-                planName: manualSubscription.plan_id.name,
+            console.log(`User ${userId} has active Genie subscription:`, {
+                planName: genieSubscription.plan_id.name,
                 limits
             });
             
             return { 
                 error: null, 
                 limits,
-                planName: manualSubscription.plan_id.name,
+                planName: genieSubscription.plan_id.name,
                 user,
                 activePayment: null
             };

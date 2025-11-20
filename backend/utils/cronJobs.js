@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { User } from "../models/User.js";
-import { ManualSubscription } from "../models/ManualSubscription.js";
+import { GenieSubscription } from "../models/GenieSubscription.js";
 
 // Run every day at midnight (00:00) - Check subscription expiry
 cron.schedule('* * * * *', async () => {
@@ -8,23 +8,27 @@ cron.schedule('* * * * *', async () => {
     try {
         const now = new Date();
 
-        // Step 1: Get all unique user IDs from ManualSubscription collection
-        const manualUserIds = await ManualSubscription.distinct("user_id");
+        // Step 1: Get all unique user IDs from GenieSubscription collection
+        const genieUserIds = await GenieSubscription.distinct("user_id");
+        
+        // Step 2: Get all user IDs that might need status updates
+        // This includes users with Genie subscriptions and potentially users without any subscriptions
+        const allUserIds = await User.distinct("_id");
         
         let usersToDeactivate = [];
         let usersToActivate = [];
 
-        // Step 2: Check each user's subscription status
-        for (const userId of manualUserIds) {
-            // Check for active manual subscription
-            const hasActiveManualSubscription = await ManualSubscription.exists({
+        // Step 3: Check each user's subscription status
+        for (const userId of allUserIds) {
+            // Check for active Genie subscription
+            const hasActiveGenieSubscription = await GenieSubscription.exists({
                 user_id: userId,
                 subscription_end: { $gt: now },
                 status: 'active'
             });
 
             // If user has any active subscriptions, they should be active
-            if (hasActiveManualSubscription) {
+            if (hasActiveGenieSubscription) {
                 usersToActivate.push(userId);
             } else {
                 // If user has no active subscriptions, they should be deactivated
@@ -32,7 +36,7 @@ cron.schedule('* * * * *', async () => {
             }
         }
 
-        // Step 3: Activate users with active subscriptions
+        // Step 4: Activate users with active subscriptions
         if (usersToActivate.length > 0) {
             const activateResult = await User.updateMany(
                 { _id: { $in: usersToActivate }, is_active: false },
@@ -46,22 +50,22 @@ cron.schedule('* * * * *', async () => {
             console.log(`Activated ${activateResult.modifiedCount} users with active subscriptions.`);
         }
 
-        // Step 4: Deactivate users with no active subscriptions
+        // Step 5: Deactivate users with no active subscriptions
         if (usersToDeactivate.length > 0) {
             const deactivateResult = await User.updateMany(
                 { _id: { $in: usersToDeactivate }, is_active: true },
                 { 
                     $set: { 
                         is_active: false,
-                        subscription_status: 'cancelled'
+                        subscription_status: 'expired'
                     } 
                 }
             );
             console.log(`Deactivated ${deactivateResult.modifiedCount} users with no active subscriptions.`);
         }
 
-        // Step 5: Update expired subscriptions status
-        const expiredSubscriptionsResult = await ManualSubscription.updateMany(
+        // Step 6: Update expired subscriptions status
+        const expiredSubscriptionsResult = await GenieSubscription.updateMany(
             { 
                 subscription_end: { $lt: now },
                 status: 'active'

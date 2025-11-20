@@ -20,7 +20,7 @@ router.get("/test", testGeniePaymentIntegration);
 router.post("/payment-request", verifyToken, upload.none(), createGeniePaymentRequest);
 
 // Get user's Genie payment history
-router.get("/payment-history", getGeniePaymentHistory);
+router.get("/payment-history", verifyToken, getGeniePaymentHistory);
 
 // Redirect endpoint for Genie payment completion
 router.get("/billing-redirect", handleRedirect);

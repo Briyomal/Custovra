@@ -1,28 +1,24 @@
 import express from 'express';
 import { 
-    getManualSubscriptionDetails,
-    getManualPaymentHistory,
-    getManualAvailablePlans,
-    createManualPaymentRequest
+  getSubscriptionDetails,
+  getAvailablePlans,
+  handlePaymentRequest,
+  getPaymentHistory
 } from '../controllers/manualBilling.controller.js';
 import { verifyToken } from '../middleware/verifyToken.js';
-import multer from 'multer';
-
-// Setup multer for handling FormData without file storage (we're just parsing fields)
-const upload = multer();
 
 const router = express.Router();
 
 // Get current subscription details
-router.get('/subscription-details', verifyToken, getManualSubscriptionDetails);
-
-// Get payment history
-router.get('/payment-history', verifyToken, getManualPaymentHistory);
+router.get('/subscription-details', verifyToken, getSubscriptionDetails);
 
 // Get available subscription plans
-router.get('/available-plans', getManualAvailablePlans);
+router.get('/available-plans', getAvailablePlans);
 
-// Create a new manual payment request
-router.post('/payment-request', verifyToken, upload.none(), createManualPaymentRequest);
+// Handle payment request
+router.post('/payment-request', verifyToken, handlePaymentRequest);
+
+// Get payment history
+router.get('/payment-history', verifyToken, getPaymentHistory);
 
 export default router;

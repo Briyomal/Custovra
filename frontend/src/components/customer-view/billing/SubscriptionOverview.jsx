@@ -2,8 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, FileText, AlertCircle } from "lucide-react";
 import { formatDate } from "@/utils/billing";
+import { formatCurrency } from "@/utils/billing";
 
-const SubscriptionOverview = ({ subscriptionDetails, formatCurrency, getStatusBadge, setActiveTab }) => {
+const SubscriptionOverview = ({ subscriptionDetails, getStatusBadge, setActiveTab }) => {
   // Check if user has no active subscription
   // const hasNoSubscription = !subscriptionDetails || 
   //   !subscriptionDetails.subscription || 
@@ -61,7 +62,7 @@ const SubscriptionOverview = ({ subscriptionDetails, formatCurrency, getStatusBa
                 <div>
                   <p className="text-sm text-gray-500">Forms Used</p>
                   <p className="font-medium">
-                    {subscriptionDetails.formCount} / {subscriptionDetails.subscription.plan_id?.form_limit || 'Unlimited'}
+                    {subscriptionDetails.formCount} / {subscriptionDetails.plan?.formLimit || 'Unlimited'}
                   </p>
                 </div>
               </div>

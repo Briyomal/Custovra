@@ -1,4 +1,3 @@
-import { ManualSubscription } from "../models/ManualSubscription.js";
 import { GenieSubscription } from "../models/GenieSubscription.js";
 
 const checkSubscription = async (req, res, next) => {
@@ -53,13 +52,6 @@ const checkSubscription = async (req, res, next) => {
             return res.status(401).json({ message: "User not authenticated" });
         }
         
-        // Check for active manual subscription
-        const manualSubscription = await ManualSubscription.findOne({
-            user_id: userId,
-            status: 'active',
-            subscription_end: { $gte: new Date() }
-        });
-        
         // Check for active Genie subscription
         const genieSubscription = await GenieSubscription.findOne({
             user_id: userId,
@@ -67,25 +59,19 @@ const checkSubscription = async (req, res, next) => {
             subscription_end: { $gte: new Date() }
         });
         
-        // If either subscription is active, allow access
-        if (manualSubscription || genieSubscription) {
+        // If subscription is active, allow access
+        if (genieSubscription) {
             return next();
         }
         
         // If no active subscription, check if user has an expired subscription
-        const expiredManualSubscription = await ManualSubscription.findOne({
-            user_id: userId,
-            status: 'active',
-            subscription_end: { $lt: new Date() }
-        });
-        
         const expiredGenieSubscription = await GenieSubscription.findOne({
             user_id: userId,
             status: 'active',
             subscription_end: { $lt: new Date() }
         });
         
-        if (expiredManualSubscription || expiredGenieSubscription) {
+        if (expiredGenieSubscription) {
             return res.status(403).json({
                 message: "Subscription expired. Please renew your subscription to continue.",
                 subscriptionExpired: true
