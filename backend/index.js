@@ -45,6 +45,7 @@ const PORT = process.env.PORT || 5000;
 const allowedOrigins = [
     process.env.CLIENT_URL,        // https://localhost:5173
     process.env.CLIENT_URL_NGROK,  // https://xxxxx.ngrok-free.dev
+    "https://www.custovra.com", 
 ];
 
 app.use(
