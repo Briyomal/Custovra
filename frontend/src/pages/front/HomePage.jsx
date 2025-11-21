@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import herobg from "../../assets/herobg.webp";
 import { HeroVideoDialog } from "@/components/ui/hero-video-dialog"
 import Footer from "./Footer";
+import MagicBento from '@/components/MagicBento'
 
 const HomePage = () => {
     return (
@@ -37,7 +38,7 @@ const HomePage = () => {
                 <div className="relative z-10 mx-auto max-w-3xl text-center px-6 pt-20 sm:pt-32">
                     <h1 className="text-3xl md:text-5xl font-bold text-white dark:text-white sm:text-6xl">
                         Turn Customer Feedback Into{" "}
-                        <span className="inline-block text-[#16bf4c]">
+                        <span className="inline-block text-theme-green">
                             <RotatingText
                                 texts={[
                                     "Business Growth",
@@ -68,7 +69,7 @@ const HomePage = () => {
                             asChild
                             className="group relative text-base px-8 py-5 rounded-md font-semibold text-black border
              border-lime-500
-               bg-gradient-to-r from-[#16bf4c] to-lime-500
+               bg-gradient-to-r from-theme-green to-lime-500
                transition-all duration-700 ease-in-out 
                hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] 
                focus:outline-none focus:ring-2 focus:ring-lime-400"
@@ -83,11 +84,11 @@ const HomePage = () => {
                         <Button
                             asChild
                             className="group relative text-base px-8 py-5 rounded-md font-semibold border 
-               border-[#16bf4c] text-[#16bf4c] dark:text-white bg-transparent 
-               hover:text-[#ffffff] hover:border-lime-400 hover:bg-lime-500/50
-               transition-all duration-700 ease-in-out 
-               hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] 
-               focus:outline-none focus:ring-2 focus:ring-lime-400"
+               											border-theme-green text-theme-green dark:text-white bg-transparent 
+               											hover:!text-[#000000] hover:border-lime-500 hover:bg-lime-500
+               											transition-all duration-200 ease-in-out 
+               											hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] 
+               											focus:outline-none focus:ring-2 focus:ring-lime-500"
                         >
                             <a href="#" className="flex items-center justify-center gap-2">
                                 See How It Works
@@ -98,66 +99,54 @@ const HomePage = () => {
 
                 </div>
             </section>
-<section className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white dark:from-[rgba(13,13,13,0.23)] dark:to-[rgba(13,13,13,1)] mt-[-30%] md:mt-[-10%] flex items-center justify-center relative z-20 py-6 md:pt-0">
-  <div className="container mx-auto max-w-6xl px-6 relative ">
-    <HeroVideoDialog
-      className="block dark:hidden"
-      animationStyle="top-in-bottom-out"
-      videoSrc="https://www.youtube.com/embed/qh3NGpYRG3I?si=4rb-zSdDkVK9qxxb"
-      thumbnailSrc="https://startup-template-sage.vercel.app/hero-light.png"
-      thumbnailAlt="Hero Video"
-    />
-    <HeroVideoDialog
-      className="hidden dark:block rounded-md border border-[#16bf4c]"
-      animationStyle="top-in-bottom-out"
-      videoSrc="https://www.youtube.com/embed/qh3NGpYRG3I?si=4rb-zSdDkVK9qxxb"
-      thumbnailSrc="https://startup-template-sage.vercel.app/hero-dark.png"
-      thumbnailAlt="Hero Video"
-    />
-  </div>
-</section>
+            <section className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white dark:from-[rgba(13,13,13,0.23)] dark:to-[rgba(13,13,13,1)] mt-[-30%] md:mt-[-10%] flex items-center justify-center relative z-20 py-6 md:pt-0">
+                <div className="container mx-auto max-w-6xl px-6 relative ">
+                    <HeroVideoDialog
+                        className="block dark:hidden"
+                        animationStyle="top-in-bottom-out"
+                        videoSrc="https://www.youtube.com/embed/qh3NGpYRG3I?si=4rb-zSdDkVK9qxxb"
+                        thumbnailSrc="https://startup-template-sage.vercel.app/hero-light.png"
+                        thumbnailAlt="Hero Video"
+                    />
+                    <HeroVideoDialog
+                        className="hidden dark:block rounded-2xl border border-theme-green"
+                        animationStyle="top-in-bottom-out"
+                        videoSrc="https://www.youtube.com/embed/qh3NGpYRG3I?si=4rb-zSdDkVK9qxxb"
+                        thumbnailSrc="https://startup-template-sage.vercel.app/hero-dark.png"
+                        thumbnailAlt="Hero Video"
+                    />
+                </div>
+            </section>
 
 
 
             {/* How It Works */}
             <section className="bg-gray-50 dark:bg-[#0D0D0D] py-24 px-6">
                 <div className="max-w-6xl mx-auto text-center">
-                    <h2 className="text-4xl font-bold text-[#4f595b] dark:text-white">Collect. Analyze. Grow.</h2>
-                    <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                    <h2 className="text-4xl font-bold text-theme-green dark:text-theme-green">Collect. Analyze. Grow.</h2>
+                    <p className="mt-4 mb-4 text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
                         Custovra makes it effortless to listen to your customers and use their feedback to improve your business.
                     </p>
-
-                    <div className="mt-12 grid sm:grid-cols-1 md:grid-cols-3 gap-8">
-                        <div className="p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-md">
-                            <MessageCircle className="mx-auto text-[#16bf4c]" size={48} />
-                            <h3 className="mt-4 text-xl font-semibold text-[#4f595b] dark:text-white">1. Create Your Form</h3>
-                            <p className="mt-2 text-gray-600 dark:text-gray-400">
-                                Choose review or complaint forms, customize questions, and add your branding in minutes.
-                            </p>
-                        </div>
-                        <div className="p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-md">
-                            <Users className="mx-auto text-[#16bf4c]" size={48} />
-                            <h3 className="mt-4 text-xl font-semibold text-[#4f595b] dark:text-white">2. Share Easily</h3>
-                            <p className="mt-2 text-gray-600 dark:text-gray-400">
-                                Generate QR codes or shareable links to collect instant feedback from your customers.
-                            </p>
-                        </div>
-                        <div className="p-6 bg-white dark:bg-slate-800 rounded-2xl shadow-md">
-                            <BarChart3 className="mx-auto text-[#16bf4c]" size={48} />
-                            <h3 className="mt-4 text-xl font-semibold text-[#4f595b] dark:text-white">3. Get Insights</h3>
-                            <p className="mt-2 text-gray-600 dark:text-gray-400">
-                                Analyze feedback, download reports, and track satisfaction trends effortlessly.
-                            </p>
-                        </div>
-                    </div>
+                    <MagicBento
+                        textAutoHide={true}
+                        enableStars={false}
+                        enableSpotlight={true}
+                        enableBorderGlow={true}
+                        enableTilt={false}
+                        enableMagnetism={false}
+                        clickEffect={false}
+                        spotlightRadius={300}
+                        particleCount={12}
+                        glowColor="22, 191, 76"
+                    />
                 </div>
             </section>
 
             {/* Core Features */}
-            <section className="bg-white dark:bg-slate-950 py-24 px-6">
+            <section className="bg-gradient-to-b from-gray-50 to-white dark:from-themebglight dark:to-black py-24 px-6">
                 <div className="max-w-6xl mx-auto text-center">
-                    <h2 className="text-4xl font-bold text-[#4f595b] dark:text-white">Everything You Need to Understand Your Customers</h2>
-                    <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                    <h2 className="text-4xl font-bold text-theme-green dark:text-theme-green">Everything You Need to Understand Your Customers</h2>
+                    <p className="mt-4 mb-4 text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
                         Custovra gives you all the tools to collect, manage, and act on customer feedback — all in one platform.
                     </p>
 
@@ -170,10 +159,10 @@ const HomePage = () => {
                             { icon: Shield, title: "Data Security", desc: "Your feedback and business data are always protected." },
                             { icon: MessageCircle, title: "Instant Notifications", desc: "Get alerts the moment new feedback arrives." },
                         ].map(({ icon: Icon, title, desc }) => (
-                            <div key={title} className="p-6 bg-gray-50 dark:bg-[#0D0D0D] rounded-2xl shadow-sm hover:shadow-md transition">
-                                <Icon className="text-[#16bf4c] mb-4" size={36} />
-                                <h3 className="text-xl font-semibold text-[#4f595b] dark:text-white">{title}</h3>
-                                <p className="mt-2 text-gray-600 dark:text-gray-400">{desc}</p>
+                            <div key={title} className="p-6 rounded-lg border border-theme-green bg-gradient-to-r from-gray-50 to-gray-200 dark:from-gray-50/5 dark:to-themebg shadow-sm hover:shadow-md transition">
+                                <Icon className="text-theme-green dark:text-white mb-4" size={36} />
+                                <h3 className="text-xl font-semibold text-themebglight dark:text-theme-green">{title}</h3>
+                                <p className="mt-2 text-themebglight dark:text-white">{desc}</p>
                             </div>
                         ))}
                     </div>
@@ -181,10 +170,10 @@ const HomePage = () => {
             </section>
 
             {/* Why Choose Custovra */}
-            <section className="bg-[#f9fff9] dark:bg-[#0D0D0D] py-24 px-6">
+            <section className="bg-white dark:bg-black py-24 px-6">
                 <div className="max-w-5xl mx-auto text-center">
                     <h2 className="text-4xl font-bold text-[#4f595b] dark:text-white">Why Businesses Choose Custovra</h2>
-                    <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+                    <p className="mt-4 text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
                         Every successful business listens to its customers. Custovra helps you collect, understand, and respond to feedback so you can make smarter decisions and deliver exceptional experiences.
                     </p>
                     <div className="mt-10 grid sm:grid-cols-2 md:grid-cols-3 gap-8">
@@ -197,7 +186,7 @@ const HomePage = () => {
                             "Turn every response into an opportunity",
                         ].map((text, i) => (
                             <div key={i} className="flex items-start gap-3">
-                                <CheckCircle className="text-[#16bf4c]" />
+                                <CheckCircle className="text-theme-green" />
                                 <p className="text-gray-700 dark:text-gray-300 text-left">{text}</p>
                             </div>
                         ))}
@@ -206,19 +195,19 @@ const HomePage = () => {
             </section>
 
             {/* Custovra vs Google Forms */}
-            <section className="bg-white dark:bg-slate-950 py-24 px-6">
+            <section className="bg-gradient-to-b from-gray-50 to-white dark:from-themebglight dark:to-black  py-24 px-6">
                 <div className="max-w-6xl mx-auto text-center">
-                    <h2 className="text-4xl font-bold text-[#4f595b] dark:text-white">Why Choose Custovra Over Google Forms</h2>
-                    <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
-                        Google Forms is great for simple surveys — but Custovra is built specifically for business feedback, employee reviews, and insights.
+                    <h2 className="text-4xl font-bold text-theme-green dark:text-theme-green">Why Choose Custovra Over Google Forms</h2>
+                    <p className="mt-4 text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
+                        Google Forms is great for simple surveys, but Custovra is built specifically for business feedback, employee reviews, and insights.
                     </p>
                     <div className="overflow-x-auto mt-10">
-                        <table className="w-full border border-gray-200 dark:border-gray-800 text-left">
-                            <thead className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300">
+                        <table className="w-full border border-gray-200 dark:border-themebg text-left">
+                            <thead className="bg-gray-100 dark:bg-themebglight text-gray-700 dark:text-gray-300">
                                 <tr>
                                     <th className="p-4">Feature</th>
                                     <th className="p-4">Google Forms</th>
-                                    <th className="p-4 text-[#16bf4c]">Custovra</th>
+                                    <th className="p-4 text-theme-green">Custovra</th>
                                 </tr>
                             </thead>
                             <tbody className="text-gray-600 dark:text-gray-400">
@@ -233,7 +222,7 @@ const HomePage = () => {
                                     <tr key={i} className="border-t border-gray-200 dark:border-gray-800">
                                         <td className="p-4">{feature}</td>
                                         <td className="p-4">{gform}</td>
-                                        <td className="p-4 font-semibold text-[#16bf4c]">{custovra}</td>
+                                        <td className="p-4 font-semibold text-theme-green">{custovra}</td>
                                     </tr>
                                 ))}
                             </tbody>

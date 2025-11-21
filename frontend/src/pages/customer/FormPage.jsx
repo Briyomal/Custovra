@@ -162,7 +162,12 @@ const FormPage = () => {
 							<div className="flex flex-col">{error && <p className="text-red-500">Error: {error}</p>}</div>
 						</div>
 						<DialogFooter>
-							<Button className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800 flex items-center justify-center" onClick={handleSubmit} disabled={isLoading}>
+							<Button className="rounded-md font-semibold text-black border
+                                                          border-lime-500
+                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
+                                                            transition-all duration-200 ease-in-out 
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400 flex items-center justify-center" onClick={handleSubmit} disabled={isLoading}>
 								{isLoading ? (
 									<div className="flex items-center space-x-2">
 										<Loader className="animate-spin" size={28} />

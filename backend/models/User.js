@@ -43,7 +43,7 @@ const userSchema = new Schema(
 		},
 		subscription_status: {
 			type: String,
-			enum: ['active', 'past_due', 'canceled', 'incomplete', 'trialing'],
+			enum: ['active', 'past_due', 'canceled', 'incomplete', 'trialing', 'expired'],
 			default: null,
 		},
 		monthly_submission_count: {
@@ -57,10 +57,6 @@ const userSchema = new Schema(
 		is_active: {
 			type: Boolean,
 			default: false,
-		},
-		stripeCustomerId: { 
-			type: String, 
-			required: false,
 		},
 		lastLogin: {
 			type: Date,
