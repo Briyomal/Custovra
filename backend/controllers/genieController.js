@@ -7,7 +7,7 @@ import { User } from "../models/User.js";
 import { Form } from "../models/Form.js";
 
 
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173"; // Fallback URL in case environment variable is not set
+const VITE_CLIENT_URL = process.env.VITE_CLIENT_URL || "http://localhost:5173"; // Fallback URL in case environment variable is not set
 // Get user's Genie payment history
 export const getGeniePaymentHistory = async (req, res) => {
     try {
@@ -275,7 +275,7 @@ export const createGeniePaymentRequest = async (req, res) => {
         let errorMessage = null;
         
         // Use the ngrok URL for redirect since Genie doesn't support localhost
-        const redirectBaseUrl = process.env.SERVER_URL_NGROK || process.env.SERVER_URL || "http://localhost:5173";
+        const redirectBaseUrl = process.env.SERVER_URL_NGROK || process.env.VITE_SERVER_URL || "http://localhost:5173";
         const billingPath = "/billing"; // The actual billing page path
         
         try {
@@ -289,7 +289,7 @@ export const createGeniePaymentRequest = async (req, res) => {
                     },
                     cardOnFile: true, // enables recurring setup
                     redirectUrl: `${redirectBaseUrl}`,
-                    webhook: `${process.env.SERVER_URL_NGROK}/api/genie/webhook`
+                    webhook: `${process.env.VITE_SERVER_URL}/api/genie/webhook`
                 });
                 
                 paymentUrl = paymentResponse.data.url;
@@ -312,7 +312,7 @@ export const createGeniePaymentRequest = async (req, res) => {
                             billingEmail: user.email
                         },
                         redirectUrl: `${redirectBaseUrl}`,
-                        webhook: `${process.env.SERVER_URL_NGROK}/api/genie/webhook`
+                        webhook: `${process.env.VITE_SERVER_URL}/api/genie/webhook`
                     });
                     
                     paymentUrl = transactionResponse.data.url;
@@ -391,8 +391,8 @@ export const handleRedirect = async (req, res) => {
     //const clientBaseUrl = process.env.CLIENT_URL_NGROK || process.env.CLIENT_URL || "http://localhost:5173";
     const clientBaseUrl =
     process.env.NODE_ENV === "production"
-        ? process.env.CLIENT_URL      // Production frontend URL
-        : process.env.CLIENT_URL || "http://localhost:5173";
+        ? process.env.VITE_CLIENT_URL      // Production frontend URL
+        : process.env.VITE_CLIENT_URL || "http://localhost:5173";
 
     const billingPath = "/billing"; // The actual billing page path
 
