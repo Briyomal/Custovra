@@ -1,5 +1,8 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
+import imgCreate from '../assets/create.webp';
+import imgShare from '../assets/share.webp';
+import imgReport from '../assets/report.webp';
 
 const DEFAULT_PARTICLE_COUNT = 12;
 const DEFAULT_SPOTLIGHT_RADIUS = 300;
@@ -12,21 +15,21 @@ const cardData = [
     title: 'Create Your Form',
     description: 'Choose review or complaint forms, customize questions, and add your branding in minutes.',
     label: '01',
-    image: '/src/assets/create.webp'
+    image: imgCreate
   },
   {
     color: '#0D0D0D',
     title: 'Share Easily',
     description: 'Generate QR codes or shareable links to collect instant feedback from your customers.',
     label: '02',
-    image: '/src/assets/share.webp'
+    image: imgShare
   },
   {
     color: '#0D0D0D',
     title: 'Get Insights',
     description: 'Analyze feedback, download reports, and track satisfaction trends effortlessly.',
     label: '03',
-    image: '/src/assets/report.webp'
+    image: imgReport
   }
 ];
 

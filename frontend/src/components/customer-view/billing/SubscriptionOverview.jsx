@@ -13,8 +13,8 @@ const SubscriptionOverview = ({ subscriptionDetails, getStatusBadge, setActiveTa
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>Current Subscription</CardTitle>
+        <div className="flex flex-col md:flex-row gap-6 justify-between items-center">
+          <CardTitle className="text-xl md:text-2xl font-bold">Current Subscription</CardTitle>
           <Button
             className="px-12 py-2 rounded-md font-semibold text-black border border-lime-500 bg-gradient-to-r from-[#16bf4c] to-lime-500 transition-all duration-700 ease-in-out hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] focus:outline-none focus:ring-2 focus:ring-lime-400"
             onClick={() => setActiveTab("plans")}

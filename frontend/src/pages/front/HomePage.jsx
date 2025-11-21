@@ -1,4 +1,4 @@
-import { CheckCircle, Star, BarChart3, Users, MessageCircle, Shield } from "lucide-react";
+import { CheckCircle, Star, BarChart3, Users, MessageCircle, Shield, X, AlertTriangle, Check } from "lucide-react";
 import Header from "./Header";
 import LightRays from "@/components/LightRays";
 import RotatingText from "@/components/RotatingText";
@@ -8,7 +8,101 @@ import { HeroVideoDialog } from "@/components/ui/hero-video-dialog"
 import Footer from "./Footer";
 import MagicBento from '@/components/MagicBento'
 
+const rows = [
+    {
+        feature: "Designed for Customer Feedback",
+        gform: (
+            <span className="flex items-center gap-2 text-red-500">
+                <X className="w-4 h-4" />
+                <span className="text-white">No</span>
+            </span>
+        ),
+        custovra: (
+            <span className="flex items-center gap-2 text-green-500">
+                <Check className="w-4 h-4" />
+                <span>Yes</span>
+            </span>
+        ),
+    },
+    {
+        feature: "QR Code Printing",
+        gform: (
+            <span className="flex items-center gap-2 text-yellow-500">
+                <AlertTriangle className="w-4 h-4" />
+                <span>Manual</span>
+            </span>
+        ),
+        custovra: (
+            <span className="flex items-center gap-2 text-green-500">
+                <Check className="w-4 h-4" />
+                <span>Auto-generated</span>
+            </span>
+        ),
+    },
+    {
+        feature: "Employee Rating System",
+        gform: (
+            <span className="flex items-center gap-2 text-red-500">
+                <X className="w-4 h-4" />
+                <span>No</span>
+            </span>
+        ),
+        custovra: (
+            <span className="flex items-center gap-2 text-green-500">
+                <Check className="w-4 h-4" />
+                <span>Built-in</span>
+            </span>
+        ),
+    },
+    {
+        feature: "Real-Time Reports",
+        gform: (
+            <span className="flex items-center gap-2 text-yellow-500">
+                <AlertTriangle className="w-4 h-4" />
+                <span>Basic</span>
+            </span>
+        ),
+        custovra: (
+            <span className="flex items-center gap-2 text-green-500">
+                <Check className="w-4 h-4" />
+                <span>Advanced Analytics</span>
+            </span>
+        ),
+    },
+    {
+        feature: "Custom Branding",
+        gform: (
+            <span className="flex items-center gap-2 text-yellow-500">
+                <AlertTriangle className="w-4 h-4" />
+                <span>Limited</span>
+            </span>
+        ),
+        custovra: (
+            <span className="flex items-center gap-2 text-green-500">
+                <Check className="w-4 h-4" />
+                <span>Full Control</span>
+            </span>
+        ),
+    },
+    {
+        feature: "Feedback Dashboard",
+        gform: (
+            <span className="flex items-center gap-2 text-red-500">
+                <X className="w-4 h-4" />
+                <span>No</span>
+            </span>
+        ),
+        custovra: (
+            <span className="flex items-center gap-2 text-green-500">
+                <Check className="w-4 h-4" />
+                <span>Centralized Insights</span>
+            </span>
+        ),
+    },
+];
 const HomePage = () => {
+
+
     return (
         <>
             <Header />
@@ -35,7 +129,7 @@ const HomePage = () => {
                 </div>
 
                 {/* Content */}
-                <div className="relative z-10 mx-auto max-w-3xl text-center px-6 pt-20 sm:pt-32">
+                <div className="relative z-10 mx-auto max-w-3xl text-center px-6 md:px-6 pt-20 sm:pt-32">
                     <h1 className="text-3xl md:text-5xl font-bold text-white dark:text-white sm:text-6xl">
                         Turn Customer Feedback Into{" "}
                         <span className="inline-block text-theme-green">
@@ -121,10 +215,10 @@ const HomePage = () => {
 
 
             {/* How It Works */}
-            <section className="bg-gray-50 dark:bg-[#0D0D0D] py-24 px-6">
+            <section className="bg-gray-50 dark:bg-[#0D0D0D] py-24 px-4 md:px-6">
                 <div className="max-w-6xl mx-auto text-center">
-                    <h2 className="text-4xl font-bold text-theme-green dark:text-theme-green">Collect. Analyze. Grow.</h2>
-                    <p className="mt-4 mb-4 text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
+                    <h2 className="text-3xl md:text-4xl font-bold leading-normal inline-block text-transparent bg-clip-text bg-gradient-to-r from-theme-green to-lime-500">Collect. Analyze. Grow.</h2>
+                    <p className="mt-4 mb-4 text-md md:text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
                         Custovra makes it effortless to listen to your customers and use their feedback to improve your business.
                     </p>
                     <MagicBento
@@ -145,9 +239,9 @@ const HomePage = () => {
             {/* Core Features */}
             <section className="bg-gradient-to-b from-gray-50 to-white dark:from-themebglight dark:to-black py-24 px-6">
                 <div className="max-w-6xl mx-auto text-center">
-                    <h2 className="text-4xl font-bold text-theme-green dark:text-theme-green">Everything You Need to Understand Your Customers</h2>
-                    <p className="mt-4 mb-4 text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
-                        Custovra gives you all the tools to collect, manage, and act on customer feedback — all in one platform.
+                    <h2 className="text-3xl md:text-4xl font-bold leading-normal inline-block text-transparent bg-clip-text bg-gradient-to-r from-theme-green to-lime-500">Everything You Need to Understand Your Customers</h2>
+                    <p className="mt-4 mb-4 text-md md:text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
+                        Custovra gives you all the tools to collect, manage, and act on customer feedback, all in one platform.
                     </p>
 
                     <div className="mt-12 grid sm:grid-cols-1 md:grid-cols-3 gap-8 text-left">
@@ -160,9 +254,9 @@ const HomePage = () => {
                             { icon: MessageCircle, title: "Instant Notifications", desc: "Get alerts the moment new feedback arrives." },
                         ].map(({ icon: Icon, title, desc }) => (
                             <div key={title} className="p-6 rounded-lg border border-theme-green bg-gradient-to-r from-gray-50 to-gray-200 dark:from-gray-50/5 dark:to-themebg shadow-sm hover:shadow-md transition">
-                                <Icon className="text-theme-green dark:text-white mb-4" size={36} />
-                                <h3 className="text-xl font-semibold text-themebglight dark:text-theme-green">{title}</h3>
-                                <p className="mt-2 text-themebglight dark:text-white">{desc}</p>
+                                <Icon className="text-theme-green dark:text-theme-green mb-4" size={36} />
+                                <h3 className="text-xl font-semibold text-themebglight dark:text-white">{title}</h3>
+                                <p className="mt-2 text-gray-700 dark:text-gray-300">{desc}</p>
                             </div>
                         ))}
                     </div>
@@ -172,8 +266,8 @@ const HomePage = () => {
             {/* Why Choose Custovra */}
             <section className="bg-white dark:bg-black py-24 px-6">
                 <div className="max-w-5xl mx-auto text-center">
-                    <h2 className="text-4xl font-bold text-[#4f595b] dark:text-white">Why Businesses Choose Custovra</h2>
-                    <p className="mt-4 text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
+                    <h2 className="text-3xl md:text-4xl font-bold leading-normal inline-block text-transparent bg-clip-text bg-gradient-to-r from-theme-green to-lime-500">Why Businesses Choose Custovra</h2>
+                    <p className="mt-4 text-md md:text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
                         Every successful business listens to its customers. Custovra helps you collect, understand, and respond to feedback so you can make smarter decisions and deliver exceptional experiences.
                     </p>
                     <div className="mt-10 grid sm:grid-cols-2 md:grid-cols-3 gap-8">
@@ -197,35 +291,34 @@ const HomePage = () => {
             {/* Custovra vs Google Forms */}
             <section className="bg-gradient-to-b from-gray-50 to-white dark:from-themebglight dark:to-black  py-24 px-6">
                 <div className="max-w-6xl mx-auto text-center">
-                    <h2 className="text-4xl font-bold text-theme-green dark:text-theme-green">Why Choose Custovra Over Google Forms</h2>
-                    <p className="mt-4 text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
+                    <h2 className="text-3xl md:text-4xl font-bold leading-normal inline-block text-transparent bg-clip-text bg-gradient-to-r from-theme-green to-lime-500">Why Choose Custovra Over Google Forms</h2>
+                    <p className="mt-4 text-md md:text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
                         Google Forms is great for simple surveys, but Custovra is built specifically for business feedback, employee reviews, and insights.
                     </p>
-                    <div className="overflow-x-auto mt-10">
-                        <table className="w-full border border-gray-200 dark:border-themebg text-left">
-                            <thead className="bg-gray-100 dark:bg-themebglight text-gray-700 dark:text-gray-300">
+                    <div className="overflow-x-auto mt-10 rounded-lg overflow-hidden border border-gray-200 dark:border-green-950">
+                        <table className="w-full border border-gray-200 dark:border-green-950 text-left">
+                            <thead className="bg-gray-100 dark:bg-themebglight text-white dark:text-gray-300 rounded-lg">
                                 <tr>
                                     <th className="p-4">Feature</th>
                                     <th className="p-4">Google Forms</th>
                                     <th className="p-4 text-theme-green">Custovra</th>
                                 </tr>
                             </thead>
-                            <tbody className="text-gray-600 dark:text-gray-400">
-                                {[
-                                    ["Designed for Customer Feedback", "❌", "✅"],
-                                    ["QR Code Printing", "⚠️ Manual", "✅ Auto-generated"],
-                                    ["Employee Rating System", "❌", "✅ Built-in"],
-                                    ["Real-Time Reports", "⚠️ Basic", "✅ Advanced Analytics"],
-                                    ["Custom Branding", "⚠️ Limited", "✅ Full Control"],
-                                    ["Feedback Dashboard", "❌", "✅ Centralized Insights"],
-                                ].map(([feature, gform, custovra], i) => (
-                                    <tr key={i} className="border-t border-gray-200 dark:border-gray-800">
-                                        <td className="p-4">{feature}</td>
-                                        <td className="p-4">{gform}</td>
-                                        <td className="p-4 font-semibold text-theme-green">{custovra}</td>
+                            <tbody className="text-themebglight dark:text-white">
+                                {rows.map((row, i) => (
+                                    <tr
+                                        key={i}
+                                        className="border-t border-gray-200 dark:border-green-950"
+                                    >
+                                        <td className="p-4">{row.feature}</td>
+                                        <td className="p-4">{row.gform}</td>
+                                        <td className="p-4 font-semibold text-theme-green">
+                                            {row.custovra}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
+
                         </table>
                     </div>
                 </div>
@@ -233,20 +326,19 @@ const HomePage = () => {
 
             {/* FAQs */}
             <section className="bg-gray-50 dark:bg-[#0D0D0D] py-24 px-6">
-                <div className="max-w-4xl mx-auto">
-                    <h2 className="text-4xl font-bold text-center text-[#4f595b] dark:text-white">Frequently Asked Questions</h2>
-                    <div className="mt-10 space-y-6">
+                <div className="max-w-4xl mx-auto text-center">
+                    <h2 className="text-3xl md:text-4xl font-bold leading-normal inline-block text-transparent bg-clip-text bg-gradient-to-r from-theme-green to-lime-500">Frequently Asked Questions</h2>
+                    <div className="mt-10 space-y-6 text-themebglight dark:text-white text-left">
                         {[
-                            ["Is Custovra free to try?", "Yes, you can start with a free trial and explore all key features."],
                             ["Can I customize my forms?", "Absolutely! Add your brand logo, colors, and questions easily."],
                             ["Do I need technical skills?", "No. Custovra is beginner-friendly and simple to use."],
                             ["How do customers access my form?", "Each form has a unique link and QR code for easy sharing."],
                             ["Can I assign employees to forms?", "Yes, customers can rate specific employees through forms."],
                             ["Is my data secure?", "Yes. We use encryption and secure storage to protect all data."],
                         ].map(([q, a], i) => (
-                            <div key={i} className="border border-gray-200 dark:border-gray-700 rounded-lg p-5">
-                                <h3 className="text-lg font-semibold text-[#4f595b] dark:text-white">{q}</h3>
-                                <p className="mt-2 text-gray-600 dark:text-gray-400">{a}</p>
+                            <div key={i} className="border border-gray-200 dark:border-white/20 rounded-lg p-5">
+                                <h3 className="text-lg font-semibold text-themebglight dark:text-theme-green">{q}</h3>
+                                <p className="mt-2 text-themebglight dark:text-white">{a}</p>
                             </div>
                         ))}
                     </div>

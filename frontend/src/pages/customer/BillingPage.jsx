@@ -542,8 +542,8 @@ function BillingPage() {
         <CustomerLayoutPage>
             <div className="space-y-6">
                 <div>
-                    <h1 className="text-3xl font-bold">Billing & Subscription</h1>
-                    <p className="text-gray-600 dark:text-gray-400">
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Billing & Subscription</h1>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                         Manage your subscription and payment history
                     </p>
                 </div>

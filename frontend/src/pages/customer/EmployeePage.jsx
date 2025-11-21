@@ -448,7 +448,12 @@ function EmployeePage() {
                     Cancel
                   </Button>
                   <Button
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-800"
+                    className="rounded-md font-semibold text-black border
+             border-lime-500
+               bg-gradient-to-r from-theme-green to-lime-500
+               transition-all duration-700 ease-in-out 
+               hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] 
+               focus:outline-none focus:ring-2 focus:ring-lime-400"
                     onClick={handleSubmit} disabled={submitting}>
                     {submitting ? 'Saving...' : (editingEmployee ? 'Update Employee' : 'Add Employee')}
                   </Button>
@@ -480,13 +485,13 @@ function EmployeePage() {
 
           {/* Employees Table */}
           <Card>
-            <CardHeader>
+            <CardHeader className="p-4">
               <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                 <Users className="h-5 w-5" />
                 Employees List
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4">
               {employees.length === 0 ? (
                 <div className="text-center py-12">
                   <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -501,7 +506,7 @@ function EmployeePage() {
                 <div className="rounded-md border flex">
                   <ScrollArea className="w-1 flex-1" orientation="horizontal">
                     <Table className="relative w-full">
-                      <TableHeader className="bg-white dark:bg-slate-900">
+                      <TableHeader className="bg-white dark:bg-themebglight">
                         {table.getHeaderGroups().map((headerGroup) => (
                           <TableRow key={headerGroup.id}>
                             {headerGroup.headers.map((header) => (

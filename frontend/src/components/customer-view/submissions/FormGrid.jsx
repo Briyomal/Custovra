@@ -68,14 +68,14 @@ const FormsGrid = ({ forms = [], getSubmissionCountForForm, submissions = [] }) 
     };
 
     return (
-        <div className="grid auto-rows-min  gap-3 md:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid auto-rows-min  gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {forms.map((form) => {
                 const submissionCount = getSubmissionCountForForm(form._id);
                 const unreadCount = unreadCounts[form._id] || 0;
                 
                 return (
                     <Card key={form._id} className="bg-slate-50 dark:bg-[#161616] backdrop-blur-lg">
-                        <CardHeader className="space-y-0 pb-2 pt-3 md:pt-4 px-2 md:px-4">
+                        <CardHeader className="space-y-0 pb-2 pt-3 md:pt-4 px-4 md:px-4">
                             <div className="flex justify-between items-start">
                                 <div>
                                     <CardTitle className="text-md font-regular text-lg md:text-lg">
@@ -93,7 +93,7 @@ const FormsGrid = ({ forms = [], getSubmissionCountForForm, submissions = [] }) 
                             </div>
                         </CardHeader>
                         <Separator className="my-2" />
-                        <CardContent className="space-y-3 md:space-y-5 px-2 md:px-4">
+                        <CardContent className="space-y-3 md:space-y-5 px-4 md:px-4">
                             <div className="flex flex-row justify-between items-center">
                                 <p className="text-sm">Submissions</p>
                                 <h3 className="text-gray-400 font-semibold text-2xl md:text-3xl">
@@ -114,7 +114,7 @@ const FormsGrid = ({ forms = [], getSubmissionCountForForm, submissions = [] }) 
 
                         </CardContent>
                         <Separator className="" />
-                        <CardFooter className="flex flex-row justify-between items-center pb-4 px-2 md:px-4">
+                        <CardFooter className="flex flex-row justify-between items-center pb-4 px-4 md:px-4">
                             <Button 
                                 variant="secondary"
                                 className="py-1 mt-4 gap-1 md:gap-2 w-full left-0 rounded-md font-semibold border 
