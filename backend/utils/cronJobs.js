@@ -20,6 +20,16 @@ cron.schedule('0 * * * *', async () => {
 
         // Step 3: Check each user's subscription status
         for (const userId of allUserIds) {
+
+            
+    // Get user role
+    const user = await User.findById(userId);
+        // ---- KEEP ADMIN ACTIVE ----
+    if (user.role === "admin") {
+        usersToActivate.push(userId);
+        continue; // skip subscription checks for admins
+    }
+
             // Check for active Genie subscription
             const hasActiveGenieSubscription = await GenieSubscription.exists({
                 user_id: userId,
