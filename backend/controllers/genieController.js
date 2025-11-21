@@ -288,7 +288,7 @@ export const createGeniePaymentRequest = async (req, res) => {
                         id: customerId || undefined // Only include if we have a customer ID
                     },
                     cardOnFile: true, // enables recurring setup
-                    redirectUrl: `${redirectBaseUrl}`,
+                    redirectUrl: `${redirectBaseUrl}/api/genie/`,
                     webhook: `${process.env.VITE_SERVER_URL}/api/genie/webhook`
                 });
                 
@@ -311,7 +311,7 @@ export const createGeniePaymentRequest = async (req, res) => {
                             email: user.email,
                             billingEmail: user.email
                         },
-                        redirectUrl: `${redirectBaseUrl}`,
+                        redirectUrl: `${redirectBaseUrl}/api/genie`,
                         webhook: `${process.env.VITE_SERVER_URL}/api/genie/webhook`
                     });
                     
