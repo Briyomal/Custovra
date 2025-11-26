@@ -28,7 +28,7 @@ export const sendWelcomeEmail = async (email, name) => {
 			to: recipient,
 			template_uuid: "d60240db-bacb-4941-ae70-e5b6405031ed",
 			template_variables: {
-				company_info_name: "Review Platform",
+				company_info_name: "Custovra",
 				name: name,
 			},
 		});

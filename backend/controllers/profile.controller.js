@@ -72,7 +72,7 @@ export const generate2FA = async (req, res) => {
 
         // Generate a new secret
         const secret = authenticator.generateSecret();
-        const appName = 'ReviewApp';
+        const appName = 'Custovra';
         const otpauth = authenticator.keyuri(user.email, appName, secret);
 
         // Generate QR code
