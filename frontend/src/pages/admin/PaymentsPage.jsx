@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AdminLayoutPage from "./LayoutPage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SubscriptionPlansManagement from "@/components/admin-view/payments/SubscriptionPlansManagement";
 
 const PaymentsPage = () => {
   const [activeTab, setActiveTab] = useState("plans");
@@ -21,9 +22,7 @@ const PaymentsPage = () => {
           </TabsList>
           
           <TabsContent value="plans" className="space-y-4">
-            <div className="text-center py-8">
-              <p className="text-gray-500">No payment management components available.</p>
-            </div>
+            <SubscriptionPlansManagement />
           </TabsContent>
         </Tabs>
       </div>

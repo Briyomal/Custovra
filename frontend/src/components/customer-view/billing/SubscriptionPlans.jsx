@@ -1,7 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
 
@@ -15,12 +14,8 @@ const SubscriptionPlans = ({
     isCheckingDowngrade,
     formatCurrency
 }) => {
-    // Filter plans by interval - for manual plans, show all plans since they have both monthly and yearly prices
-    const monthlyPlans = availablePlans;
-    const yearlyPlans = availablePlans;
-
     // State for billing period toggle
-    const [isYearlyBilling, setIsYearlyBilling] = useState(false);
+    const [billingPeriod, setBillingPeriod] = useState("monthly"); // monthly, half_yearly, yearly
 
     // State to track which plan button is being processed
     const [processingPlanId, setProcessingPlanId] = useState(null);
@@ -29,10 +24,10 @@ const SubscriptionPlans = ({
     const handlePlanAction = async (planId, isDowngrade) => {
         setProcessingPlanId(planId);
         try {
-            // Set billing period based on toggle
+            // Set billing period
             setPaymentFormData(prev => ({
                 ...prev,
-                billingPeriod: isYearlyBilling ? "yearly" : "monthly"
+                billingPeriod: billingPeriod
             }));
 
             // Check if this is a downgrade or upgrade
@@ -54,10 +49,10 @@ const SubscriptionPlans = ({
     const handlePayForNextClick = async (planId) => {
         setProcessingPlanId(planId);
         try {
-            // Set billing period based on toggle
+            // Set billing period
             setPaymentFormData(prev => ({
                 ...prev,
-                billingPeriod: isYearlyBilling ? "yearly" : "monthly"
+                billingPeriod: billingPeriod
             }));
             await handlePayForNextMonth(planId);
         } finally {
@@ -65,12 +60,50 @@ const SubscriptionPlans = ({
         }
     };
 
-    // Get plans based on billing period
-    const plans = isYearlyBilling ? yearlyPlans : monthlyPlans;
+    // Get price based on selected billing period
+    const getPriceForPeriod = (plan) => {
+        switch (billingPeriod) {
+            case "monthly":
+                return plan.final_prices?.monthly || plan.price_monthly;
+            case "half_yearly":
+                return plan.final_prices?.half_yearly || (plan.price_monthly * 6);
+            case "yearly":
+                return plan.final_prices?.yearly || plan.price_yearly;
+            default:
+                return plan.price_monthly;
+        }
+    };
 
-    // Toggle billing period
-    const toggleBillingPeriod = () => {
-        setIsYearlyBilling(!isYearlyBilling);
+    // Get equivalent monthly rate for longer periods
+    const getEquivalentMonthlyRate = (plan) => {
+        switch (billingPeriod) {
+            case "half_yearly":
+                return (plan.final_prices?.half_yearly || (plan.price_monthly * 6)) / 6;
+            case "yearly":
+                return (plan.final_prices?.yearly || plan.price_yearly) / 12;
+            default:
+                return null;
+        }
+    };
+
+    // Get discount percentage for current period
+    const getDiscountForPeriod = (plan) => {
+        if (!plan.discounts) return 0;
+        return plan.discounts[billingPeriod] || 0;
+    };
+
+    // Get period label
+    const getPeriodLabel = () => {
+        switch (billingPeriod) {
+            case "monthly":
+                return "/mo";
+            case "half_yearly":
+                return "/6mo";
+            case "yearly":
+                return "/yr";
+            default:
+                return "/mo";
+        }
     };
 
     return (
@@ -86,31 +119,30 @@ const SubscriptionPlans = ({
 
             {/* Billing Period Toggle */}
             <div className="flex items-center justify-center space-x-2 p-4 rounded-lg">
-                <span className={isYearlyBilling ? "text-white" : "font-medium text-[#16bf4c]"}>
-                    Billing Monthly
-                </span>
-
-                <Switch
-                    checked={isYearlyBilling}
-                    onCheckedChange={toggleBillingPeriod}
-                    className={`
-    ${isYearlyBilling
-                            ? "data-[state=checked]:bg-lime-500 data-[state=unchecked]:bg-gray-600"
-                            : "data-[state=checked]:bg-[#16bf4c] data-[state=unchecked]:bg-[#16bf4c]"
-                        }
-  `}
-                />
-
-
-                <span className={isYearlyBilling ? "font-medium text-lime-500" : "text-white"}>
-                    Billing Annually
-                </span>
+                <button
+                    className={`px-4 py-2 rounded-l-lg ${billingPeriod === "monthly" ? "bg-[#16bf4c] text-white" : "bg-gray-200 dark:bg-gray-700"}`}
+                    onClick={() => setBillingPeriod("monthly")}
+                >
+                    Monthly
+                </button>
+                <button
+                    className={`${billingPeriod === "half_yearly" ? "bg-[#16bf4c] text-white" : "bg-gray-200 dark:bg-gray-700"} px-4 py-2`}
+                    onClick={() => setBillingPeriod("half_yearly")}
+                >
+                    Half-Yearly
+                </button>
+                <button
+                    className={`px-4 py-2 rounded-r-lg ${billingPeriod === "yearly" ? "bg-[#16bf4c] text-white" : "bg-gray-200 dark:bg-gray-700"}`}
+                    onClick={() => setBillingPeriod("yearly")}
+                >
+                    Yearly
+                </button>
             </div>
 
             {availablePlans.length > 0 ? (
                 <div className="space-y-6">
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-6">
-                        {plans.map((plan) => {
+                        {availablePlans.map((plan) => {
                             // For manual plans, we compare plan names since we don't have plan_id
                             const isCurrentPlan = subscriptionDetails?.subscription?.plan_name === plan.name;
                             const currentFormLimit = subscriptionDetails?.plan?.formLimit || 0;
@@ -125,6 +157,10 @@ const SubscriptionPlans = ({
                             // Disable all buttons when any plan is being processed
                             const isAnyProcessing = processingPlanId !== null || isCheckingDowngrade;
 
+                            const price = getPriceForPeriod(plan);
+                            const equivalentMonthly = getEquivalentMonthlyRate(plan);
+                            const discount = getDiscountForPeriod(plan);
+
                             return (
                                 <Card
                                     key={plan.id}
@@ -138,18 +174,23 @@ const SubscriptionPlans = ({
                                                 Current Plan
                                             </Badge>
                                         )}
+                                        {discount > 0 && (
+                                            <Badge className="w-fit bg-purple-500 hover:bg-purple-600">
+                                                {discount}% OFF
+                                            </Badge>
+                                        )}
                                     </CardHeader>
                                     <CardContent className="flex-1">
                                         <div className="space-y-4">
                                             <div className="text-3xl font-bold">
-                                                {isYearlyBilling ? formatCurrency(plan.price_yearly) : formatCurrency(plan.price_monthly)}
+                                                {formatCurrency(price)}
                                                 <span className="text-lg font-normal text-gray-500">
-                                                    {isYearlyBilling ? "/yr" : "/mo"}
+                                                    {getPeriodLabel()}
                                                 </span>
                                             </div>
-                                            {isYearlyBilling && (
+                                            {equivalentMonthly && (
                                                 <div className="text-sm text-gray-500">
-                                                    Equivalent to {formatCurrency(plan.price_yearly / 12)}/month
+                                                    Equivalent to {formatCurrency(equivalentMonthly)}/month
                                                 </div>
                                             )}
 
@@ -162,18 +203,27 @@ const SubscriptionPlans = ({
                                                     <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
                                                     {plan.submission_limit} submissions/month
                                                 </li>
-                                                {plan.features && plan.features.length > 0 ? (
-                                                    plan.features.map((feature, index) => (
-                                                        <li key={index} className="flex items-center">
-                                                            <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                                            {feature}
-                                                        </li>
-                                                    ))
-                                                ) : (
-                                                    <li className="flex items-center">
-                                                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                                        Basic features
-                                                    </li>
+                                                {plan.features && (
+                                                    <>
+                                                        {plan.features.image_upload && (
+                                                            <li className="flex items-center">
+                                                                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                                                Image Upload
+                                                            </li>
+                                                        )}
+                                                        {plan.features.employee_management && (
+                                                            <li className="flex items-center">
+                                                                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                                                Employee Management
+                                                            </li>
+                                                        )}
+                                                        {plan.features.custom_features && plan.features.custom_features.map((feature, index) => (
+                                                            <li key={index} className="flex items-center">
+                                                                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                                                                {feature}
+                                                            </li>
+                                                        ))}
+                                                    </>
                                                 )}
                                             </ul>
                                         </div>
@@ -196,7 +246,7 @@ const SubscriptionPlans = ({
                                                         Processing...
                                                     </>
                                                 ) : (
-                                                    isYearlyBilling ? "Pay for Next Year" : "Pay for Next Month"
+                                                    `Pay for Next ${billingPeriod === "monthly" ? "Month" : billingPeriod === "half_yearly" ? "6 Months" : "Year"}`
                                                 )}
                                             </Button>
                                         ) : (

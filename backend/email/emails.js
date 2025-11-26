@@ -22,7 +22,7 @@ export const sendWelcomeEmail = async (email, name) => {
 		const response = await transporter.sendMail({
 			from: sender,
 			to: email,
-			subject: "Welcome to Review Platform",
+			subject: "Welcome to Custovra",
 			html: WELCOME_EMAIL_TEMPLATE.replace("{name}", name),
 		});
 		console.log("Welcome email sent:", response.messageId);
