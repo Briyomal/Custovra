@@ -474,7 +474,7 @@ const FormViewPage = () => {
                                 </Card>
                             )
                         ) : (
-                            <Card className=" border-b-[#16bf4c] text-center p-0 md:p-4 my-16 mx-4 md:my-6 md:mx-4 backdrop-blur-lg bg-gray-50/80 dark:bg-[#0d0d0d91]">
+                            <Card className=" border-b-[#16bf4c] text-center p-0 md:p-4 my-16 mx-4 md:my-6 md:mx-4 backdrop-blur-lg bg-white dark:bg-[#0d0d0dce]">
                                 {loading ? (
                                     <FormPreviewSkelton />
                                 ) : (
@@ -583,7 +583,7 @@ const FormViewPage = () => {
                                                                     <div className="flex items-center justify-center w-full">
                                                                         <label 
                                                                             htmlFor={`file-upload-${field.field_name}`}
-                                                                            className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:border-gray-600 dark:bg-slate-950 dark:hover:bg-slate-800 transition-colors duration-200"
+                                                                            className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:border-gray-600 dark:bg-themebglight dark:hover:bg-themebgdark transition-colors duration-200"
                                                                         >
                                                                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                                                                 <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 18">
@@ -608,16 +608,16 @@ const FormViewPage = () => {
                                                                         </label>
                                                                     </div>
                                                                     {field.value && typeof field.value === "object" && field.value.name && (
-                                                                        <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900 rounded-md">
+                                                                        <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-green-900 rounded-md">
                                                                             <div className="flex items-center">
-                                                                                <svg className="w-5 h-5 text-blue-500 dark:text-blue-400 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 18">
+                                                                                <svg className="w-5 h-5 text-green-500 dark:text-green-400 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 18">
                                                                                     <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 3v4l3-3m6 4H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/>
                                                                                 </svg>
-                                                                                <span className="text-sm font-medium text-blue-700 dark:text-blue-300 truncate">
+                                                                                <span className="text-sm font-medium text-green-700 dark:text-green-300 truncate">
                                                                                     {field.value.name}
                                                                                 </span>
                                                                             </div>
-                                                                            <span className="text-xs text-blue-600 dark:text-blue-400">
+                                                                            <span className="text-xs text-lime-600 dark:text-lime-400">
                                                                                 Selected
                                                                             </span>
                                                                         </div>

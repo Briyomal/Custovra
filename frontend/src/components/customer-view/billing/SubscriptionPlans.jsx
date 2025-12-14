@@ -64,11 +64,25 @@ const SubscriptionPlans = ({
     const getPriceForPeriod = (plan) => {
         switch (billingPeriod) {
             case "monthly":
-                return plan.final_prices?.monthly || plan.price_monthly;
+                return plan.final_prices?.monthly ?? plan.price_monthly;
             case "half_yearly":
-                return plan.final_prices?.half_yearly || (plan.price_monthly * 6);
+                return plan.final_prices?.half_yearly ?? (plan.price_monthly * 6);
             case "yearly":
-                return plan.final_prices?.yearly || plan.price_yearly;
+                return plan.final_prices?.yearly ?? plan.price_yearly;
+            default:
+                return plan.price_monthly;
+        }
+    };
+
+    // Get original price based on selected billing period (before discount)
+    const getOriginalPriceForPeriod = (plan) => {
+        switch (billingPeriod) {
+            case "monthly":
+                return plan.price_monthly;
+            case "half_yearly":
+                return plan.price_monthly * 6;
+            case "yearly":
+                return plan.price_yearly;
             default:
                 return plan.price_monthly;
         }
@@ -78,9 +92,9 @@ const SubscriptionPlans = ({
     const getEquivalentMonthlyRate = (plan) => {
         switch (billingPeriod) {
             case "half_yearly":
-                return (plan.final_prices?.half_yearly || (plan.price_monthly * 6)) / 6;
+                return (plan.final_prices?.half_yearly ?? (plan.price_monthly * 6)) / 6;
             case "yearly":
-                return (plan.final_prices?.yearly || plan.price_yearly) / 12;
+                return (plan.final_prices?.yearly ?? plan.price_yearly) / 12;
             default:
                 return null;
         }
@@ -88,8 +102,18 @@ const SubscriptionPlans = ({
 
     // Get discount percentage for current period
     const getDiscountForPeriod = (plan) => {
-        if (!plan.discounts) return 0;
-        return plan.discounts[billingPeriod] || 0;
+        // Handle cases where discounts might not be properly structured
+        if (!plan || !plan.discounts) {
+            return 0;
+        }
+        
+        // Ensure we're accessing the correct property
+        const discounts = plan.discounts;
+        if (typeof discounts === 'object' && discounts !== null) {
+            return discounts[billingPeriod] || 0;
+        }
+        
+        return 0;
     };
 
     // Get period label
@@ -106,6 +130,30 @@ const SubscriptionPlans = ({
         }
     };
 
+    // Get savings amount for current period
+    const getSavingsForPeriod = (plan) => {
+        const discount = getDiscountForPeriod(plan);
+        if (discount <= 0) return 0;
+        
+        let originalPrice;
+        switch (billingPeriod) {
+            case "monthly":
+                originalPrice = plan.price_monthly;
+                break;
+            case "half_yearly":
+                originalPrice = plan.price_monthly * 6;
+                break;
+            case "yearly":
+                originalPrice = plan.price_yearly;
+                break;
+            default:
+                originalPrice = plan.price_monthly;
+        }
+        
+        const finalPrice = getPriceForPeriod(plan);
+        return originalPrice - finalPrice;
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -120,19 +168,19 @@ const SubscriptionPlans = ({
             {/* Billing Period Toggle */}
             <div className="flex items-center justify-center space-x-2 p-4 rounded-lg">
                 <button
-                    className={`px-4 py-2 rounded-l-lg ${billingPeriod === "monthly" ? "bg-[#16bf4c] text-white" : "bg-gray-200 dark:bg-gray-700"}`}
+                    className={`px-4 py-2 rounded-l-lg ${billingPeriod === "monthly" ? "bg-[#16bf4c] text-themebglight font-medium" : "bg-gray-200 dark:bg-gray-800"}`}
                     onClick={() => setBillingPeriod("monthly")}
                 >
                     Monthly
                 </button>
                 <button
-                    className={`${billingPeriod === "half_yearly" ? "bg-[#16bf4c] text-white" : "bg-gray-200 dark:bg-gray-700"} px-4 py-2`}
+                    className={`${billingPeriod === "half_yearly" ? "bg-[#16bf4c] text-themebglight font-medium" : "bg-gray-200 dark:bg-gray-800"} px-4 py-2`}
                     onClick={() => setBillingPeriod("half_yearly")}
                 >
                     Half-Yearly
                 </button>
                 <button
-                    className={`px-4 py-2 rounded-r-lg ${billingPeriod === "yearly" ? "bg-[#16bf4c] text-white" : "bg-gray-200 dark:bg-gray-700"}`}
+                    className={`px-4 py-2 rounded-r-lg ${billingPeriod === "yearly" ? "bg-[#16bf4c] text-themebglight font-medium" : "bg-gray-200 dark:bg-gray-800"}`}
                     onClick={() => setBillingPeriod("yearly")}
                 >
                     Yearly
@@ -158,15 +206,34 @@ const SubscriptionPlans = ({
                             const isAnyProcessing = processingPlanId !== null || isCheckingDowngrade;
 
                             const price = getPriceForPeriod(plan);
+                            const originalPrice = getOriginalPriceForPeriod(plan);
                             const equivalentMonthly = getEquivalentMonthlyRate(plan);
                             const discount = getDiscountForPeriod(plan);
+                            const savings = getSavingsForPeriod(plan);
+
+                            // Check if there's a discount to show original price with strikethrough
+                            const hasDiscount = discount > 0 && originalPrice !== price;
 
                             return (
                                 <Card
                                     key={plan.id}
-                                    className={`flex flex-col ${isCurrentPlan ? 'border-2 border-[#16bf4c] bg-[16bf4c]' : ''}`}
+                                    className={`flex flex-col relative ${isCurrentPlan ? 'border-2 border-[#16bf4c] bg-[16bf4c]' : ''}`}
                                 >
-                                    <CardHeader>
+                                    {/* Discount Badge at the top */}
+                                    {discount > 0 && (
+                                        <div className="absolute -top-5 left-1/2 transform -translate-x-1/2">
+                                            <Badge className="bg-gradient-to-r from-[#16bf4c] to-lime-500 text-themebglight px-4 py-2 text-lg font-bold shadow-lg whitespace-nowrap gap-1">
+                                                {discount}% OFF
+                                                {savings > 0 && (
+                                                    <span className="block text-xs font-normal mt-1">
+                                                        Save {formatCurrency(savings)}
+                                                    </span>
+                                                )}
+                                            </Badge>
+                                        </div>
+                                    )}
+                                    
+                                    <CardHeader className="pt-12">
                                         <CardTitle>{plan.name}</CardTitle>
                                         <CardDescription>{plan.description}</CardDescription>
                                         {isCurrentPlan && (
@@ -174,16 +241,25 @@ const SubscriptionPlans = ({
                                                 Current Plan
                                             </Badge>
                                         )}
-                                        {discount > 0 && (
-                                            <Badge className="w-fit bg-purple-500 hover:bg-purple-600">
-                                                {discount}% OFF
-                                            </Badge>
-                                        )}
                                     </CardHeader>
                                     <CardContent className="flex-1">
                                         <div className="space-y-4">
                                             <div className="text-3xl font-bold">
-                                                {formatCurrency(price)}
+                                                {hasDiscount && (
+                                                    <div className="flex flex-col items-baseline gap-2">
+                                                        <span className="text-2xl text-gray-500 line-through">
+                                                            {formatCurrency(originalPrice)}
+                                                        </span>
+                                                        <span className="text-lime-500">
+                                                            {formatCurrency(price)}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                {!hasDiscount && (
+                                                    <span>
+                                                        {formatCurrency(price)}
+                                                    </span>
+                                                )}
                                                 <span className="text-lg font-normal text-gray-500">
                                                     {getPeriodLabel()}
                                                 </span>

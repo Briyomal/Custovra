@@ -39,6 +39,9 @@ function EmployeePage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
 
+  // Check if employee management is enabled for the user's plan
+  const isEmployeeManagementEnabled = user?.subscription?.plan_id?.features?.employee_management ?? false;
+
   const isDeleteConfirmed = deleteConfirmationText.trim().toLowerCase() === "delete";
 
   // Fetch employees on component mount
@@ -147,11 +150,21 @@ function EmployeePage() {
   };
 
   const openCreateDialog = () => {
+    // Check if employee management is enabled before allowing to create
+    if (!isEmployeeManagementEnabled) {
+      toast.error('Employee management is not available in your current plan. Please upgrade to access this feature.');
+      return;
+    }
     resetForm();
     setDialogOpen(true);
   };
 
   const openEditDialog = (employee) => {
+    // Check if employee management is enabled before allowing to edit
+    if (!isEmployeeManagementEnabled) {
+      toast.error('Employee management is not available in your current plan. Please upgrade to access this feature.');
+      return;
+    }
     setEditingEmployee(employee);
     setFormData({
       name: employee.name || "",
@@ -223,6 +236,12 @@ function EmployeePage() {
   };
 
   const handleDelete = async (employeeId) => {
+    // Check if employee management is enabled before allowing to delete
+    if (!isEmployeeManagementEnabled) {
+      toast.error('Employee management is not available in your current plan. Please upgrade to access this feature.');
+      return;
+    }
+    
     try {
       const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/employees/${employeeId}`, {
         method: 'DELETE',
@@ -354,6 +373,46 @@ function EmployeePage() {
       <CustomerLayoutPage>
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </CustomerLayoutPage>
+    );
+  }
+
+  // Show restricted access message if employee management is not enabled
+  if (!isEmployeeManagementEnabled) {
+    return (
+      <CustomerLayoutPage>
+        <div className="space-y-6 pt-4 md:gap-4 md:p-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Employee Management</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Manage your team members and their information</p>
+            </div>
+          </div>
+          
+          <Separator className="my-4" />
+          
+          <Card className="border border-dashed border-gray-300 dark:border-gray-700">
+            <CardContent className="py-12 text-center">
+              <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">Employee Management Not Available</h3>
+              <p className="text-gray-500 mb-4 max-w-md mx-auto">
+                Employee management is not included in your current subscription plan. 
+                Please upgrade to a plan that includes this feature to manage your employees.
+              </p>
+              <Button 
+                onClick={() => window.location.href = '/billing'}
+                className="rounded-md font-semibold text-black border
+                  border-lime-500
+                  bg-gradient-to-r from-[#16bf4c] to-lime-500
+                  transition-all duration-200 ease-in-out 
+                  hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                  focus:outline-none focus:ring-2 focus:ring-lime-400"
+              >
+                Upgrade Plan
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </CustomerLayoutPage>
     );

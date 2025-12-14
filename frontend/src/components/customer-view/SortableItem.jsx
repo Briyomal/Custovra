@@ -30,7 +30,7 @@ import EmployeeSelectionDialog from "./EmployeeSelectionDialog";
 // Create a context to pass form type to SortableItem
 export const FormTypeContext = React.createContext();
 
-const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
+const SortableItem = ({ field, onFieldUpdate, onFieldRemove, isImageUploadEnabled, isEmployeeManagementEnabled }) => {
     const formType = useContext(FormTypeContext);
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
         id: field.id,
@@ -102,6 +102,12 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
     };
 
     const handleDialogSave = () => {
+  if (editValues.type === "image" && !isImageUploadEnabled) {
+    return; // block save
+  }
+  if (editValues.type === "employee" && !isEmployeeManagementEnabled) {
+    return; // block save
+  }
         const updates = {
             label: editValues.label,
             type: editValues.type,
@@ -199,8 +205,12 @@ const SortableItem = ({ field, onFieldUpdate, onFieldRemove }) => {
                                             {formType === "Review" && (
                                                 <SelectItem value="rating">Rating</SelectItem>
                                             )}
-                                            <SelectItem value="employee">Employee Dropdown</SelectItem>
-                                            <SelectItem value="image">Image Upload</SelectItem>
+                                            {isEmployeeManagementEnabled && (
+                                                <SelectItem value="employee">Employee Dropdown</SelectItem>
+                                            )}
+                                            {isImageUploadEnabled && (
+                                                <SelectItem value="image">Image Upload</SelectItem>
+                                            )}
                                             <SelectItem value="dropdown">Dropdown</SelectItem>
                                             <SelectItem value="radio">Radio Buttons</SelectItem>
                                         </SelectContent>

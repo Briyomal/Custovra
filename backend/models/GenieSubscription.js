@@ -18,7 +18,7 @@ const genieSubscriptionSchema = new Schema({
     },
     billing_period: {
         type: String,
-        enum: ['monthly', 'yearly'],
+        enum: ['monthly', 'half_yearly', 'yearly'],
         required: true,
     },
     amount: {

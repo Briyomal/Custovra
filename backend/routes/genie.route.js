@@ -6,6 +6,7 @@ import {
     createGeniePaymentRequest,
     getGeniePaymentHistory,
     handleRedirect,
+    toggleAutoRenew
 } from "../controllers/genieController.js";
 
 
@@ -21,6 +22,9 @@ router.post("/payment-request", verifyToken, upload.none(), createGeniePaymentRe
 
 // Get user's Genie payment history
 router.get("/payment-history", verifyToken, getGeniePaymentHistory);
+
+// Toggle auto-renew for subscription
+router.post("/toggle-auto-renew", verifyToken, toggleAutoRenew);
 
 // Redirect endpoint for Genie payment completion
 router.get("/billing-redirect", handleRedirect);

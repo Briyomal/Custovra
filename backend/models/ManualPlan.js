@@ -109,9 +109,9 @@ manualPlanSchema.pre('validate', function (next) {
     
     // Calculate final prices after applying discounts
     this.final_prices = {
-        monthly: this.price_monthly * (1 - (this.discounts.monthly / 100)),
-        half_yearly: this.price_half_yearly * (1 - (this.discounts.half_yearly / 100)),
-        yearly: this.price_yearly * (1 - (this.discounts.yearly / 100))
+        monthly: this.price_monthly * (1 - (this.discounts?.monthly / 100 || 0)),
+        half_yearly: this.price_half_yearly * (1 - (this.discounts?.half_yearly / 100 || 0)),
+        yearly: this.price_yearly * (1 - (this.discounts?.yearly / 100 || 0))
     };
     
     next();

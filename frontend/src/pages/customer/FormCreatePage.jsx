@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import FormPreviewSkelton from "@/components/customer-view/FormPreviewSkelton";
 import ShareDialog from "@/components/customer-view/ShareDialog";
 import FormSidebar from "@/components/customer-view/FormSidebar";
+import { useAuthStore } from "@/store/authStore";
 
 const FormCreatePage = () => {
 	const [formDetails, setFormDetails] = useState({}); // State for form details
@@ -26,6 +27,50 @@ const FormCreatePage = () => {
 	const [fields, setFields] = useState([]);
 	const [selectedImage, setSelectedImage] = useState(null);
 	const [removeLogo, setRemoveLogo] = useState(false);
+	const [planData, setPlanData] = useState(null); // State for plan data
+
+	const { user } = useAuthStore();
+
+	// Fetch plan data if not available in subscription
+	useEffect(() => {
+		const fetchPlanData = async () => {
+			
+			// If subscription exists but plan_id is null, fetch plan data
+			if (user?.subscription && !user?.subscription?.plan_id) {
+				try {
+					const planName = user.subscription.plan_name;
+					console.log("Fetching plan data for plan name:", planName);
+					
+					// Fetch available plans to find the matching plan
+					const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/manual-billing/available-plans`);
+					const plans = response.data.data;
+					
+					const matchingPlan = plans.find(plan => plan.name === planName);
+					console.log("Matching plan found:", matchingPlan);
+					
+					if (matchingPlan) {
+						setPlanData(matchingPlan);
+					}
+				} catch (error) {
+					console.error("Error fetching plan data:", error);
+				}
+			}
+		};
+
+		if (user) {
+			fetchPlanData();
+		}
+	}, [user]);
+
+	// Check if image upload is enabled for the user's plan
+	// Handle multiple possible subscription data structures
+	const isImageUploadEnabled = user?.subscription?.plan_id?.features?.image_upload ?? 
+	                             planData?.features?.image_upload ??
+	                             user?.subscription_plan_id?.features?.image_upload ?? false;
+	const isEmployeeManagementEnabled = user?.subscription?.plan_id?.features?.employee_management ?? 
+	                                     planData?.features?.employee_management ??
+	                                     user?.subscription_plan_id?.features?.employee_management ?? false;
+
 
 	const { updateForm } = useFormStore();
 
@@ -45,16 +90,35 @@ const FormCreatePage = () => {
 				}
 
 				// Check if default_fields is empty or undefined, and assign default values
-				if (!Array.isArray(fetchedDetails.default_fields) || fetchedDetails.default_fields.length === 0) {
-					fetchedDetails.default_fields = [
-						{ field_name: "Name", field_type: "text", is_required: false, enabled: true, position: 1, placeholder: "John Doe" },
-						{ field_name: "Email", field_type: "email", is_required: true, enabled: true, position: 2, placeholder: "mail@example.com" },
-						{ field_name: "Phone", field_type: "tel", is_required: false, enabled: true, position: 3, placeholder: "+123456789" },
-						{ field_name: "Rating", field_type: "rating", is_required: false, enabled: true, position: 4, placeholder: "" },
-						{ field_name: "Comment", field_type: "textarea", is_required: false, enabled: true, position: 5, placeholder: "Write your review" },
-						{ field_name: "Image", field_type: "image", is_required: false, enabled: true, position: 6, placeholder: "Upload an image" },
-					];
+				const baseDefaultFields = [
+					{ field_name: "Name", field_type: "text", is_required: false, enabled: true, position: 1, placeholder: "John Doe" },
+					{ field_name: "Email", field_type: "email", is_required: true, enabled: true, position: 2, placeholder: "mail@example.com" },
+					{ field_name: "Phone", field_type: "tel", is_required: false, enabled: true, position: 3, placeholder: "+123456789" },
+					{ field_name: "Rating", field_type: "rating", is_required: false, enabled: true, position: 4, placeholder: "" },
+					{ field_name: "Comment", field_type: "textarea", is_required: false, enabled: true, position: 5, placeholder: "Write your review" },
+				];
+
+				// Only add Image field if plan allows it
+				if (isImageUploadEnabled) {
+					baseDefaultFields.push({
+						field_name: "Image",
+						field_type: "image",
+						is_required: false,
+						enabled: true,
+						position: 6,
+						placeholder: "Upload an image",
+					});
 				}
+
+				if (!Array.isArray(fetchedDetails.default_fields) || fetchedDetails.default_fields.length === 0) {
+					fetchedDetails.default_fields = baseDefaultFields;
+				} else if (!isImageUploadEnabled) {
+					// Remove image field if it exists in DB
+					fetchedDetails.default_fields = fetchedDetails.default_fields.filter(
+						(field) => field.field_type !== "image"
+					);
+				}
+
 				setFormDetails(fetchedDetails); // Set updated form details
 			} catch (error) {
 				// Handle locked form errors specifically
@@ -137,6 +201,7 @@ const FormCreatePage = () => {
 
 			// If no fields at all, apply defaults
 			let allFields = fields;
+
 			if (fields.length === 0) {
 				allFields = [
 					{ label: "Name", type: "text", is_required: false, enabled: true, position: 1, placeholder: "John Doe" },
@@ -144,8 +209,24 @@ const FormCreatePage = () => {
 					{ label: "Phone", type: "tel", is_required: false, enabled: true, position: 3, placeholder: "+123456789" },
 					{ label: "Rating", type: "rating", is_required: true, enabled: true, position: 4, placeholder: "" },
 					{ label: "Comment", type: "textarea", is_required: false, enabled: true, position: 5, placeholder: "Write your review" },
-					{ label: "Image", type: "image", is_required: false, enabled: true, position: 6, placeholder: "Upload an image" },
 				];
+
+				// ✅ Only add Image field if plan allows it
+				if (isImageUploadEnabled) {
+					allFields.push({
+						label: "Image",
+						type: "image",
+						is_required: false,
+						enabled: true,
+						position: 6,
+						placeholder: "Upload an image",
+					});
+				}
+			}
+
+			// ✅ Remove image field if plan does not allow it (safety for existing forms)
+			if (!isImageUploadEnabled) {
+				allFields = allFields.filter((field) => field.type !== "image");
 			}
 			// Ensure at least one field is enabled and required
 			const hasEnabledAndRequiredField = fields.some((field) => field.enabled && field.is_required);
@@ -374,6 +455,9 @@ const FormCreatePage = () => {
 							onFileSelect={handleFileSelect}
 							fields={fields}
 							setFields={setFields}
+							user={user}
+							isImageUploadEnabled={isImageUploadEnabled}
+							isEmployeeManagementEnabled={isEmployeeManagementEnabled}
 						/>
 						<FormSidebar
 							formDetails={formDetails}

@@ -162,6 +162,45 @@ function BillingPage() {
         return <StatusBadge status={status} endDate={endDate} />;
     };
 
+    // Toggle auto-renew status
+    const toggleAutoRenew = async () => {
+        try {
+            const response = await axios.post(
+                `${import.meta.env.VITE_SERVER_URL}/api/genie/toggle-auto-renew`,
+                {},
+                { withCredentials: true }
+            );
+            
+            if (response.data.success) {
+                // Update the subscription details with the new auto_renew status
+                setSubscriptionDetails(prev => ({
+                    ...prev,
+                    subscription: {
+                        ...prev.subscription,
+                        auto_renew: response.data.data.auto_renew
+                    }
+                }));
+                
+                toast({
+                    title: "Success",
+                    description: response.data.data.message,
+                    variant: "default"
+                });
+                
+                // Refresh billing data to get updated subscription info
+                fetchBillingData();
+            }
+        } catch (err) {
+            console.error('Error toggling auto-renew:', err);
+            const errorMessage = err.response?.data?.error || 'Failed to toggle auto-renew';
+            toast({
+                title: "Error",
+                description: errorMessage,
+                variant: "destructive"
+            });
+        }
+    };
+
     // Downgrade form selection functions
     const checkDowngradeImpact = async (planId) => {
         try {
@@ -573,6 +612,7 @@ function BillingPage() {
                             formatCurrency={formatCurrency}
                             getStatusBadge={getStatusBadge}
                             setActiveTab={setActiveTab}
+                            toggleAutoRenew={toggleAutoRenew}
                         />
                     </TabsContent>
 

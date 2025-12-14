@@ -4,15 +4,15 @@ import FormSkeleton from "./FormSkelton";
 import FormFieldList from "./FormFields";
 import { arrayMove } from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Component for each sortable field
 
-const FormBuilder = ({ formDetails, fields, setFields }) => {
+const FormBuilder = ({ formDetails, fields, setFields, isImageUploadEnabled, isEmployeeManagementEnabled }) => {
     const [isLoading, setIsLoading] = useState(true);
 
     console.log("FormBuilder: formDetails received:", formDetails);
-
+    
     useEffect(() => {
         console.log("FormBuilder useEffect: Processing formDetails", formDetails);
         if (formDetails?.default_fields || formDetails?.custom_fields) {
@@ -74,7 +74,6 @@ const FormBuilder = ({ formDetails, fields, setFields }) => {
         const timeout = setTimeout(() => setIsLoading(false), 800);
         return () => clearTimeout(timeout); // Clean up timeout
     }, [formDetails]);
-
 
 
     // Configure sensors with pointer activation constraints
@@ -231,6 +230,10 @@ const FormBuilder = ({ formDetails, fields, setFields }) => {
 
     const handleAddField = () => {
         console.log("FormBuilder: handleAddField called");
+        
+        // Check if employee management is enabled before allowing to add employee fields
+        // This check is done in the FormFields component where the actual field type is selected
+        
         const newId = `custom-${fields.length + 1}`;
         const newField = {
             id: newId,
@@ -317,6 +320,8 @@ const FormBuilder = ({ formDetails, fields, setFields }) => {
                                 onFieldUpdate={handleFieldUpdate}
                                 onFieldRemove={handleRemoveField}
                                 formType={formDetails?.form_type}
+                                isEmployeeManagementEnabled={isEmployeeManagementEnabled}
+                                isImageUploadEnabled={isImageUploadEnabled}
                             />
                             <div className="max-w-[900px] m-auto flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden px-4 xl:px-40 lg:px-6">
                                 <Button

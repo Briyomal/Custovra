@@ -69,7 +69,8 @@ export const getSubscriptionDetails = async (req, res) => {
         is_active: user.is_active,
         plan_name: genieSubscription?.plan_name || planName,
         amount: genieSubscription?.amount || 0,
-        billing_period: genieSubscription?.billing_period || 'monthly'
+        billing_period: genieSubscription?.billing_period || 'monthly',
+        auto_renew: genieSubscription?.auto_renew || false
       },
       formCount: formCount,
       submissionCount: submissionCount
@@ -95,7 +96,10 @@ export const getAvailablePlans = async (req, res) => {
       name: plan.name,
       description: plan.description,
       price_monthly: plan.price_monthly,
+      price_half_yearly: plan.price_half_yearly,
       price_yearly: plan.price_yearly,
+      discounts: plan.discounts,
+      final_prices: plan.final_prices,
       form_limit: plan.form_limit,
       submission_limit: plan.submission_limit,
       features: plan.features || [],
@@ -135,8 +139,18 @@ export const handlePaymentRequest = async (req, res) => {
       return res.status(404).json({ error: 'User not found.' });
     }
 
-    // Calculate amount based on billing period
-    const amount = billingPeriod === 'yearly' ? plan.price_yearly : plan.price_monthly;
+    // Calculate amount based on billing period using final_prices
+    let amount;
+    switch (billingPeriod) {
+      case 'yearly':
+        amount = plan.final_prices?.yearly ?? plan.price_yearly;
+        break;
+      case 'half_yearly':
+        amount = plan.final_prices?.half_yearly ?? (plan.price_monthly * 6);
+        break;
+      default: // monthly
+        amount = plan.final_prices?.monthly ?? plan.price_monthly;
+    }
 
     // For manual plans, we'll redirect to a success page since there's no actual payment processing
     // In a real implementation, you might want to create a pending payment record

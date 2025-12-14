@@ -34,8 +34,14 @@ export const getManualPlanById = async (req, res) => {
 // Create a new manual plan
 export const createManualPlan = async (req, res) => {
     try {
-        // The middleware will automatically calculate prices and apply discounts
-        const newPlan = new ManualPlan(req.body);
+        // Create plan without price fields to let middleware calculate them
+        const planData = { ...req.body };
+        // Remove price fields so middleware can calculate them
+        delete planData.price_half_yearly;
+        delete planData.price_yearly;
+        delete planData.final_prices;
+        
+        const newPlan = new ManualPlan(planData);
         await newPlan.save();
         res.status(201).json(newPlan);
     } catch (error) {
@@ -46,8 +52,17 @@ export const createManualPlan = async (req, res) => {
 // Update a manual plan
 export const updateManualPlan = async (req, res) => {
     try {
-        // The middleware will automatically recalculate prices and apply discounts
-        const updatedPlan = await ManualPlan.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        // Remove price fields so middleware can recalculate them
+        const updateData = { ...req.body };
+        delete updateData.price_half_yearly;
+        delete updateData.price_yearly;
+        delete updateData.final_prices;
+        
+        const updatedPlan = await ManualPlan.findByIdAndUpdate(
+            req.params.id, 
+            updateData, 
+            { new: true, runValidators: true }
+        );
         if (!updatedPlan) return res.status(404).json({ message: 'Manual plan not found' });
         res.status(200).json(updatedPlan);
     } catch (error) {
