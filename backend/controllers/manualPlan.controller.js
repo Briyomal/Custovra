@@ -52,19 +52,20 @@ export const createManualPlan = async (req, res) => {
 // Update a manual plan
 export const updateManualPlan = async (req, res) => {
     try {
-        // Remove price fields so middleware can recalculate them
-        const updateData = { ...req.body };
-        delete updateData.price_half_yearly;
-        delete updateData.price_yearly;
-        delete updateData.final_prices;
+        // First, find the plan by ID
+        const plan = await ManualPlan.findById(req.params.id);
+        if (!plan) return res.status(404).json({ message: 'Manual plan not found' });
         
-        const updatedPlan = await ManualPlan.findByIdAndUpdate(
-            req.params.id, 
-            updateData, 
-            { new: true, runValidators: true }
-        );
-        if (!updatedPlan) return res.status(404).json({ message: 'Manual plan not found' });
-        res.status(200).json(updatedPlan);
+        // Update the plan fields
+        Object.assign(plan, req.body);
+        
+        // Explicitly call validate to trigger the pre-validate middleware
+        await plan.validate();
+        
+        // Save the plan to trigger pre-save middleware
+        await plan.save();
+        
+        res.status(200).json(plan);
     } catch (error) {
         res.status(400).json({ error: error.message });
     }

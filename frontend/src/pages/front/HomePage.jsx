@@ -193,7 +193,7 @@ const HomePage = () => {
 
                 </div>
             </section>
-            <section className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white dark:from-[rgba(13,13,13,0.23)] dark:to-[rgba(13,13,13,1)] mt-[-30%] md:mt-[-10%] flex items-center justify-center relative z-20 py-6 md:pt-0">
+            <section className="hidden bg-gradient-to-b from-[rgba(255,255,255,0)] to-white dark:from-[rgba(13,13,13,0.23)] dark:to-[rgba(13,13,13,1)] mt-[-30%] md:mt-[-10%] flex items-center justify-center relative z-20 py-6 md:pt-0">
                 <div className="container mx-auto max-w-6xl px-6 relative ">
                     <HeroVideoDialog
                         className="block dark:hidden"

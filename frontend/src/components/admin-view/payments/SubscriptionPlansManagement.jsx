@@ -164,6 +164,7 @@ const SubscriptionPlansManagement = () => {
 
   // Open dialog for editing a plan
   const handleEditPlan = (plan) => {
+    // Create formData without final_prices to avoid sending stale data
     setFormData({
       name: plan.name,
       description: plan.description || "",
@@ -198,17 +199,21 @@ const SubscriptionPlansManagement = () => {
       
       const method = currentPlan ? "PUT" : "POST";
       
+      // Create a copy of formData without final_prices
+      const formDataToSend = { ...formData };
+      delete formDataToSend.final_prices;
+      
       const response = await fetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formDataToSend)
       });
       
       if (response.ok) {
-        await response.json();
+        const savedPlan = await response.json();
         toast({
           title: "Success",
           description: currentPlan 
@@ -218,7 +223,19 @@ const SubscriptionPlansManagement = () => {
         
         setIsDialogOpen(false);
         resetForm();
-        fetchPlans(); // Refresh the list
+        
+        // Update the plans list with the new/updated plan
+        if (currentPlan) {
+          // Update existing plan in the list
+          setPlans(prevPlans => 
+            prevPlans.map(plan => 
+              plan._id === currentPlan._id ? savedPlan : plan
+            )
+          );
+        } else {
+          // Add new plan to the list
+          setPlans(prevPlans => [...prevPlans, savedPlan]);
+        }
       } else {
         const errorData = await response.json();
         toast({
