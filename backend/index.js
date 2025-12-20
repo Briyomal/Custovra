@@ -41,21 +41,33 @@ const PORT = process.env.PORT || 5000;
 const allowedOrigins = [
     process.env.CLIENT_URL,        // https://localhost:5173
     process.env.CLIENT_URL_NGROK,  // https://xxxxx.ngrok-free.dev
-    "https://www.custovra.com", 
+    "https://custovra.com", 
+    "https://www.custovra.com",
+    "https://custovra.onrender.com",
 ];
+
 
 app.use(
     cors({
         origin: function (origin, callback) {
-            if (!origin || allowedOrigins.includes(origin)) {
+            // Allow server-to-server, webhooks, Postman
+            if (!origin) return callback(null, true);
+
+            if (allowedOrigins.includes(origin)) {
                 return callback(null, true);
             }
-            console.log("Blocked by CORS:", origin);
-            return callback(new Error("Not allowed by CORS"), false);
+
+            console.error("Blocked by CORS:", origin);
+            return callback(new Error("Not allowed by CORS"));
         },
         credentials: true,
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
     })
 );
+
+// IMPORTANT: enable preflight
+app.options("*", cors());
 
 // Static files
 app.use("/public", express.static(path.join(__dirname, "public")));

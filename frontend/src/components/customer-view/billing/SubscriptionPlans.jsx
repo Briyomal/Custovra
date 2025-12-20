@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Loader2, X } from "lucide-react";
 import { useState } from "react";
 
 const SubscriptionPlans = ({
@@ -281,18 +281,22 @@ const SubscriptionPlans = ({
                                                 </li>
                                                 {plan.features && (
                                                     <>
-                                                        {plan.features.image_upload && (
-                                                            <li className="flex items-center">
+                                                        <li className={`flex items-center ${plan.features.image_upload ? '' : 'opacity-50 line-through'}`}>
+                                                            {plan.features.image_upload ? (
                                                                 <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                                                Image Upload
-                                                            </li>
-                                                        )}
-                                                        {plan.features.employee_management && (
-                                                            <li className="flex items-center">
+                                                            ) : (
+                                                                <X className="h-4 w-4 text-red-500 mr-2" />
+                                                            )}
+                                                            Image Upload
+                                                        </li>
+                                                        <li className={`flex items-center ${plan.features.employee_management ? '' : 'opacity-50 line-through'}`}>
+                                                            {plan.features.employee_management ? (
                                                                 <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                                                Employee Management
-                                                            </li>
-                                                        )}
+                                                            ) : (
+                                                                <X className="h-4 w-4 text-red-500 mr-2" />
+                                                            )}
+                                                            Employee Management
+                                                        </li>
                                                         {plan.features.custom_features && plan.features.custom_features.map((feature, index) => (
                                                             <li key={index} className="flex items-center">
                                                                 <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
@@ -302,6 +306,7 @@ const SubscriptionPlans = ({
                                                     </>
                                                 )}
                                             </ul>
+
                                         </div>
                                     </CardContent>
                                     <div className="p-6 pt-0">

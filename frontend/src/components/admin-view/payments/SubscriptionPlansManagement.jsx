@@ -596,18 +596,22 @@ const SubscriptionPlansManagement = () => {
                 <div className="mb-4">
                   <h4 className="text-sm font-medium mb-2">Features:</h4>
                   <div className="flex flex-wrap gap-1">
-                    {plan.features?.image_upload && (
-                      <Badge variant="secondary">
+                    <Badge variant="secondary" className={plan.features?.image_upload ? "" : "opacity-50 line-through"}>
+                      {plan.features?.image_upload ? (
                         <CheckCircle className="mr-1 h-3 w-3" />
-                        Image Upload
-                      </Badge>
-                    )}
-                    {plan.features?.employee_management && (
-                      <Badge variant="secondary">
+                      ) : (
+                        <X className="mr-1 h-3 w-3" />
+                      )}
+                      Image Upload
+                    </Badge>
+                    <Badge variant="secondary" className={plan.features?.employee_management ? "" : "opacity-50 line-through"}>
+                      {plan.features?.employee_management ? (
                         <CheckCircle className="mr-1 h-3 w-3" />
-                        Employee Mgmt
-                      </Badge>
-                    )}
+                      ) : (
+                        <X className="mr-1 h-3 w-3" />
+                      )}
+                      Employee Mgmt
+                    </Badge>
                     {plan.features?.custom_features && plan.features.custom_features.map((feature, index) => (
                       <Badge key={index} variant="secondary">
                         {feature}
