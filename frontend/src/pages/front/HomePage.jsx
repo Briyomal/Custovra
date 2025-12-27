@@ -233,7 +233,7 @@ const HomePage = () => {
             <Header />
 
             {/* Hero Section */}
-            <section className="relative overflow-hidden bg-white dark:bg-[#0D0D0D] h-screen flex items-center justify-center">
+            <section id="home" className="relative overflow-hidden bg-white dark:bg-[#0D0D0D] h-screen flex items-center justify-center">
                 {/* Background Image */}
                 <img src={herobg} alt="Hero Background" className="absolute inset-0 object-cover w-full h-full z-0" />
 
@@ -340,7 +340,7 @@ const HomePage = () => {
 
 
             {/* How It Works */}
-            <section className="bg-gray-50 dark:bg-[#0D0D0D] py-24 px-4 md:px-6">
+            <section id="how-it-works" className="bg-gray-50 dark:bg-[#0D0D0D] py-24 px-4 md:px-6">
                 <div className="max-w-6xl mx-auto text-center">
                     <h2 className="text-3xl md:text-4xl font-bold leading-normal inline-block text-transparent bg-clip-text bg-gradient-to-r from-theme-green to-lime-500">Collect. Analyze. Grow.</h2>
                     <p className="mt-4 mb-4 text-md md:text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
@@ -362,7 +362,7 @@ const HomePage = () => {
             </section>
 
             {/* Core Features */}
-            <section className="bg-gradient-to-b from-gray-50 to-white dark:from-themebglight dark:to-black py-24 px-6">
+            <section id="features" className="bg-gradient-to-b from-gray-50 to-white dark:from-themebglight dark:to-black py-24 px-6">
                 <div className="max-w-6xl mx-auto text-center">
                     <h2 className="text-3xl md:text-4xl font-bold leading-normal inline-block text-transparent bg-clip-text bg-gradient-to-r from-theme-green to-lime-500">Everything You Need to Understand Your Customers</h2>
                     <p className="mt-4 mb-4 text-md md:text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
@@ -389,7 +389,7 @@ const HomePage = () => {
             </section>
 
             {/* Why Choose Custovra */}
-            <section className="bg-white dark:bg-black py-24 px-6">
+            <section id="why-choose" className="bg-white dark:bg-black py-24 px-6">
                 <div className="max-w-5xl mx-auto text-center">
                     <h2 className="text-3xl md:text-4xl font-bold leading-normal inline-block text-transparent bg-clip-text bg-gradient-to-r from-theme-green to-lime-500">Why Businesses Choose Custovra</h2>
                     <p className="mt-4 text-md md:text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
@@ -422,7 +422,7 @@ const HomePage = () => {
                     </p>
                     <div className="overflow-x-auto mt-10 rounded-lg overflow-hidden border border-gray-200 dark:border-green-950">
                         <table className="w-full border border-gray-200 dark:border-green-950 text-left">
-                            <thead className="bg-gray-100 dark:bg-themebglight text-white dark:text-gray-300 rounded-lg">
+                            <thead className="bg-gray-100 dark:bg-themebglight text-themebglight dark:text-gray-300 rounded-lg">
                                 <tr>
                                     <th className="p-4">Feature</th>
                                     <th className="p-4">Google Forms</th>
@@ -450,7 +450,7 @@ const HomePage = () => {
             </section>
 
             {/* Pricing */}
-            <section className="bg-white dark:bg-black py-24 px-6">
+            <section id="pricing" className="bg-white dark:bg-black py-24 px-6">
                 <div className="max-w-6xl mx-auto text-center">
                     <h2 className="text-3xl md:text-4xl font-bold leading-normal inline-block text-transparent bg-clip-text bg-gradient-to-r from-theme-green to-lime-500">Pricing</h2>
                     <p className="mt-4 text-md md:text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
@@ -607,7 +607,7 @@ const HomePage = () => {
             </section>
 
             {/* FAQs */}
-            <section className="bg-gray-50 dark:bg-[#0D0D0D] py-24 px-6">
+            <section id="faq" className="bg-gray-50 dark:bg-[#0D0D0D] py-24 px-6">
                 <div className="max-w-4xl mx-auto text-center">
                     <h2 className="text-3xl md:text-4xl font-bold leading-normal inline-block text-transparent bg-clip-text bg-gradient-to-r from-theme-green to-lime-500">Frequently Asked Questions</h2>
                     <div className="mt-10 space-y-6 text-themebglight dark:text-white text-left">

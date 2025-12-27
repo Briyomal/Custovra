@@ -13,6 +13,7 @@ import toast from "react-hot-toast";
 
 export default function Header() {
 	const [scrolled, setScrolled] = useState(false);
+	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
 	const { setTheme } = useTheme();
 
@@ -34,6 +35,24 @@ export default function Header() {
 		window.addEventListener("scroll", handleScroll);
 		return () => window.removeEventListener("scroll", handleScroll);
 	}, []);
+
+	const scrollToSection = (e, sectionId) => {
+		e.preventDefault();
+		const element = document.getElementById(sectionId);
+		if (element) {
+			// Get the offset position of the section
+			const offsetTop = element.offsetTop - 80; // Adjust for fixed header height
+			// Scroll to the section with smooth behavior
+			window.scrollTo({
+				top: offsetTop,
+				behavior: 'smooth'
+			});
+		}
+	};
+
+	const toggleMobileMenu = () => {
+		setMobileMenuOpen(!mobileMenuOpen);
+	};
 
 	return (
 		<header>
@@ -99,33 +118,40 @@ export default function Header() {
 								</DropdownMenuContent>
 							</DropdownMenu>
 						</div>
-						<button data-collapse-toggle="mobile-menu-2" type="button" className="inline-flex items-center p-2 ml-1 text-sm text-gray-500 rounded-lg md:hidden  focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600" aria-controls="mobile-menu-2" aria-expanded="false">
+						<button 
+							data-collapse-toggle="mobile-menu-2" 
+							type="button" 
+							className="inline-flex items-center p-2 ml-1 text-sm text-theme-green rounded-lg md:hidden focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-theme-green dark:hover:bg-themebg dark:focus:ring-gray-600" 
+							aria-controls="mobile-menu-2" 
+							aria-expanded={mobileMenuOpen}
+							onClick={toggleMobileMenu}
+						>
 							<span className="sr-only">Open main menu</span>
 							<svg className="w-6 h-6" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
 								<path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"></path>
 							</svg>
 						</button>
 					</div>
-					<div className="items-center justify-between hidden w-full md:flex md:w-auto md:order-1" id="mobile-menu-2">
-						<ul className="flex flex-col font-medium p-4 md:p-0 mt-4 border border-gray-100 rounded-lg md:flex-row md:space-x-8 md:mt-0 md:border-0">
+					<div className={`items-center justify-between w-full md:flex md:w-auto md:order-1 ${mobileMenuOpen ? 'block' : 'hidden'}`} id="mobile-menu-2">
+						<ul className="flex flex-col font-medium p-4 md:p-0 mt-4 bg-themebg md:bg-transparent border border-gray-800 rounded-lg md:flex-row md:space-x-8 md:mt-0 md:border-0">
 							<li>
-								<a href="/" className="block py-2 pl-3 pr-4 uppercase text-white bg-text-[#16bf4c] rounded md:bg-transparent md:text-[#16bf4c] md:p-0 md:dark:text-[#16bf4c]" aria-current="page">
+								<a href="#home" className="block py-2 pl-3 pr-4 uppercase text-white bg-text-[#16bf4c] rounded md:bg-transparent md:text-[#16bf4c] md:p-0 md:dark:text-[#16bf4c]" aria-current="page" onClick={(e) => {scrollToSection(e, 'home'); setMobileMenuOpen(false);}}>
 									Home
 								</a>
 							</li>
 							<li>
-								<a href="#about" className="block py-2 pl-3 pr-4 uppercase text-white rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-[#16bf4c] md:p-0 md:dark:hover:text-blue-300 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700">
-									About
+								<a href="#features" className="block py-2 pl-3 pr-4 uppercase text-white rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-[#16bf4c] md:p-0 md:dark:hover:text-blue-300 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700" onClick={(e) => {scrollToSection(e, 'features'); setMobileMenuOpen(false);}}>
+									Features
 								</a>
 							</li>
 							<li>
-								<a href="#pricing" className="block py-2 pl-3 pr-4 uppercase text-white rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-[#16bf4c] md:p-0 md:dark:hover:text-blue-300 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700">
+								<a href="#pricing" className="block py-2 pl-3 pr-4 uppercase text-white rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-[#16bf4c] md:p-0 md:dark:hover:text-blue-300 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700" onClick={(e) => {scrollToSection(e, 'pricing'); setMobileMenuOpen(false);}}>
 									Pricing
 								</a>
 							</li>
 							<li>
-								<a href="#contact" className="block py-2 pl-3 pr-4 uppercase text-white rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-[#16bf4c] md:p-0 md:dark:hover:text-blue-300 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700">
-									Contact
+								<a href="#faq" className="block py-2 pl-3 pr-4 uppercase text-white rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-[#16bf4c] md:p-0 md:dark:hover:text-blue-300 dark:text-gray-200 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700" onClick={(e) => {scrollToSection(e, 'faq'); setMobileMenuOpen(false);}}>
+									FAQ
 								</a>
 							</li>
 						</ul>

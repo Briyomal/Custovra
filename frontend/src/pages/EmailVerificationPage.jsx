@@ -90,7 +90,7 @@ const EmailVerificationPage = () => {
 								value={digit}
 								onChange={(e) => handleChange(index, e.target.value)}
 								onKeyDown={(e) => handleKeyDown(index, e)}
-								className='w-12 h-12 text-center text-2xl font-bold bg-blue-50 bg-opacity-30 text-gray-600 dark:text-gray-300 border-2 border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none'
+								className='w-12 h-12 text-center text-2xl font-bold bg-white dark:bg-themebglight bg-opacity-30 text-gray-600 dark:text-gray-300 border-2 border-theme-green dark:border-lime-700 rounded-lg focus:border-lime-500 focus:outline-none'
 							/>
 						))}
 					</div>
@@ -100,7 +100,7 @@ const EmailVerificationPage = () => {
 						whileTap={{ scale: 0.95 }}
 						type='submit'
 						disabled={isLoading || code.some((digit) => !digit)}
-						className='w-full rounded-md font-semibold text-black border
+						className='w-full py-3 px-4 rounded-md cursor-pointer font-semibold text-black border
                                                           border-lime-500
                                                             bg-gradient-to-r from-[#16bf4c] to-lime-500
                                                             transition-all duration-200 ease-in-out 

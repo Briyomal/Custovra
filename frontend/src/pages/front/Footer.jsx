@@ -1,4 +1,4 @@
-import { Mail, Phone, ArrowRightCircle, FileText, HelpCircle, CircleDollarSign, MessageSquare } from "lucide-react";
+import { Mail, Phone, ArrowRightCircle, FileText, CircleDollarSign, MessageSquare } from "lucide-react";
 import logoWhite from "../../assets/logo-white.png";
 
 export default function Footer() {
@@ -29,11 +29,6 @@ export default function Footer() {
               </a>
             </li>
             <li>
-              <a href="#faq" className="flex items-center gap-2 hover:text-lime-500 transition">
-                <HelpCircle size={16} /> FAQs
-              </a>
-            </li>
-            <li>
               <a href="#contact" className="flex items-center gap-2 hover:text-lime-500 transition">
                 <MessageSquare size={16} /> Contact
               </a>
@@ -61,7 +56,7 @@ export default function Footer() {
             </p>
             <p className="flex items-center gap-2 hover:text-lime-500 transition">
               <Phone className="text-theme-green" size={18} />
-              <a href="tel:0775740755">0775740755</a>
+              <a href="tel:+94768853420">+94 76 885 3420</a>
             </p>
           </div>
         </div>
