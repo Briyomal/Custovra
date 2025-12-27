@@ -133,14 +133,14 @@ function ReportExport({
             const pageHeight = pdf.internal.pageSize.getHeight();
             
             // Add decorative header line
-            pdf.setDrawColor(37, 99, 235); // Blue color
+            pdf.setDrawColor(34, 197, 94); // Blue color
             pdf.setLineWidth(1);
             pdf.line(20, 30, pageWidth - 20, 30);
             
             // Add title
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(24);
-            pdf.setTextColor(37, 99, 235); // Blue color
+            pdf.setTextColor(34, 197, 94); // Blue color
             pdf.text('Submissions Report', pageWidth / 2, 22, { align: 'center' });
             
             // Add subtitle
@@ -187,7 +187,7 @@ function ReportExport({
             // Add summary section with better formatting
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(18);
-            pdf.setTextColor(37, 99, 235); // Blue color
+            pdf.setTextColor(34, 197, 94); // Blue color
             pdf.text('Summary', 20, yPos);
             
             // Add decorative line under summary
