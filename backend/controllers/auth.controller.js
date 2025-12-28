@@ -252,20 +252,22 @@ export const verify2FALogin = async (req, res) => {
 	}
 };
 
-export const logout = async (req, res) => {
-	const isProduction = process.env.NODE_ENV === "production";
+export const logout = (req, res) => {
+    const isProduction = process.env.NODE_ENV === "production";
 
-	res.clearCookie("token", {
-		httpOnly: true,
-		secure: isProduction,
-		sameSite: isProduction ? "none" : "none",
-	});
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "lax",
+        path: "/", // MUST match cookie creation
+    });
 
-	res.status(200).json({
-		success: true,
-		message: "Logged out successfully",
-	});
+    res.status(200).json({
+        success: true,
+        message: "Logged out successfully",
+    });
 };
+
 
 export const forgotPassword = async (req, res) => {
 	const {
