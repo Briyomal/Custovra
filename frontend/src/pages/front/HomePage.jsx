@@ -293,7 +293,7 @@ const HomePage = () => {
                hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] 
                focus:outline-none focus:ring-2 focus:ring-lime-400"
                         >
-                            <a href="#" className="flex items-center justify-center gap-2">
+                            <a href="/signup" className="flex items-center justify-center gap-2">
                                 Register Now
                                 <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
                             </a>

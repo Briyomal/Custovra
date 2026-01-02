@@ -1,6 +1,9 @@
 // controllers/FormController.js
 import { Form } from '../models/Form.js';
 import { Submission } from "../models/Submission.js";
+import { ManualPlan } from '../models/ManualPlan.js';
+import { User } from '../models/User.js';
+import { GenieSubscription } from '../models/GenieSubscription.js';
 // Replace Cloudinary with S3 utilities
 import { deleteFileFromS3, getPresignedUrl, uploadFileToS3, generateFormLogoKey } from '../utils/s3.js';
 
@@ -236,7 +239,9 @@ export const createForm = async (req, res) => {
             google_link,
             is_active,
             default_fields,
-            custom_fields
+            custom_fields,
+            button_bg_color,
+            button_text_color
         } = req.body;
 
         // Validate required fields
@@ -255,6 +260,8 @@ export const createForm = async (req, res) => {
             form_description: form_description || "",
             google_link: google_link || "",
             is_active,
+            button_bg_color: button_bg_color || '#16bf4c',
+            button_text_color: button_text_color || '#000000',
             form_link: '', // Temporary, will update after _id is generated
         });
 
@@ -370,7 +377,9 @@ export const updateForm = async (req, res) => {
             google_link, 
             is_active,
             default_fields,
-            custom_fields
+            custom_fields,
+            button_bg_color,
+            button_text_color
         } = req.body;
 
         // Parse default_fields and custom_fields if they are strings
@@ -400,6 +409,8 @@ export const updateForm = async (req, res) => {
         if (form_description !== undefined) form.form_description = form_description;
         if (google_link !== undefined) form.google_link = google_link;
         if (is_active !== undefined) form.is_active = is_active;
+        if (button_bg_color !== undefined) form.button_bg_color = button_bg_color;
+        if (button_text_color !== undefined) form.button_text_color = button_text_color;
 
         // Handle logo removal
         if (req.body.remove_logo === "true") {
@@ -618,6 +629,51 @@ export const viewForm = async (req, res) => {
             return res.status(404).json({ message: 'Form not found' });
         }
         
+        // Check if the form owner has exceeded their submission limit
+        const formOwnerId = form.user_id;
+        
+        // Check for Genie subscription
+        const genieSubscription = await GenieSubscription.findOne({
+            user_id: formOwnerId,
+            status: 'active'
+        }).populate('plan_id');
+        
+        if (genieSubscription && genieSubscription.plan_id) {
+            // Count current month's submissions for the form owner
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999); // End of month
+
+            // Count submissions to all ACTIVE forms owned by the form owner this month
+            const formOwnerForms = await Form.find({ 
+                user_id: formOwnerId,
+                is_active: true 
+            }).select('_id');
+            
+            const formOwnerFormIds = formOwnerForms.map(f => f._id);
+
+            const currentSubmissionCount = await Submission.countDocuments({
+                form_id: { $in: formOwnerFormIds },
+                createdAt: {
+                    $gte: startOfMonth,
+                    $lte: endOfMonth
+                }
+            });
+            
+            // Check if the limit is exceeded
+            if (currentSubmissionCount >= genieSubscription.plan_id.submission_limit) {
+                return res.status(403).json({
+                    error: `Form submission limit exceeded. The form owner's ${genieSubscription.plan_id.name} plan allows ${genieSubscription.plan_id.submission_limit} submissions per month. ${currentSubmissionCount} submissions have been used this month.`,
+                    limit: {
+                        current: currentSubmissionCount,
+                        maximum: genieSubscription.plan_id.submission_limit,
+                        planName: genieSubscription.plan_id.name,
+                        resetDate: new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
+                    }
+                });
+            }
+        }
+        
         // Convert form to object and add presigned URL for logo if it exists
         const formObject = form.toObject();
         
@@ -642,6 +698,8 @@ export const viewForm = async (req, res) => {
             is_active: formObject.is_active,
             logo: formObject.logo,
             google_link: formObject.google_link,
+            button_bg_color: formObject.button_bg_color,
+            button_text_color: formObject.button_text_color,
             default_fields: formObject.default_fields,
             custom_fields: formObject.custom_fields,
             createdAt: formObject.createdAt,

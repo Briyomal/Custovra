@@ -15,7 +15,28 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const FormPreview = (formPreview) => {
-    const { default_fields = [], custom_fields = [] } = formPreview.formPreview || {}
+    const { default_fields = [], custom_fields = [], button_bg_color, button_text_color } = formPreview.formPreview || {}
+    
+    // Helper function to lighten a hex color
+    const lightenedColor = (hex) => {
+        // Remove the # if present
+        const color = hex.replace('#', '');
+        
+        // Convert to RGB
+        const r = parseInt(color.substring(0, 2), 16);
+        const g = parseInt(color.substring(2, 4), 16);
+        const b = parseInt(color.substring(4, 6), 16);
+        
+        // Lighten by increasing each component toward 255
+        const lightenedR = Math.min(255, r + 50);
+        const lightenedG = Math.min(255, g + 50);
+        const lightenedB = Math.min(255, b + 50);
+        
+        // Convert back to hex
+        const lightenedHex = `#${lightenedR.toString(16).padStart(2, '0')}${lightenedG.toString(16).padStart(2, '0')}${lightenedB.toString(16).padStart(2, '0')}`;
+        
+        return lightenedHex;
+    };
 
     const allEnabledFields = [...default_fields, ...custom_fields].filter(field => field.enabled)
 
@@ -228,12 +249,21 @@ const FormPreview = (formPreview) => {
                     <DialogFooter>
                         <Button
                             variant="default"
-                            className="w-full rounded-md font-semibold text-black border
-                                    border-lime-500
-                                      bg-gradient-to-r from-[#16bf4c] to-lime-500
-                                      transition-all duration-700 ease-in-out 
-                                      hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
-                                      focus:outline-none focus:ring-2 focus:ring-lime-400"
+                            className="w-full rounded-md font-semibold border
+                                    border-lime-500"
+                            style={{
+                                backgroundColor: button_bg_color || '#16bf4c',
+                                color: button_text_color || '#000000',
+                                border: `1px solid ${button_bg_color ? lightenedColor(button_bg_color) : '#16bf4c'}`,
+                                transition: 'all 0.2s ease-in-out',
+                                boxShadow: `0 0 10px ${button_bg_color ? button_bg_color + '66' : 'rgba(22,191,76,0.4)'}`,
+                            }}
+                            onMouseEnter={(e) => {
+                                e.target.style.boxShadow = `0 0 20px ${button_bg_color || '#16bf4c'}`;
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.boxShadow = `0 0 15px ${button_bg_color ? button_bg_color + '66' : 'rgba(22,191,76,0.4)'}`;
+                            }}
                         >
                             Submit
                         </Button>

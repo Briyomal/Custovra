@@ -83,7 +83,7 @@ export default function Footer() {
 
       <div className="text-center mt-10 text-gray-400 text-sm border-t border-theme-green/30 pt-4"></div>
       <div className="text-center mt-4 text-white text-sm">
-        © 2025 Custovra. All rights reserved.
+        © 2026 Custovra. All rights reserved.
       </div>
     </footer>
   );

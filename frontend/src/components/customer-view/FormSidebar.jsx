@@ -15,6 +15,7 @@ import {
     TooltipTrigger,
   } from "@/components/ui/tooltip"
 import { CircleHelp } from "lucide-react";
+import { HexColorPicker } from "react-colorful";
 
 
 const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect, onRemoveImage }) => {
@@ -26,6 +27,10 @@ const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect, onRemoveImage }
     const [formNote, setFormNote] = useState("");
     const [formGoogleLink, setFormGoogleLink] = useState("");
     const [errorLink, setErrorLink] = useState("");
+    const [buttonBgColor, setButtonBgColor] = useState("");
+    const [buttonTextColor, setButtonTextColor] = useState("");
+    const [showBgColorPicker, setShowBgColorPicker] = useState(false);
+    const [showTextColorPicker, setShowTextColorPicker] = useState(false);
 
     useEffect(() => {
         if (formDetails && formDetails.is_active !== undefined) {
@@ -43,30 +48,44 @@ const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect, onRemoveImage }
         if (formDetails && formDetails.google_link) {
             setFormGoogleLink(formDetails.google_link); // Only set if formDetails is defined and has form_description
         }
+        if (formDetails && formDetails.button_bg_color) {
+            setButtonBgColor(formDetails.button_bg_color);
+        }
+        if (formDetails && formDetails.button_text_color) {
+            setButtonTextColor(formDetails.button_text_color);
+        }
     }, [formDetails]);
 
 
     const handleDescriptionChange = (e) => {
         const value = e.target.value;
-        setFormDescription(value); // Update local state
-        onFieldUpdate("form_description", value); // Update parent state
+        if (value !== formDescription) {
+            setFormDescription(value); // Update local state
+            onFieldUpdate("form_description", value); // Update parent state
+        }
     };
 
     const handleSwitchChange = (value) => {
-        setIsActive(value);
-        onFieldUpdate("is_active", value);
+        if (value !== isActive) {
+            setIsActive(value);
+            onFieldUpdate("is_active", value);
+        }
     };
 
     const handleFormNameChange = (e) => {
         const value = e.target.value;
-        setFormName(value); // Update local state
-        onFieldUpdate("form_name", value); // Update parent state
+        if (value !== formName) {
+            setFormName(value); // Update local state
+            onFieldUpdate("form_name", value); // Update parent state
+        }
     };
 
     const handleFormNoteChange = (e) => {
         const value = e.target.value;
-        setFormNote(value); // Update local state
-        onFieldUpdate("form_note", value); // Update parent state
+        if (value !== formNote) {
+            setFormNote(value); // Update local state
+            onFieldUpdate("form_note", value); // Update parent state
+        }
     };
 
     const handleGoogleReviewLinkChange = (e) => {
@@ -79,12 +98,26 @@ const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect, onRemoveImage }
             setErrorLink(""); // Clear error if valid or empty
         }
     
-        setFormGoogleLink(value);
-        onFieldUpdate("google_link", value);
+        if (value !== formGoogleLink) {
+            setFormGoogleLink(value);
+            onFieldUpdate("google_link", value);
+        }
     };
-    
-    
+    const handleBgColorChange = (color) => {
+        if (color !== buttonBgColor) {
+            setButtonBgColor(color);
+            onFieldUpdate("button_bg_color", color);
+        }
+    };
 
+    const handleTextColorChange = (color) => {
+        if (color !== buttonTextColor) {
+            setButtonTextColor(color);
+            onFieldUpdate("button_text_color", color);
+        }
+    };
+
+    
     if (isLoading) {
         return (
             <aside className="w-[400px] max-w-[400px] flex flex-col flex-grow gap-2 border-l-2 border-muted p-4 bg-background overflow-y-auto h-full">
@@ -192,7 +225,7 @@ const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect, onRemoveImage }
                     required
                 />
             </div>
-            <div className="mt-2"> 
+            <div className="mt-2 mb-2"> 
                 <Label>Note</Label>
                 <Textarea 
                     className="mt-2" 
@@ -201,6 +234,73 @@ const FormSidebar = ({ formDetails, onFieldUpdate, onFileSelect, onRemoveImage }
                     placeholder="Personel note to identify the form" 
                 />
             </div>
+            <Separator className="my-4" />
+            
+            {/* Button Style Section */}
+            <div className="mt-6 mb-6">
+                <h4 className="text-md font-medium mb-4">Button Style</h4>
+                
+                {/* Background Color Picker */}
+                <div className="mb-4">
+                    <Label className="block mb-2">Button Background Color</Label>
+                    <div className="flex items-center gap-2">
+                        <div 
+                            className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                            style={{ backgroundColor: buttonBgColor || '#16bf4c' }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowBgColorPicker(!showBgColorPicker);
+                            }}
+                        />
+                        <span className="text-sm">{buttonBgColor || '#16bf4c'}</span>
+                    </div>
+                    {showBgColorPicker && (
+                        <div className="mt-2 relative">
+                            <div 
+                                className="fixed inset-0 z-10" 
+                                onClick={() => setShowBgColorPicker(false)}
+                            />
+                            <div className="relative z-20">
+                                <HexColorPicker 
+                                    color={buttonBgColor || '#16bf4c'} 
+                                    onChange={handleBgColorChange} 
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+                
+                {/* Text Color Picker */}
+                <div>
+                    <Label className="block mb-2">Button Text Color</Label>
+                    <div className="flex items-center gap-2">
+                        <div 
+                            className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                            style={{ backgroundColor: buttonTextColor || '#000000' }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowTextColorPicker(!showTextColorPicker);
+                            }}
+                        />
+                        <span className="text-sm">{buttonTextColor || '#000000'}</span>
+                    </div>
+                    {showTextColorPicker && (
+                        <div className="mt-2 relative">
+                            <div 
+                                className="fixed inset-0 z-10" 
+                                onClick={() => setShowTextColorPicker(false)}
+                            />
+                            <div className="relative z-20">
+                                <HexColorPicker 
+                                    color={buttonTextColor || '#000000'} 
+                                    onChange={handleTextColorChange} 
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+            
             </div>
             </ScrollArea>
             

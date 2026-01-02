@@ -282,6 +282,8 @@ const FormCreatePage = () => {
 				form_description: formDetails.form_description || "",
 				google_link: (formDetails.google_link && formDetails.google_link.trim()) || "",
 				is_active: formDetails.is_active !== undefined ? formDetails.is_active : false,
+				button_bg_color: formDetails.button_bg_color || '#16bf4c',
+				button_text_color: formDetails.button_text_color || '#000000',
 				default_fields: defaultFields,
 			};
 

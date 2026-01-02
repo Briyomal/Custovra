@@ -138,6 +138,14 @@ const formSchema = new Schema({
     lockReason: {
         type: String,
         default: null
+    },
+    button_bg_color: {
+        type: String,
+        default: '#16bf4c' // Default green color
+    },
+    button_text_color: {
+        type: String,
+        default: '#000000' // Default black color
     }
 }, { timestamps: true });
 

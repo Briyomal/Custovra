@@ -29,6 +29,7 @@ const geniePaymentSchema = new Schema({
         type: String,
         enum: ['pending', 'completed', 'failed', 'cancelled'],
         default: 'pending',
+  index: true
     },
     transaction_id: {
         type: String, // Genie transaction ID

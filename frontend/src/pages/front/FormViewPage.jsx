@@ -26,6 +26,27 @@ import toast from "react-hot-toast";
 import { Turnstile } from "@marsidev/react-turnstile";
 
 const FormViewPage = () => {
+    // Helper function to lighten a hex color
+    const lightenedColor = (hex) => {
+        // Remove the # if present
+        const color = hex.replace('#', '');
+        
+        // Convert to RGB
+        const r = parseInt(color.substring(0, 2), 16);
+        const g = parseInt(color.substring(2, 4), 16);
+        const b = parseInt(color.substring(4, 6), 16);
+        
+        // Lighten by increasing each component toward 255
+        const lightenedR = Math.min(255, r + 50);
+        const lightenedG = Math.min(255, g + 50);
+        const lightenedB = Math.min(255, b + 50);
+        
+        // Convert back to hex
+        const lightenedHex = `#${lightenedR.toString(16).padStart(2, '0')}${lightenedG.toString(16).padStart(2, '0')}${lightenedB.toString(16).padStart(2, '0')}`;
+        
+        return lightenedHex;
+    };
+    
     // Security Note: This component handles public form viewing
     // Sensitive information like form owner's user_id should never be logged or exposed
     const { viewForm } = useFormStore();
@@ -58,7 +79,12 @@ const FormViewPage = () => {
             try {
                 const data = await viewForm(formId);
                 if (data?.error) {
-                    setError(data.error);
+                    // Check if the error is due to submission limit being reached
+                    if (data.error.toLowerCase().includes('limit') || data.error.toLowerCase().includes('monthly') || data.error.toLowerCase().includes('submission')) {
+                        setError(data.error); // Use the full error message from backend
+                    } else {
+                        setError(data.error);
+                    }
                 } else {
                     // Initialize rating fields with value: 0 if not set
                     const initializeFields = (fields) => {
@@ -96,14 +122,25 @@ const FormViewPage = () => {
                 }
             } catch (err) {
                 console.error("Error fetching form details:", err);
-                setError("Failed to fetch form details. Please try again later.");
+                // Check if this is a 403 error (submission limit reached) or contains limit-related text
+                if (err?.response?.status === 403 || err?.response?.data?.error?.toLowerCase().includes('limit') || err?.response?.data?.error?.toLowerCase().includes('monthly') || err?.response?.data?.error?.toLowerCase().includes('submission')) {
+                    setError(err?.response?.data?.error || 'Monthly submission limit reached for this form. Please contact the form owner to upgrade their plan.');
+                } else {
+                    setError("Failed to fetch form details. Please try again later.");
+                }
             } finally {
                 setLoading(false);
             }
         };
 
-        if (formId) {
+        const loadForm = async () => {
+            setLoading(true);
+            
             fetchFormDetails();
+        };
+        
+        if (formId) {
+            loadForm();
         }
     }, [formId, viewForm]);
 
@@ -356,7 +393,12 @@ const FormViewPage = () => {
             const { error } = useSubmissionStore.getState();
 
             if (error) {
-                toast.error("Form submission failed.");
+                // Check if the error is due to submission limit being reached
+                if (error.toLowerCase().includes('limit') || error.toLowerCase().includes('monthly') || error.toLowerCase().includes('submission')) {
+                    toast.error("Monthly submission limit reached. Please upgrade your plan.");
+                } else {
+                    toast.error("Form submission failed.");
+                }
                 console.log("Submission Error:", error);
                 setSubmitLoading(false);
                 return;
@@ -371,8 +413,13 @@ const FormViewPage = () => {
                 }
             }
         } catch (err) {
-            console.error("Unexpected Error during submission:", err);
-            toast.error("An unexpected error occurred during submission.");
+            // Check if this is a 403 error (submission limit reached) or contains limit-related text
+            if (err?.response?.status === 403 || err.message?.toLowerCase().includes('limit') || err.message?.toLowerCase().includes('monthly') || err.message?.toLowerCase().includes('submission')) {
+                toast.error("Monthly submission limit reached. Please upgrade your plan.");
+            } else {
+                console.error("Unexpected Error during submission:", err);
+                toast.error("An unexpected error occurred during submission.");
+            }
         } finally {
             setSubmitLoading(false); // Ensure the loading state is reset regardless of success or failure
         }
@@ -399,11 +446,14 @@ const FormViewPage = () => {
       
 
 
-    if (loading || !formDetails) {
+    if (loading && !error) {
         return <LoadingSpinner />;
     }
 
-    if (error) return <p>Error: {error}</p>;
+    // Only show generic error if it's not a submission limit error
+    if (error && !(error.toLowerCase().includes('limit') || error.toLowerCase().includes('monthly') || error.toLowerCase().includes('submission'))) {
+        return <p>Error: {error}</p>;
+    }
 
     return (
         <FloatingBackground>
@@ -413,7 +463,17 @@ const FormViewPage = () => {
                 transition={{ duration: 0.5 }}
                 className="max-w-lg w-full"
             >
-                {!formDetails?.is_active ? (
+                {error && (error.toLowerCase().includes('limit') || error.toLowerCase().includes('monthly') || error.toLowerCase().includes('submission')) ? (
+                    <Card className="text-center p-4 backdrop-blur-md">
+                        <CardHeader>
+                            <Ban size={48} className="mx-auto mb-2 text-red-500" />
+                            <CardTitle>Monthly Limit Reached</CardTitle>
+                        </CardHeader>
+                        <CardDescription className="pb-3">
+                            This form has reached its monthly submission limit. Please contact the form owner to upgrade their plan.
+                        </CardDescription>
+                    </Card>
+                ) : !formDetails?.is_active ? (
                     <Card className="text-center p-4 backdrop-blur-md">
                         <CardHeader>
                             <Ban size={48} className="mx-auto mb-2 text-red-500" />
@@ -437,12 +497,21 @@ const FormViewPage = () => {
                                         <small>Your review text will be copied to your clipboard. Please paste it on Google Reviews.</small>
                                         <div className="flex justify-center gap-2 md:gap-4 mt-4">
                                             <Button
-                                                className="text-md rounded-md font-semibold text-black border
-                                                          border-lime-500
-                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
-                                                            transition-all duration-200 ease-in-out 
-                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
-                                                            focus:outline-none focus:ring-2 focus:ring-lime-400"
+                                                className="text-md rounded-md font-semibold border
+                                                          border-lime-500"
+                                                style={{
+                                                    backgroundColor: formDetails?.button_bg_color || '#16bf4c',
+                                                    color: formDetails?.button_text_color || '#000000',
+                                                    border: `1px solid ${formDetails?.button_bg_color ? lightenedColor(formDetails.button_bg_color) : '#16bf4c'}`,
+                                                    transition: 'all 0.2s ease-in-out',
+                                                    boxShadow: `0 0 15px ${formDetails?.button_bg_color ? formDetails.button_bg_color + '66' : 'rgba(22,191,76,0.4)'}`,
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.target.style.boxShadow = `0 0 20px ${formDetails?.button_bg_color || '#16bf4c'}`;
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.target.style.boxShadow = `0 0 15px ${formDetails?.button_bg_color ? formDetails.button_bg_color + '66' : 'rgba(22,191,76,0.4)'}`;
+                                                }}
                                                 //onClick={() => window.open(googleLink, "_blank")}
                                                 onClick={handleGoogleReview}
                                             >
@@ -474,7 +543,7 @@ const FormViewPage = () => {
                                 </Card>
                             )
                         ) : (
-                            <Card className=" border-b-[#16bf4c] text-center p-0 md:p-4 my-16 mx-4 md:my-6 md:mx-4 backdrop-blur-lg bg-white dark:bg-[#0d0d0dce]">
+                            <Card className=" text-center p-0 md:p-4 my-16 mx-4 md:my-6 md:mx-4 backdrop-blur-lg bg-white dark:bg-[#0d0d0dce]" style={{borderBottom: `4px solid ${formDetails?.button_bg_color || '#16bf4c'}`}}>
                                 {loading ? (
                                     <FormPreviewSkelton />
                                 ) : (
@@ -704,12 +773,21 @@ const FormViewPage = () => {
 
                                                 <Button
                                                     type="submit"
-                                                    className="text-md w-full rounded-md font-semibold text-black border
-                                                          border-lime-500
-                                                            bg-gradient-to-r from-[#16bf4c] to-lime-500
-                                                            transition-all duration-200 ease-in-out 
-                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
-                                                            focus:outline-none focus:ring-2 focus:ring-lime-400"
+                                                    className="text-md w-full rounded-md font-semibold border
+                                                          border-lime-500"
+                                                    style={{
+                                                        backgroundColor: formDetails?.button_bg_color || '#16bf4c',
+                                                        color: formDetails?.button_text_color || '#000000',
+                                                        border: `1px solid ${formDetails?.button_bg_color || '#16bf4c'}`,
+                                                        transition: 'all 0.2s ease-in-out',
+                                                        boxShadow: `0 0 10px ${formDetails?.button_bg_color ? formDetails.button_bg_color + '66' : 'rgba(22,191,76,0.4)'}`,
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.target.style.boxShadow = `0 0 20px ${formDetails?.button_bg_color || '#16bf4c'}`;
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.target.style.boxShadow = `0 0 15px ${formDetails?.button_bg_color ? formDetails.button_bg_color + '66' : 'rgba(22,191,76,0.4)'}`;
+                                                    }}
                                                     disabled={submitLoading}
                                                 >
                                                     {submitLoading ? (

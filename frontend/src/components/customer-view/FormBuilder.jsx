@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSensor, useSensors, MouseSensor, TouchSensor, KeyboardSensor } from "@dnd-kit/core";
 import FormSkeleton from "./FormSkelton";
 import FormFieldList from "./FormFields";
@@ -10,12 +10,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 const FormBuilder = ({ formDetails, fields, setFields, isImageUploadEnabled, isEmployeeManagementEnabled }) => {
     const [isLoading, setIsLoading] = useState(true);
+    const isInitializedRef = useRef(false); // Track if fields have been initialized from formDetails
 
-    console.log("FormBuilder: formDetails received:", formDetails);
-    
+    // Only log in development mode
     useEffect(() => {
-        console.log("FormBuilder useEffect: Processing formDetails", formDetails);
-        if (formDetails?.default_fields || formDetails?.custom_fields) {
+        if (import.meta.env.MODE === 'development') {
+            console.log("FormBuilder: formDetails received:", formDetails);
+        }
+        
+        // Only initialize fields from formDetails if not already initialized
+        // This prevents overwriting user changes when formDetails updates
+        if ((formDetails?.default_fields || formDetails?.custom_fields) && !isInitializedRef.current) {
             const defaultFields = (formDetails.default_fields || [])
                 .map((field, index) => {
                     // Exclude "Rating" field if form_type is "Complaint"
@@ -66,15 +71,17 @@ const FormBuilder = ({ formDetails, fields, setFields, isImageUploadEnabled, isE
             // Combine and sort by position
             const allFields = [...defaultFields, ...customFields].sort((a, b) => a.position - b.position);
             
-            console.log("FormBuilder: All processed fields:", allFields);
+            if (import.meta.env.MODE === 'development') {
+                console.log("FormBuilder: All processed fields:", allFields);
+            }
 
             setFields(allFields);
+            isInitializedRef.current = true; // Mark as initialized
         }
 
         const timeout = setTimeout(() => setIsLoading(false), 800);
         return () => clearTimeout(timeout); // Clean up timeout
-    }, [formDetails]);
-
+    }, [formDetails.default_fields, formDetails.custom_fields, formDetails.form_type]); // Only re-run when these specific fields change
 
     // Configure sensors with pointer activation constraints
     const sensors = useSensors(

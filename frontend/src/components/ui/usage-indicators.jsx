@@ -136,7 +136,7 @@ const UsageIndicators = () => {
           </div>
           {usage.submissions.resetDate && (
             <div className="text-xs text-gray-500 mt-1 ml-6">
-              Resets: {new Date(usage.submissions.resetDate).toLocaleDateString()}
+              Resets: {new Date(usage.submissions.resetDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
             </div>
           )}
         </DropdownMenuItem>
@@ -227,7 +227,7 @@ const UsageIndicators = () => {
               </p>
               {usage.submissions.resetDate && (
                 <p className="text-xs text-gray-500">
-                  Resets: {new Date(usage.submissions.resetDate).toLocaleDateString()}
+                  Resets: {new Date(usage.submissions.resetDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                 </p>
               )}
             </div>

@@ -55,6 +55,7 @@ const genieSubscriptionSchema = new Schema({
     transaction_id: {
         type: String, // Genie transaction ID
         required: false,
+        unique: true,
     },
     card_token: {
         type: String, // Token for recurring payments
