@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { toast } from "@/hooks/use-toast";
+import toast from "react-hot-toast";
 import { CheckCircle, Edit, Plus, Trash2, X } from "lucide-react";
 
 const SubscriptionPlansManagement = () => {
@@ -53,18 +53,10 @@ const SubscriptionPlansManagement = () => {
         const data = await response.json();
         setPlans(data);
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to fetch subscription plans",
-          variant: "destructive",
-        });
+        toast.error("Failed to fetch subscription plans");
       }
     } catch (err) { // eslint-disable-line no-unused-vars
-      toast({
-        title: "Error",
-        description: "Failed to fetch subscription plans",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch subscription plans");
     } finally {
       setLoading(false);
     }
@@ -214,12 +206,9 @@ const SubscriptionPlansManagement = () => {
       
       if (response.ok) {
         const savedPlan = await response.json();
-        toast({
-          title: "Success",
-          description: currentPlan 
+        toast.success(currentPlan 
             ? "Subscription plan updated successfully" 
-            : "Subscription plan created successfully",
-        });
+            : "Subscription plan created successfully");
         
         setIsDialogOpen(false);
         resetForm();
@@ -238,18 +227,10 @@ const SubscriptionPlansManagement = () => {
         }
       } else {
         const errorData = await response.json();
-        toast({
-          title: "Error",
-          description: errorData.message || "Failed to save subscription plan",
-          variant: "destructive",
-        });
+        toast.error(errorData.message || "Failed to save subscription plan");
       }
     } catch (err) { // eslint-disable-line no-unused-vars
-      toast({
-        title: "Error",
-        description: "Failed to save subscription plan",
-        variant: "destructive",
-      });
+      toast.error("Failed to save subscription plan");
     }
   };
 
@@ -266,25 +247,14 @@ const SubscriptionPlansManagement = () => {
       });
       
       if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Subscription plan deleted successfully",
-        });
+        toast.success("Subscription plan deleted successfully");
         fetchPlans(); // Refresh the list
       } else {
         const error = await response.json();
-        toast({
-          title: "Error",
-          description: error.message || "Failed to delete subscription plan",
-          variant: "destructive",
-        });
+        toast.error(error.message || "Failed to delete subscription plan");
       }
     } catch (err) { // eslint-disable-line no-unused-vars
-      toast({
-        title: "Error",
-        description: "Failed to delete subscription plan",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete subscription plan");
     }
   };
 

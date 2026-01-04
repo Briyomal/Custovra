@@ -160,7 +160,7 @@ const FormCreatePage = () => {
 
 		// Updated to include WebP files
 		const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-		const maxSize = 1024 * 1024; // 1MB
+		const maxSize = 2 * 1024 * 1024; // 2MB
 
 		if (!validTypes.includes(file.type)) {
 			toast.error("Only JPG, JPEG, PNG, and WebP files are allowed.");
@@ -168,7 +168,7 @@ const FormCreatePage = () => {
 		}
 
 		if (file.size > maxSize) {
-			toast.error("Image size should not exceed 1MB.");
+			toast.error("Image size should not exceed 2MB.");
 			return;
 		}
 

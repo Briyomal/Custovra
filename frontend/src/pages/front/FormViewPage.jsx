@@ -24,6 +24,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import useSubmissionStore from "@/store/submissionStore";
 import toast from "react-hot-toast";
 import { Turnstile } from "@marsidev/react-turnstile";
+import imageCompression from "browser-image-compression";
 
 const FormViewPage = () => {
     // Helper function to lighten a hex color
@@ -80,7 +81,7 @@ const FormViewPage = () => {
                 const data = await viewForm(formId);
                 if (data?.error) {
                     // Check if the error is due to submission limit being reached
-                    if (data.error.toLowerCase().includes('limit') || data.error.toLowerCase().includes('monthly') || data.error.toLowerCase().includes('submission')) {
+                    if (data.error.toLowerCase().includes('form submission limit exceeded')) {
                         setError(data.error); // Use the full error message from backend
                     } else {
                         setError(data.error);
@@ -91,7 +92,8 @@ const FormViewPage = () => {
                         return fields ? fields.map(field => ({
                             ...field,
                             value: field.field_type === 'rating' ? (field.value || 0) : (field.value || ''),
-                            employeeRatingValue: field.field_type === 'employee' && field.hasEmployeeRating ? (field.employeeRatingValue || 0) : undefined
+                            employeeRatingValue: field.field_type === 'employee' && field.hasEmployeeRating ? (field.employeeRatingValue || 0) : undefined,
+                            isProcessing: field.field_type === 'image' ? false : undefined
                         })) : [];
                     };
                     
@@ -122,8 +124,9 @@ const FormViewPage = () => {
                 }
             } catch (err) {
                 console.error("Error fetching form details:", err);
-                // Check if this is a 403 error (submission limit reached) or contains limit-related text
-                if (err?.response?.status === 403 || err?.response?.data?.error?.toLowerCase().includes('limit') || err?.response?.data?.error?.toLowerCase().includes('monthly') || err?.response?.data?.error?.toLowerCase().includes('submission')) {
+                // Check if this is a 403 error with specific limit-related text
+                if (err?.response?.status === 403 && 
+                    err?.response?.data?.error?.toLowerCase().includes('form submission limit exceeded')) {
                     setError(err?.response?.data?.error || 'Monthly submission limit reached for this form. Please contact the form owner to upgrade their plan.');
                 } else {
                     setError("Failed to fetch form details. Please try again later.");
@@ -194,13 +197,64 @@ const FormViewPage = () => {
     };
 
 
-    const handleChange = (e, field) => {
+    const handleChange = async (e, field) => {
         let name, value;
         
         // Handle file inputs differently
         if (e.target.type === 'file') {
             name = e.target.name;
             value = e.target.files[0]; // Get the file object
+            
+            // If it's an image file, set processing state first
+            if (value && value.type.startsWith('image/')) {
+                // Set processing state immediately
+                setFormDetails(prevDetails => {
+                    return {
+                        ...prevDetails,
+                        default_fields: prevDetails.default_fields.map(f => {
+                            if (f.field_name === name && f.field_type === 'image') {
+                                return { ...f, isProcessing: true };
+                            }
+                            return f;
+                        }),
+                        custom_fields: prevDetails.custom_fields ? prevDetails.custom_fields.map(f => {
+                            if (f.field_name === name && f.field_type === 'image') {
+                                return { ...f, isProcessing: true };
+                            }
+                            return f;
+                        }) : [],
+                    };
+                });
+                
+                try {
+                    // Define compression options
+                    const options = {
+                        maxSizeMB: 0.5, // Maximum size in MB (reduce from 2MB)
+                        maxWidthOrHeight: 1920, // Maximum dimension
+                        useWebP: true, // Convert to WebP format
+                        quality: 0.8, // Quality of the compressed image (0-1)
+                    };
+                    
+                    // Compress the image
+                    const compressedFile = await imageCompression(value, options);
+                                    
+                    // Create a preview URL for the compressed image
+                    const previewUrl = URL.createObjectURL(compressedFile);
+                                    
+                    // Rename the file to have a .webp extension
+                    value = new File([compressedFile], value.name.replace(/\.[^/.]+$/, ".webp"), {
+                        type: "image/webp",
+                        lastModified: Date.now(),
+                    });
+                                    
+                    // Add the preview URL to the file object
+                    value.previewUrl = previewUrl;
+                } catch (error) {
+                    console.error("Error compressing image:", error);
+                    // If compression fails, continue with the original file
+                    toast.error("Image compression failed, using original file");
+                }
+            }
         } else {
             name = e.target.name;
             value = e.target.value;
@@ -226,6 +280,29 @@ const FormViewPage = () => {
             }
             return newErrors;
         });
+        
+        // If it's an image file and has been processed, clear the processing state after a brief delay
+        if (value && value.type?.startsWith('image/')) {
+            setTimeout(() => {
+                setFormDetails(prevDetails => {
+                    return {
+                        ...prevDetails,
+                        default_fields: prevDetails.default_fields.map(f => {
+                            if (f.field_name === name && f.field_type === 'image') {
+                                return { ...f, isProcessing: false };
+                            }
+                            return f;
+                        }),
+                        custom_fields: prevDetails.custom_fields ? prevDetails.custom_fields.map(f => {
+                            if (f.field_name === name && f.field_type === 'image') {
+                                return { ...f, isProcessing: false };
+                            }
+                            return f;
+                        }) : [],
+                    };
+                });
+            }, 100); // Small delay to ensure state updates properly
+        }
 
         // Update the value in both default_fields and custom_fields
         setFormDetails((prevDetails) => {
@@ -246,12 +323,54 @@ const FormViewPage = () => {
                 // Regular field update
                 return {
                     ...prevDetails,
-                    default_fields: prevDetails.default_fields.map((f) =>
-                        f.field_name === name ? { ...f, value } : f
-                    ),
-                    custom_fields: prevDetails.custom_fields ? prevDetails.custom_fields.map((f) =>
-                        f.field_name === name ? { ...f, value } : f
-                    ) : [],
+                    default_fields: prevDetails.default_fields.map((f) => {
+                        if (f.field_name === name) {
+                            // For image fields, update the value and handle processing state
+                            if (f.field_type === 'image') {
+                                // If value is not an image file, clear processing state
+                                if (!value || !value.type?.startsWith('image/')) {
+                                    return { 
+                                        ...f, 
+                                        value: value,
+                                        isProcessing: false
+                                    };
+                                } else {
+                                    // Keep processing state as is for image files (it's set separately)
+                                    return { 
+                                        ...f, 
+                                        value: value,
+                                        isProcessing: f.isProcessing
+                                    };
+                                }
+                            }
+                            return { ...f, value };
+                        }
+                        return f;
+                    }),
+                    custom_fields: prevDetails.custom_fields ? prevDetails.custom_fields.map((f) => {
+                        if (f.field_name === name) {
+                            // For image fields, update the value and handle processing state
+                            if (f.field_type === 'image') {
+                                // If value is not an image file, clear processing state
+                                if (!value || !value.type?.startsWith('image/')) {
+                                    return { 
+                                        ...f, 
+                                        value: value,
+                                        isProcessing: false
+                                    };
+                                } else {
+                                    // Keep processing state as is for image files (it's set separately)
+                                    return { 
+                                        ...f, 
+                                        value: value,
+                                        isProcessing: f.isProcessing
+                                    };
+                                }
+                            }
+                            return { ...f, value };
+                        }
+                        return f;
+                    }) : [],
                 };
             }
         });
@@ -373,6 +492,17 @@ const FormViewPage = () => {
 
                 // Submit the form with FormData
                 await submitForm(formData);
+                
+                // After successful submission, clear processing states for image fields
+                setFormDetails(prev => ({
+                    ...prev,
+                    default_fields: prev.default_fields.map(f => 
+                        f.field_type === 'image' ? { ...f, isProcessing: false } : f
+                    ),
+                    custom_fields: prev.custom_fields ? prev.custom_fields.map(f => 
+                        f.field_type === 'image' ? { ...f, isProcessing: false } : f
+                    ) : []
+                }));
             } else {
                 // Use JSON for submissions without file uploads
                 const jsonData = {
@@ -394,10 +524,11 @@ const FormViewPage = () => {
 
             if (error) {
                 // Check if the error is due to submission limit being reached
-                if (error.toLowerCase().includes('limit') || error.toLowerCase().includes('monthly') || error.toLowerCase().includes('submission')) {
+                if (error.toLowerCase().includes('form submission limit exceeded')) {
                     toast.error("Monthly submission limit reached. Please upgrade your plan.");
                 } else {
-                    toast.error("Form submission failed.");
+                    // Show the specific error message from the backend
+                    toast.error(error);
                 }
                 console.log("Submission Error:", error);
                 setSubmitLoading(false);
@@ -413,13 +544,27 @@ const FormViewPage = () => {
                 }
             }
         } catch (err) {
-            // Check if this is a 403 error (submission limit reached) or contains limit-related text
-            if (err?.response?.status === 403 || err.message?.toLowerCase().includes('limit') || err.message?.toLowerCase().includes('monthly') || err.message?.toLowerCase().includes('submission')) {
+            // Check if this is a 403 error with specific limit-related text
+            if (err?.response?.status === 403 && 
+                err?.response?.data?.message?.toLowerCase().includes('form submission limit exceeded')) {
                 toast.error("Monthly submission limit reached. Please upgrade your plan.");
             } else {
                 console.error("Unexpected Error during submission:", err);
-                toast.error("An unexpected error occurred during submission.");
+                // Show the specific error message from the backend if available
+                const errorMessage = err?.response?.data?.message || err.message || "An unexpected error occurred during submission.";
+                toast.error(errorMessage);
             }
+            
+            // Clear processing states for image fields in case of error
+            setFormDetails(prev => ({
+                ...prev,
+                default_fields: prev.default_fields.map(f => 
+                    f.field_type === 'image' ? { ...f, isProcessing: false } : f
+                ),
+                custom_fields: prev.custom_fields ? prev.custom_fields.map(f => 
+                    f.field_type === 'image' ? { ...f, isProcessing: false } : f
+                ) : []
+            }));
         } finally {
             setSubmitLoading(false); // Ensure the loading state is reset regardless of success or failure
         }
@@ -451,7 +596,7 @@ const FormViewPage = () => {
     }
 
     // Only show generic error if it's not a submission limit error
-    if (error && !(error.toLowerCase().includes('limit') || error.toLowerCase().includes('monthly') || error.toLowerCase().includes('submission'))) {
+    if (error && !(error.toLowerCase().includes('form submission limit exceeded'))) {
         return <p>Error: {error}</p>;
     }
 
@@ -463,7 +608,7 @@ const FormViewPage = () => {
                 transition={{ duration: 0.5 }}
                 className="max-w-lg w-full"
             >
-                {error && (error.toLowerCase().includes('limit') || error.toLowerCase().includes('monthly') || error.toLowerCase().includes('submission')) ? (
+                {error && (error.toLowerCase().includes('form submission limit exceeded')) ? (
                     <Card className="text-center p-4 backdrop-blur-md">
                         <CardHeader>
                             <Ban size={48} className="mx-auto mb-2 text-red-500" />
@@ -543,7 +688,7 @@ const FormViewPage = () => {
                                 </Card>
                             )
                         ) : (
-                            <Card className=" text-center p-0 md:p-4 my-16 mx-4 md:my-6 md:mx-4 backdrop-blur-lg bg-white dark:bg-[#0d0d0dce]" style={{borderBottom: `4px solid ${formDetails?.button_bg_color || '#16bf4c'}`}}>
+                            <Card className="rounded-xl text-center p-0 md:p-4 my-16 mx-4 md:my-6 md:mx-4 backdrop-blur-lg bg-white dark:bg-[#0d0d0dce]" style={{borderBottom: `4px solid ${formDetails?.button_bg_color || '#16bf4c'}`}}>
                                 {loading ? (
                                     <FormPreviewSkelton />
                                 ) : (
@@ -662,7 +807,7 @@ const FormViewPage = () => {
                                                                                     <span className="font-semibold">Click to upload</span> or drag and drop
                                                                                 </p>
                                                                                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                                                    PNG, JPG, JPEG (MAX. 1MB)
+                                                                                    PNG, JPG, JPEG, WebP (MAX. 2MB)
                                                                                 </p>
                                                                             </div>
                                                                             <Input
@@ -676,19 +821,40 @@ const FormViewPage = () => {
                                                                             />
                                                                         </label>
                                                                     </div>
-                                                                    {field.value && typeof field.value === "object" && field.value.name && (
-                                                                        <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-green-900 rounded-md">
-                                                                            <div className="flex items-center">
-                                                                                <svg className="w-5 h-5 text-green-500 dark:text-green-400 mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 18">
-                                                                                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 3v4l3-3m6 4H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/>
-                                                                                </svg>
-                                                                                <span className="text-sm font-medium text-green-700 dark:text-green-300 truncate">
-                                                                                    {field.value.name}
-                                                                                </span>
-                                                                            </div>
-                                                                            <span className="text-xs text-lime-600 dark:text-lime-400">
-                                                                                Selected
-                                                                            </span>
+                                                                    {/* Show image preview if available */}
+                                                                    {field.value && typeof field.value === "object" && (
+                                                                        <div className="flex flex-col items-center p-2 bg-blue-50 dark:bg-green-900 rounded-md">
+                                                                            {/* Loading state when image is being processed */}
+                                                                            {field.isProcessing && (
+                                                                                <div className="flex flex-col items-center">
+                                                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-lime-500 mb-2"></div>
+                                                                                    <span className="text-sm text-gray-600 dark:text-gray-300">Processing image...</span>
+                                                                                </div>
+                                                                            )}
+                                                                            {/* Image preview */}
+                                                                            {!field.isProcessing && (
+                                                                                <>
+                                                                                    <img 
+                                                                                        src={field.value.previewUrl || URL.createObjectURL(field.value)} 
+                                                                                        alt="Preview" 
+                                                                                        className="max-h-32 max-w-full object-contain rounded-md mb-2 border border-gray-300"
+
+                                                                                    />
+                                                                                    <div className="flex items-center justify-between w-full">
+                                                                                        <div className="flex items-center truncate">
+                                                                                            <svg className="w-4 h-4 text-green-500 dark:text-green-400 mr-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 18">
+                                                                                                <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 3v4l3-3m6 4H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/>
+                                                                                            </svg>
+                                                                                            <span className="text-sm font-medium text-green-700 dark:text-green-300 truncate">
+                                                                                                {field.value.name}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <span className="text-xs text-lime-600 dark:text-lime-400">
+                                                                                            Selected
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </>
+                                                                            )}
                                                                         </div>
                                                                     )}
                                                                     {field.placeholder && (

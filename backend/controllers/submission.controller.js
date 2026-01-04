@@ -1,9 +1,11 @@
 import { Submission } from '../models/Submission.js';
 import { Form } from '../models/Form.js';
 import { Employee } from '../models/Employee.js';
+import mongoose from 'mongoose';
 import axios from "axios";
 // Add S3 utilities import
 import { uploadFileToS3, getPresignedUrl } from '../utils/s3.js';
+import rateLimit from "express-rate-limit";
 
 // Create a helper function to generate a unique key for submission files
 const generateSubmissionFileKey = (formId, fieldName, originalname) => {
@@ -11,6 +13,13 @@ const generateSubmissionFileKey = (formId, fieldName, originalname) => {
     const randomString = Math.random().toString(36).substring(2, 15);
     return `form_submissions/${formId}/${fieldName}_${timestamp}_${randomString}_${originalname}`;
 };
+
+export const submissionLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 5, // 5 submissions per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 export const getAllSubmissions = async (req, res) => {
     try {
@@ -72,7 +81,7 @@ export const getSubmissionsByFormOwner = async (req, res) => {
                 for (const [key, value] of Object.entries(resolvedSubmissions)) {
                     // Check if this field is an employee field and contains ObjectId pattern
                     if ((key.toLowerCase().includes('employee') || key.toLowerCase().endsWith('employee')) && 
-                        typeof value === 'string' && value.match(/^[0-9a-fA-F]{24}$/)) {
+                        typeof value === 'string' && /^[0-9a-fA-F]{24}$/.test(value)) {
                         try {
                             const employee = await Employee.findById(value).select('name designation profile_photo');
                             if (employee) {
@@ -112,6 +121,7 @@ export const getSubmissionsByFormOwner = async (req, res) => {
         
         res.status(200).json(processedSubmissions);
     } catch (error) {
+        console.error('Error fetching submissions by form owner:', error);
         res.status(500).json({ message: "Server error. Unable to fetch submissions." });
     }
 };
@@ -119,6 +129,11 @@ export const getSubmissionsByFormOwner = async (req, res) => {
 // Get all responses for a form
 export const getSubmissionsByFormId = async (req, res) => {
     try {
+        // Validate formId is a proper ObjectId
+        if (!mongoose.Types.ObjectId.isValid(req.params.formId)) {
+            return res.status(400).json({ message: "Invalid form ID" });
+        }
+        
         const submissions = await Submission.find({ form_id: req.params.formId })
             .populate('form_id');
             
@@ -148,7 +163,7 @@ export const getSubmissionsByFormId = async (req, res) => {
                 for (const [key, value] of Object.entries(resolvedSubmissions)) {
                     // Check if this field is an employee field and contains ObjectId pattern
                     if ((key.toLowerCase().includes('employee') || key.toLowerCase().endsWith('employee')) && 
-                        typeof value === 'string' && value.match(/^[0-9a-fA-F]{24}$/)) {
+                        typeof value === 'string' && /^[0-9a-fA-F]{24}$/.test(value)) {
                         try {
                             const employee = await Employee.findById(value).select('name designation profile_photo');
                             if (employee) {
@@ -188,13 +203,19 @@ export const getSubmissionsByFormId = async (req, res) => {
         
         res.status(200).json(processedSubmissions);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error fetching submissions by form ID:', error);
+        res.status(500).json({ message: "Server error. Unable to fetch submissions." });
     }
 };
 
 // Add this new function for admin to fetch submissions by form ID
 export const getSubmissionsByFormIdAdmin = async (req, res) => {
     try {
+        // Validate formId is a proper ObjectId
+        if (!mongoose.Types.ObjectId.isValid(req.params.formId)) {
+            return res.status(400).json({ message: "Invalid form ID" });
+        }
+        
         const submissions = await Submission.find({ form_id: req.params.formId })
             .populate('form_id')
             .populate('user_id', 'name email'); // Populate user info for admin view
@@ -225,7 +246,7 @@ export const getSubmissionsByFormIdAdmin = async (req, res) => {
                 for (const [key, value] of Object.entries(resolvedSubmissions)) {
                     // Check if this field is an employee field and contains ObjectId pattern
                     if ((key.toLowerCase().includes('employee') || key.toLowerCase().endsWith('employee')) && 
-                        typeof value === 'string' && value.match(/^[0-9a-fA-F]{24}$/)) {
+                        typeof value === 'string' && /^[0-9a-fA-F]{24}$/.test(value)) {
                         try {
                             const employee = await Employee.findById(value).select('name designation profile_photo');
                             if (employee) {
@@ -266,7 +287,7 @@ export const getSubmissionsByFormIdAdmin = async (req, res) => {
         res.status(200).json(processedSubmissions);
     } catch (error) {
         console.error("Error fetching submissions for admin:", error);
-        res.status(500).json({ message: "Server error. Unable to fetch submissions.", error: error.message });
+        res.status(500).json({ message: "Server error. Unable to fetch submissions." });
     }
 };
 
@@ -277,6 +298,12 @@ export const createSubmission = async (req, res) => {
     
     // If we have files, process them
     if (req.files && req.files.length > 0) {
+        // Reject request if too many files
+        if (req.files.length > 1) {  // Fixed: was checking for > 3 but error message said max 1
+            return res.status(400).json({
+                message: "Maximum 1 file allowed"
+            });
+        }
         // Process file uploads and add them to submissions
         submissions = {};
         
@@ -289,7 +316,14 @@ export const createSubmission = async (req, res) => {
             } else if (key === 'user_id') {
                 user_id = value;
             } else {
-                submissions[key] = value;
+                // Sanitize and validate field names to prevent injection
+                if (typeof value === 'string' && value.length <= 10000) {  // Limit value length
+                    // Only allow alphanumeric characters, spaces, hyphens, underscores in field names
+                    const sanitizedKey = key.replace(/[^a-zA-Z0-9 _-]/g, '');
+                    if (sanitizedKey && sanitizedKey.length <= 100) {  // Limit key length
+                        submissions[sanitizedKey] = value;
+                    }
+                }
             }
         }
         
@@ -306,7 +340,7 @@ export const createSubmission = async (req, res) => {
                 submissions[file.fieldname] = key;
             } catch (error) {
                 console.error('Error uploading file:', error);
-                // Continue processing other files even if one fails
+                return res.status(500).json({ message: "File upload failed" });
             }
         }
     } else {
@@ -317,29 +351,47 @@ export const createSubmission = async (req, res) => {
     }
 
     try {
+        // Validate form_id is a proper ObjectId
+        if (!mongoose.Types.ObjectId.isValid(form_id)) {
+            return res.status(400).json({ message: "Invalid form ID" });
+        }
         
-		// 1. CAPTCHA verification Start
-		if (!captchaToken) {
-			return res.status(400).json({ message: "Captcha verification failed" });
-		}
-        		const captchaResponse = await axios.post(
-			"https://challenges.cloudflare.com/turnstile/v0/siteverify",
-			new URLSearchParams({
-				secret: process.env.TURNSTILE_SECRET_KEY,
-				response: captchaToken,
-			}),
-			{
-				headers: { "Content-Type": "application/x-www-form-urlencoded" },
-			}
-		);
+        // Verify the form exists and is active before accepting submission
+        const form = await Form.findById(form_id);
+        if (!form) {
+            return res.status(404).json({ message: "Form not found" });
+        }
+        
+        if (!form.is_active) {
+            return res.status(403).json({ message: "Form is not active" });
+        }
+        
+        if (form.is_locked) {
+            return res.status(403).json({ message: "Form is locked and not accepting submissions" });
+        }
 
-		if (!captchaResponse.data.success) {
-			return res.status(400).json({
-				success: false,
-				message: "Invalid captcha",
-				errors: captchaResponse.data["error-codes"]
-			});
-		}
+        // 1. CAPTCHA verification Start
+        if (!captchaToken) {
+            return res.status(400).json({ message: "Captcha verification failed" });
+        }
+        const captchaResponse = await axios.post(
+            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+            new URLSearchParams({
+                secret: process.env.TURNSTILE_SECRET_KEY,
+                response: captchaToken,
+            }),
+            {
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            }
+        );
+
+        if (!captchaResponse.data.success) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid captcha",
+                errors: captchaResponse.data["error-codes"]
+            });
+        }
         // CAPTCHA verification End
 
         if (!form_id || !submissions) {
@@ -366,6 +418,7 @@ export const createSubmission = async (req, res) => {
         
         res.status(201).json(responseData);
     } catch (error) {
+        console.error('Error creating submission:', error);
         res.status(500).json({ message: "Server error. Unable to save submission." });
     }
 };
@@ -374,6 +427,30 @@ export const deleteSubmission = async (req, res) => {
     const { id } = req.params;
 
     try {
+        // Validate submission ID is a proper ObjectId
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid submission ID" });
+        }
+        
+        // First, find the submission to check if user has permission to delete it
+        const submission = await Submission.findById(id);
+        if (!submission) {    
+            return res.status(404).json({ message: "Submission not found." });
+        }
+        
+        // Check if the authenticated user is the owner of the form
+        // Get the form that this submission belongs to
+        const form = await Form.findById(submission.form_id);
+        if (!form) {
+            return res.status(404).json({ message: "Associated form not found." });
+        }
+        
+        // Verify that the authenticated user is the owner of the form
+        if (form.user_id.toString() !== req.userId) {
+            return res.status(403).json({ message: "Access denied. You can only delete submissions from your own forms." });
+        }
+        
+        // User is authorized, proceed with deletion
         const deletedSubmission = await Submission.findByIdAndDelete(id);
         if (!deletedSubmission) {    
             return res.status(404).json({ message: "Submission not found." });
@@ -381,6 +458,7 @@ export const deleteSubmission = async (req, res) => {
 
         res.status(200).json({ message: "Submission deleted successfully." });
     } catch (error) {
+        console.error('Error deleting submission:', error);
         res.status(500).json({ message: "Server error. Unable to delete submission." });
     }
 };
@@ -402,6 +480,7 @@ export const getUnreadSubmissionsCount = async (req, res) => {
 
         res.status(200).json({ count: unreadCount });
     } catch (error) {
+        console.error('Error fetching unread submissions count:', error);
         res.status(500).json({ message: "Server error. Unable to fetch unread submissions count." });
     }
 };
@@ -431,6 +510,7 @@ export const markSubmissionsAsRead = async (req, res) => {
             modifiedCount: result.modifiedCount
         });
     } catch (error) {
+        console.error('Error marking submissions as read:', error);
         res.status(500).json({ message: "Server error. Unable to mark submissions as read." });
     }
 };
@@ -440,6 +520,11 @@ export const getUnreadSubmissionsCountByForm = async (req, res) => {
     const { formId } = req.params;
 
     try {
+        // Validate formId is a proper ObjectId
+        if (!mongoose.Types.ObjectId.isValid(formId)) {
+            return res.status(400).json({ message: "Invalid form ID" });
+        }
+        
         // Get count of unread submissions for this specific form
         const unreadCount = await Submission.countDocuments({ 
             form_id: formId,
@@ -448,6 +533,7 @@ export const getUnreadSubmissionsCountByForm = async (req, res) => {
 
         res.status(200).json({ count: unreadCount });
     } catch (error) {
+        console.error('Error fetching unread submissions count by form:', error);
         res.status(500).json({ message: "Server error. Unable to fetch unread submissions count." });
     }
 };
@@ -457,6 +543,11 @@ export const markSubmissionsAsReadByForm = async (req, res) => {
     const { formId } = req.params;
 
     try {
+        // Validate formId is a proper ObjectId
+        if (!mongoose.Types.ObjectId.isValid(formId)) {
+            return res.status(400).json({ message: "Invalid form ID" });
+        }
+        
         // Mark all submissions for this form as read
         const result = await Submission.updateMany(
             { 
@@ -473,6 +564,7 @@ export const markSubmissionsAsReadByForm = async (req, res) => {
             modifiedCount: result.modifiedCount
         });
     } catch (error) {
+        console.error('Error marking submissions as read by form:', error);
         res.status(500).json({ message: "Server error. Unable to mark submissions as read." });
     }
 };
