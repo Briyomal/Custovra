@@ -9,7 +9,6 @@ import { Form } from "../models/Form.js";
 import { verifyGenieSignature } from "../utils/verifyGenieSignature.js";
 import { verifyGenieWebhookSignature } from "../utils/verifyGenieWebhookSignature.js";
 
-
 const VITE_CLIENT_URL = process.env.VITE_CLIENT_URL || "http://localhost:5173"; // Fallback URL in case environment variable is not set
 // Get user's Genie payment history
 export const getGeniePaymentHistory = async (req, res) => {
@@ -67,68 +66,72 @@ export const testGeniePaymentIntegration = async (req, res) => {
 
 // Webhook handler for Genie payment notifications
 export const handleGeniePaymentWebhook = async (req, res) => {
-  try {
-    // 1️⃣ Raw body & signature
-    const rawBody = req.body; // Buffer (because express.raw)
-    const signature = req.headers["x-genie-signature"];
-
-    // 2️⃣ Verify webhook signature FIRST
-    const isValid = verifyGenieWebhookSignature(rawBody, signature);
-    if (!isValid) {
-      console.error("❌ Invalid Genie webhook signature");
-      return res.status(401).send("Invalid signature");
-    }
-
-    // 3️⃣ Parse JSON safely
-    let event;
     try {
-      event = JSON.parse(rawBody.toString());
+        const rawBody = req.body;
+        const signature = req.headers["x-genie-signature"];
+
+        // 1️⃣ Verify signature
+        if (!verifyGenieWebhookSignature(rawBody, signature)) {
+            console.error("❌ Invalid Genie webhook signature");
+            return res.sendStatus(401);
+        }
+
+        // 2️⃣ Parse event
+        const event = JSON.parse(rawBody.toString());
+
+        console.log("✅ Genie webhook event:", event);
+
+        // 3️⃣ Validate payload
+        if (!event.localId || !event.transactionId || !event.state) {
+            console.error("❌ Invalid webhook payload:", event);
+            return res.sendStatus(400);
+        }
+
+        // 4️⃣ Extract INTERNAL payment ID
+        const paymentId = event.localId.replace("payment_", "");
+
+        // 5️⃣ Update payment with FINAL Genie data
+        await GeniePayment.updateOne(
+            { _id: paymentId },
+            {
+                $set: {
+                    transaction_id: event.transactionId,
+                    customer_id: event.customerId
+                }
+            }
+        );
+
+        // 6️⃣ State machine
+        switch (event.state) {
+            case "SUCCESS":
+            case "CONFIRMED":
+                await handlePaymentSuccess({
+                    paymentId,
+                    id: event.transactionId,
+                    state: event.state,
+                    paymentToken: event.paymentToken
+                });
+                break;
+
+            case "FAILED":
+                await handlePaymentFailed({ paymentId });
+                break;
+
+            case "CANCELLED":
+                await handlePaymentCancelled({ paymentId });
+                break;
+
+            default:
+                console.log("Unhandled Genie state:", event.state);
+        }
+
+        return res.sendStatus(200);
     } catch (err) {
-      console.error("Invalid JSON in webhook:", err);
-      return res.status(400).send("Invalid JSON");
+        console.error("Webhook error:", err);
+        return res.sendStatus(200); // prevent retries
     }
-
-    console.log("✅ Verified Genie webhook event:", event);
-
-    // 4️⃣ STRICT payload validation (ANTI-FORGERY)
-    if (!event.transactionId || !event.state) {
-      console.error("❌ Invalid webhook payload:", event);
-      return res.status(400).send("Invalid payload");
-    }
-
-    // 5️⃣ SINGLE SOURCE OF TRUTH — STATE MACHINE
-    switch (event.state) {
-      case "SUCCESS":
-      case "CONFIRMED":
-        await handlePaymentSuccess({
-          id: event.transactionId,
-          state: event.state
-        });
-        break;
-
-      case "FAILED":
-        await handlePaymentFailed({
-          id: event.transactionId
-        });
-        break;
-
-      case "CANCELLED":
-        await handlePaymentCancelled({
-          id: event.transactionId
-        });
-        break;
-
-      default:
-        console.log("Unhandled Genie payment state:", event.state);
-    }
-
-    // 6️⃣ Always ACK Genie
-    return res.sendStatus(200);
-  } catch (error) {
-    console.error("Webhook processing error:", error);
-    return res.sendStatus(200); // Prevent retries
-  }
 };
+
 
 
 export const createGeniePaymentRequest = async (req, res) => {
@@ -212,21 +215,22 @@ export const createGeniePaymentRequest = async (req, res) => {
             }
         }
 
+
         // Create payment request in our system with pending status (do this early to get payment ID)
         const paymentData = {
             user_id: userId,
             plan_id: planId,
             plan_name: plan.name,
-            amount: amount,
+            amount,
             payment_method: 'genie_card',
-            payment_status: 'pending', // Start with pending status
+            payment_status: 'pending',
             billing_period: billingPeriod,
             subscription_start: startDate,
             subscription_end: endDate,
-            // Store form selection data for processing after payment confirmation
             form_selection: formSelection,
-            customer_id: null // Will be updated later
+            customer_id: null
         };
+
 
         const newPayment = new GeniePayment(paymentData);
         await newPayment.save();
@@ -288,9 +292,9 @@ export const createGeniePaymentRequest = async (req, res) => {
                 const paymentResponse = await genieClient.post("/connect/v1/payments/card", {
                     amount: amount * 100, // Convert to cents for Genie API
                     currency: "LKR",
-                    customer: {
-                        id: customerId || undefined // Only include if we have a customer ID
-                    },
+                    localId: `payment_${newPayment._id}`,
+
+                    customer: customerId ? { id: customerId } : undefined,
                     cardOnFile: true, // enables recurring setup
                     redirectUrl: `${redirectBaseUrl}/api/genie/billing-redirect`,
                     //webhook: `${process.env.VITE_SERVER_URL}/api/genie/webhook`,
@@ -318,7 +322,7 @@ export const createGeniePaymentRequest = async (req, res) => {
                         },
                         redirectUrl: `${redirectBaseUrl}/api/genie/billing-redirect`,
                         //webhook: `${process.env.VITE_SERVER_URL}/api/genie/webhook`
-                    webhook: `${process.env.GENIE_WEBHOOK_URL}`,
+                        webhook: `${process.env.GENIE_WEBHOOK_URL}`,
                     });
 
                     paymentUrl = transactionResponse.data.url;
@@ -384,47 +388,47 @@ export const createGeniePaymentRequest = async (req, res) => {
 };
 
 export const handleRedirect = async (req, res) => {
-  const { transactionId, state, signature, message } = req.query;
+    const { transactionId, state, signature, message } = req.query;
 
-  const clientBaseUrl =
-    process.env.NODE_ENV === "production"
-      ? process.env.VITE_CLIENT_URL
-      : "http://localhost:5173";
+    const clientBaseUrl =
+        process.env.NODE_ENV === "production"
+            ? process.env.VITE_CLIENT_URL
+            : "http://localhost:5173";
 
-  const billingPath = "/billing";
+    const billingPath = "/billing";
 
-  // 1️⃣ Basic validation
-  if (!transactionId || !state || !signature) {
+    // 1️⃣ Basic validation
+    if (!transactionId || !state || !signature) {
+        return res.redirect(
+            `${clientBaseUrl}${billingPath}?paymentStatus=error&message=Invalid payment response`
+        );
+    }
+
+    // 2️⃣ Verify Genie signature
+    const isValid = verifyGenieSignature({
+        transactionId,
+        state,
+        signature
+    });
+
+    if (!isValid) {
+        console.error("❌ Invalid Genie signature");
+        return res.redirect(
+            `${clientBaseUrl}${billingPath}?paymentStatus=error&message=Invalid payment signature`
+        );
+    }
+
+    // 3️⃣ UX mapping ONLY
+    let mappedStatus = "error";
+    if (state === "SUCCESS" || state === "CONFIRMED") mappedStatus = "success";
+    else if (state === "FAILED") mappedStatus = "failed";
+    else if (state === "CANCELLED") mappedStatus = "cancelled";
+
     return res.redirect(
-      `${clientBaseUrl}${billingPath}?paymentStatus=error&message=Invalid payment response`
+        `${clientBaseUrl}${billingPath}?paymentStatus=${mappedStatus}&message=${encodeURIComponent(
+            message || "Payment processed"
+        )}`
     );
-  }
-
-  // 2️⃣ Verify Genie signature
-  const isValid = verifyGenieSignature({
-    transactionId,
-    state,
-    signature
-  });
-
-  if (!isValid) {
-    console.error("❌ Invalid Genie signature");
-    return res.redirect(
-      `${clientBaseUrl}${billingPath}?paymentStatus=error&message=Invalid payment signature`
-    );
-  }
-
-  // 3️⃣ UX mapping ONLY
-  let mappedStatus = "error";
-  if (state === "SUCCESS" || state === "CONFIRMED") mappedStatus = "success";
-  else if (state === "FAILED") mappedStatus = "failed";
-  else if (state === "CANCELLED") mappedStatus = "cancelled";
-
-  return res.redirect(
-    `${clientBaseUrl}${billingPath}?paymentStatus=${mappedStatus}&message=${encodeURIComponent(
-      message || "Payment processed"
-    )}`
-  );
 };
 
 
@@ -555,168 +559,138 @@ export const processFormSelectionAfterGeniePayment = async (userId, formSelectio
 // Handle successful payment
 const handlePaymentSuccess = async (paymentData) => {
     try {
-        console.log('Processing Genie payment event:', paymentData);
-
-        // Find the payment
-        const payment = await GeniePayment.findOne({
-            $or: [
-                { transaction_id: paymentData.id },
-                { _id: paymentData.paymentId }
-            ]
-        });
-
-            // 🔐 IDEMPOTENCY CHECK (CRITICAL)
-    if (payment.payment_status === "completed") {
-      console.log("Payment already completed, skipping processing");
-      return;
-    }
+        console.log("Processing Genie payment event:", paymentData);
+        const payment = await GeniePayment.findById(paymentData.paymentId);
 
         if (!payment) {
-            console.log('Payment record not found for transaction:', paymentData.id);
+            console.log("Payment not found:", paymentData.paymentId);
             return;
         }
 
-        // Only continue if SUCCESS or CONFIRMED
-        if (paymentData.state !== "SUCCESS" && paymentData.state !== "CONFIRMED") {
-            console.log("Payment not successful, skipping subscription creation. State:", paymentData.state);
+        // 3️⃣ 🔐 Idempotency check
+        if (payment.payment_status === "completed") {
+            console.log("Payment already completed, skipping processing");
             return;
         }
 
-        // Mark payment as completed
-        if (payment.payment_status !== 'completed') {
-            payment.payment_status = 'completed';
-            await payment.save();
+        // 4️⃣ Only continue if SUCCESS or CONFIRMED
+        if (!["SUCCESS", "CONFIRMED"].includes(paymentData.state)) {
+            console.log(
+                "Payment not successful, skipping subscription creation. State:",
+                paymentData.state
+            );
+            return;
         }
 
-        // Get plan
+        // 5️⃣ Mark payment as completed
+        payment.payment_status = "completed";
+        await payment.save();
+
+        // 6️⃣ Get plan
         const plan = await ManualPlan.findById(payment.plan_id);
         if (!plan) {
-            console.log('Plan not found for payment:', payment._id);
+            console.log("Plan not found for payment:", payment._id);
             return;
         }
 
-        // See if user already has subscription
+        // 7️⃣ Handle subscription
         let subscription = await GenieSubscription.findOne({
             user_id: payment.user_id,
-            status: 'active'
+            status: "active"
         });
 
         const isUpgrade = payment.form_selection?.isUpgrade;
         let previousPlanId = null;
 
-        // Extract card token from payment data if available
-        let cardToken = null;
+        // 8️⃣ Retrieve card token
+        let cardToken = paymentData.paymentToken || null;
 
-        try {
-            const tokenResponse = await genieClient.get(
-                `/connect/v1/customers/${payment.customer_id}/tokens` 
-            );
-
-            cardToken = tokenResponse.data?.data?.[0]?.token || null;
-
-            if (cardToken) {
-                console.log('Retrieved card token from Genie:', cardToken);
+        if (!cardToken) {
+            try {
+                const tokenResponse = await genieClient.get(
+                    `/connect/v1/customers/${payment.customer_id}/tokens`
+                );
+                cardToken = tokenResponse.data?.data?.[0]?.token || null;
+            } catch (err) {
+                console.error("Failed to retrieve Genie card token:", err.message);
             }
-        } catch (err) {
-            console.error('Failed to retrieve Genie card token:', err.message);
         }
 
-
-        if (!subscription) {
-            // Create new subscription
-            subscription = new GenieSubscription({
-                user_id: payment.user_id,
-                plan_id: payment.plan_id,
-                plan_name: payment.plan_name,
-                billing_period: payment.billing_period,
-                amount: payment.amount,
-                status: 'active',
-                subscription_start: payment.subscription_start,
-                subscription_end: payment.subscription_end,
-                auto_renew: true,
-                customer_id: payment.customer_id,
-                transaction_id: payment.transaction_id,
-                last_payment_id: payment._id,
-                card_token: cardToken // Store the card token for recurring payments
-            });
-        } else {
+        // 9️⃣ Create or update subscription
+        if (subscription) {
+            // If there's an existing subscription, store its ID and cancel it
             previousPlanId = subscription.plan_id;
+            subscription.status = "cancelled";
+            subscription.cancelled_at = new Date();
+            await subscription.save();
+            
+            console.log("Cancelled previous subscription:", subscription._id);
+        }
 
-            if (isUpgrade) {
-                subscription.status = 'cancelled';
-                subscription.cancelled_at = new Date();
-                await subscription.save();
+        // Create new subscription
+        const newSubscription = new GenieSubscription({
+            user_id: payment.user_id,
+            plan_id: payment.plan_id,
+            plan_name: plan.name,
+            status: "active",
+            billing_period: payment.billing_period,
+            subscription_start: payment.subscription_start,
+            subscription_end: payment.subscription_end,
+            amount: payment.amount,
+            currency: "LKR",
+            auto_renew: true, // Enable auto-renew by default
+            customer_id: payment.customer_id,
+            card_token: cardToken, // Store card token for recurring payments
+            previous_plan_id: previousPlanId,
+            payment_method: payment.payment_method,
+            forms_selected: payment.form_selection?.selectedFormIds || []
+        });
 
-                subscription = new GenieSubscription({
-                    user_id: payment.user_id,
-                    plan_id: payment.plan_id,
-                    plan_name: payment.plan_name,
-                    billing_period: payment.billing_period,
-                    amount: payment.amount,
-                    status: 'active',
-                    subscription_start: payment.subscription_start,
-                    subscription_end: payment.subscription_end,
-                    auto_renew: true,
-                    customer_id: payment.customer_id,
-                    transaction_id: payment.transaction_id,
-                    last_payment_id: payment._id,
-                    previous_plan_id: previousPlanId,
-                    upgrade_reason: 'immediate_upgrade',
-                    card_token: cardToken // Store the card token for recurring payments
-                });
+        await newSubscription.save();
+        console.log("Created new subscription:", newSubscription._id);
 
-            } else {
-                // Renewal - update existing subscription
-                subscription.plan_id = payment.plan_id;
-                subscription.plan_name = payment.plan_name;
-                subscription.billing_period = payment.billing_period;
-                subscription.amount = payment.amount;
-                subscription.subscription_start = payment.subscription_start;
-                subscription.subscription_end = payment.subscription_end;
-                subscription.customer_id = payment.customer_id;
-                subscription.transaction_id = payment.transaction_id;
-                subscription.last_payment_id = payment._id;
-
-                // Update card token if a new one is provided
-                if (cardToken) {
-                    subscription.card_token = cardToken;
+        // 1️⃣0️⃣ Update user's subscription info
+        await User.findByIdAndUpdate(
+            payment.user_id,
+            {
+                $set: {
+                    subscription_expiry: payment.subscription_end,
+                    current_plan_id: payment.plan_id,
+                    is_subscribed: true
                 }
-
-                subscription.renewal_history = subscription.renewal_history || [];
-                subscription.renewal_history.push({
-                    payment_id: payment._id,
-                    date: new Date()
-                });
             }
-        }
+        );
 
-        await subscription.save();
-
-        // Update user
-        const user = await User.findById(payment.user_id);
-        if (user) {
-            user.subscription_plan = payment.plan_name;
-            user.subscription_status = 'active';
-            user.subscription_expiry = payment.subscription_end;
-            user.is_active = true;
-            await user.save();
-        }
-
-        // Handle form selection
+        // 1️⃣1️⃣ Process form selection if needed
         if (payment.form_selection) {
-            await processFormSelectionAfterGeniePayment(
+            const result = await processFormSelectionAfterGeniePayment(
                 payment.user_id,
                 payment.form_selection
             );
+            console.log("Form selection processing result:", result);
         }
 
-        console.log(
-            'Successfully processed Genie payment and updated subscription'
-        );
+        // 1️⃣2️⃣ Create audit log
+        await AuditLog.create({
+            user_id: payment.user_id,
+            action: "SUBSCRIPTION_CREATED",
+            reference_id: newSubscription._id,
+            details: {
+                plan_id: payment.plan_id,
+                plan_name: plan.name,
+                amount: payment.amount,
+                billing_period: payment.billing_period,
+                previous_plan_id: previousPlanId
+            }
+        });
+
+        console.log("Successfully processed payment and created subscription for user:", payment.user_id);
+
     } catch (error) {
-        console.error('Error processing Genie payment:', error);
+        console.error("Error processing Genie payment:", error);
     }
 };
+
 
 // Handle failed payment
 const handlePaymentFailed = async (paymentData) => {
@@ -776,190 +750,190 @@ const handlePaymentCancelled = async (paymentData) => {
 
 // Process recurring payment for auto-renewing subscriptions
 export const processRecurringPayment = async (subscriptionId) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-  try {
-    console.log("Processing recurring payment:", subscriptionId);
+    try {
+        console.log("Processing recurring payment:", subscriptionId);
 
-    // 🔒 Lock subscription during processing (prevents double charge)
-    const subscription = await GenieSubscription.findOne({
-      _id: subscriptionId,
-      status: "active",
-      auto_renew: true,
-    })
-      .populate("user_id")
-      .populate("plan_id")
-      .session(session);
+        // 🔒 Lock subscription during processing (prevents double charge)
+        const subscription = await GenieSubscription.findOne({
+            _id: subscriptionId,
+            status: "active",
+            auto_renew: true,
+        })
+            .populate("user_id")
+            .populate("plan_id")
+            .session(session);
 
-    if (!subscription) {
-      await session.abortTransaction();
-      return { success: false, error: "Subscription not eligible for renewal" };
+        if (!subscription) {
+            await session.abortTransaction();
+            return { success: false, error: "Subscription not eligible for renewal" };
+        }
+
+        const user = subscription.user_id;
+        const plan = subscription.plan_id;
+
+        if (!user || !plan) {
+            await session.abortTransaction();
+            return { success: false, error: "User or plan missing" };
+        }
+
+        // 🧮 Calculate amount (server-side only)
+        let amount;
+        switch (subscription.billing_period) {
+            case "yearly":
+                amount = plan.final_prices?.yearly ?? plan.price_yearly;
+                break;
+            case "half_yearly":
+                amount = plan.final_prices?.half_yearly ?? plan.price_half_yearly;
+                break;
+            case "monthly":
+            default:
+                amount = plan.final_prices?.monthly ?? plan.price_monthly;
+        }
+
+        if (!amount || amount <= 0) {
+            await session.abortTransaction();
+            return { success: false, error: "Invalid billing amount" };
+        }
+
+        // 📅 New billing dates
+        const startDate = new Date();
+        const endDate = new Date(startDate);
+
+        if (subscription.billing_period === "yearly") endDate.setFullYear(endDate.getFullYear() + 1);
+        else if (subscription.billing_period === "half_yearly") endDate.setMonth(endDate.getMonth() + 6);
+        else endDate.setMonth(endDate.getMonth() + 1);
+
+        // 💳 Create payment (pending)
+        const payment = await GeniePayment.create(
+            [{
+                user_id: user._id,
+                plan_id: plan._id,
+                plan_name: plan.name,
+                amount,
+                currency: "LKR",
+                payment_method: "genie_card",
+                payment_status: "pending",
+                billing_period: subscription.billing_period,
+                subscription_start: startDate,
+                subscription_end: endDate,
+                customer_id: subscription.customer_id,
+            }],
+            { session }
+        );
+
+        // ❌ No saved card
+        if (!subscription.card_token) {
+            payment[0].payment_status = "failed";
+            await payment[0].save({ session });
+
+            await session.commitTransaction();
+            return { success: false, error: "No saved card token", payment: payment[0] };
+        }
+
+        // 💳 Charge card
+        const chargeResponse = await genieClient.post(
+            "/connect/v1/payments/card/charge",
+            {
+                amount: amount * 100,
+                currency: "LKR",
+                customer: { id: subscription.customer_id },
+                card: { token: subscription.card_token },
+                description: `Recurring payment - ${plan.name}`,
+                metadata: {
+                    subscription_id: subscription._id,
+                    payment_id: payment[0]._id,
+                },
+            }
+        );
+
+        if (chargeResponse?.data?.status !== "SUCCESS") {
+            throw new Error("Genie payment failed");
+        }
+
+        // ✅ Payment success
+        payment[0].payment_status = "completed";
+        payment[0].transaction_id = chargeResponse.data.id;
+        await payment[0].save({ session });
+
+        // 🔁 Update subscription
+        subscription.subscription_start = startDate;
+        subscription.subscription_end = endDate;
+        subscription.last_payment_id = payment[0]._id;
+        subscription.renewal_history.push({
+            payment_id: payment[0]._id,
+            date: new Date(),
+        });
+
+        await subscription.save({ session });
+
+        // 👤 Update user
+        user.subscription_expiry = endDate;
+        await user.save({ session });
+
+        // 📝 Audit log
+        await AuditLog.create(
+            [{
+                user_id: user._id,
+                action: "RECURRING_PAYMENT_SUCCESS",
+                reference_id: payment[0]._id,
+                amount,
+            }],
+            { session }
+        );
+
+        await session.commitTransaction();
+        return { success: true, payment: payment[0] };
+
+    } catch (error) {
+        await session.abortTransaction();
+        console.error("Recurring payment error:", error);
+        return { success: false, error: "Recurring payment failed" };
+    } finally {
+        session.endSession();
     }
-
-    const user = subscription.user_id;
-    const plan = subscription.plan_id;
-
-    if (!user || !plan) {
-      await session.abortTransaction();
-      return { success: false, error: "User or plan missing" };
-    }
-
-    // 🧮 Calculate amount (server-side only)
-    let amount;
-    switch (subscription.billing_period) {
-      case "yearly":
-        amount = plan.final_prices?.yearly ?? plan.price_yearly;
-        break;
-      case "half_yearly":
-        amount = plan.final_prices?.half_yearly ?? plan.price_half_yearly;
-        break;
-      case "monthly":
-      default:
-        amount = plan.final_prices?.monthly ?? plan.price_monthly;
-    }
-
-    if (!amount || amount <= 0) {
-      await session.abortTransaction();
-      return { success: false, error: "Invalid billing amount" };
-    }
-
-    // 📅 New billing dates
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-
-    if (subscription.billing_period === "yearly") endDate.setFullYear(endDate.getFullYear() + 1);
-    else if (subscription.billing_period === "half_yearly") endDate.setMonth(endDate.getMonth() + 6);
-    else endDate.setMonth(endDate.getMonth() + 1);
-
-    // 💳 Create payment (pending)
-    const payment = await GeniePayment.create(
-      [{
-        user_id: user._id,
-        plan_id: plan._id,
-        plan_name: plan.name,
-        amount,
-        currency: "LKR",
-        payment_method: "genie_card",
-        payment_status: "pending",
-        billing_period: subscription.billing_period,
-        subscription_start: startDate,
-        subscription_end: endDate,
-        customer_id: subscription.customer_id,
-      }],
-      { session }
-    );
-
-    // ❌ No saved card
-    if (!subscription.card_token) {
-      payment[0].payment_status = "failed";
-      await payment[0].save({ session });
-
-      await session.commitTransaction();
-      return { success: false, error: "No saved card token", payment: payment[0] };
-    }
-
-    // 💳 Charge card
-    const chargeResponse = await genieClient.post(
-      "/connect/v1/payments/card/charge",
-      {
-        amount: amount * 100,
-        currency: "LKR",
-        customer: { id: subscription.customer_id },
-        card: { token: subscription.card_token },
-        description: `Recurring payment - ${plan.name}`,
-        metadata: {
-          subscription_id: subscription._id,
-          payment_id: payment[0]._id,
-        },
-      }
-    );
-
-    if (chargeResponse?.data?.status !== "SUCCESS") {
-      throw new Error("Genie payment failed");
-    }
-
-    // ✅ Payment success
-    payment[0].payment_status = "completed";
-    payment[0].transaction_id = chargeResponse.data.id;
-    await payment[0].save({ session });
-
-    // 🔁 Update subscription
-    subscription.subscription_start = startDate;
-    subscription.subscription_end = endDate;
-    subscription.last_payment_id = payment[0]._id;
-    subscription.renewal_history.push({
-      payment_id: payment[0]._id,
-      date: new Date(),
-    });
-
-    await subscription.save({ session });
-
-    // 👤 Update user
-    user.subscription_expiry = endDate;
-    await user.save({ session });
-
-    // 📝 Audit log
-    await AuditLog.create(
-      [{
-        user_id: user._id,
-        action: "RECURRING_PAYMENT_SUCCESS",
-        reference_id: payment[0]._id,
-        amount,
-      }],
-      { session }
-    );
-
-    await session.commitTransaction();
-    return { success: true, payment: payment[0] };
-
-  } catch (error) {
-    await session.abortTransaction();
-    console.error("Recurring payment error:", error);
-    return { success: false, error: "Recurring payment failed" };
-  } finally {
-    session.endSession();
-  }
 };
 
 // Toggle auto-renew for a subscription
 export const toggleAutoRenew = async (req, res) => {
-  try {
-    const userId = req.userId;
+    try {
+        const userId = req.userId;
 
-    if (!userId) {
-      return res.status(401).json({ success: false, error: "Unauthorized" });
+        if (!userId) {
+            return res.status(401).json({ success: false, error: "Unauthorized" });
+        }
+
+        // 🔒 Atomic toggle (prevents race condition)
+        const subscription = await GenieSubscription.findOneAndUpdate(
+            { user_id: userId, status: "active" },
+            [{ $set: { auto_renew: { $not: "$auto_renew" } } }],
+            { new: true }
+        );
+
+        if (!subscription) {
+            return res.status(404).json({ success: false, error: "Active subscription not found" });
+        }
+
+        // 📝 Audit log
+        await AuditLog.create({
+            user_id: userId,
+            action: "TOGGLE_AUTO_RENEW",
+            new_value: subscription.auto_renew,
+            ip: req.ip,
+            user_agent: req.headers["user-agent"],
+        });
+
+        res.json({
+            success: true,
+            data: {
+                auto_renew: subscription.auto_renew,
+                message: `Auto-renew ${subscription.auto_renew ? "enabled" : "disabled"}`,
+            },
+        });
+    } catch (error) {
+        console.error("Toggle auto-renew error:", error);
+        res.status(500).json({ success: false, error: "Server error" });
     }
-
-    // 🔒 Atomic toggle (prevents race condition)
-    const subscription = await GenieSubscription.findOneAndUpdate(
-      { user_id: userId, status: "active" },
-      [{ $set: { auto_renew: { $not: "$auto_renew" } } }],
-      { new: true }
-    );
-
-    if (!subscription) {
-      return res.status(404).json({ success: false, error: "Active subscription not found" });
-    }
-
-    // 📝 Audit log
-    await AuditLog.create({
-      user_id: userId,
-      action: "TOGGLE_AUTO_RENEW",
-      new_value: subscription.auto_renew,
-      ip: req.ip,
-      user_agent: req.headers["user-agent"],
-    });
-
-    res.json({
-      success: true,
-      data: {
-        auto_renew: subscription.auto_renew,
-        message: `Auto-renew ${subscription.auto_renew ? "enabled" : "disabled"}`,
-      },
-    });
-  } catch (error) {
-    console.error("Toggle auto-renew error:", error);
-    res.status(500).json({ success: false, error: "Server error" });
-  }
 };
