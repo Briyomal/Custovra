@@ -293,7 +293,8 @@ export const createGeniePaymentRequest = async (req, res) => {
                     },
                     cardOnFile: true, // enables recurring setup
                     redirectUrl: `${redirectBaseUrl}/api/genie/billing-redirect`,
-                    webhook: `${process.env.VITE_SERVER_URL}/api/genie/webhook`
+                    //webhook: `${process.env.VITE_SERVER_URL}/api/genie/webhook`,
+                    webhook: `${process.env.GENIE_WEBHOOK_URL}`,
                 });
 
                 paymentUrl = paymentResponse.data.url;
@@ -316,7 +317,8 @@ export const createGeniePaymentRequest = async (req, res) => {
                             billingEmail: user.email
                         },
                         redirectUrl: `${redirectBaseUrl}/api/genie/billing-redirect`,
-                        webhook: `${process.env.VITE_SERVER_URL}/api/genie/webhook`
+                        //webhook: `${process.env.VITE_SERVER_URL}/api/genie/webhook`
+                    webhook: `${process.env.GENIE_WEBHOOK_URL}`,
                     });
 
                     paymentUrl = transactionResponse.data.url;
