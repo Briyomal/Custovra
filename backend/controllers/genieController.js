@@ -293,7 +293,14 @@ export const createGeniePaymentRequest = async (req, res) => {
                     amount: amount * 100, // Convert to cents for Genie API
                     currency: "LKR",
                     localId: `payment_${newPayment._id}`,
-
+                    
+                    // Add tokenization details for recurring payments
+                    tokenizationDetails: {
+                        tokenize: true, // Enable card tokenization for recurring payments
+                        paymentType: "UNSCHEDULED", // Fixed value for merchant initiated recurring payments
+                        recurringFrequency: "UNSCHEDULED" // Fixed value for ad-hoc payments only
+                    },
+                    
                     customer: customerId ? { id: customerId } : undefined,
                     cardOnFile: true, // enables recurring setup
                     redirectUrl: `${redirectBaseUrl}/api/genie/billing-redirect`,
@@ -303,18 +310,26 @@ export const createGeniePaymentRequest = async (req, res) => {
 
                 paymentUrl = paymentResponse.data.url;
                 transactionId = paymentResponse.data.id;
-                console.log("Successfully created card payment request");
+                console.log("Successfully created card payment request with tokenization");
             } catch (cardPaymentError) {
                 console.error("Error creating card payment request:", cardPaymentError.response?.data || cardPaymentError.message);
                 errorMessage = cardPaymentError.response?.data?.message || cardPaymentError.message;
 
-                // If card payment fails, fall back to transaction (payment link) with full customer details
-                console.log("Falling back to transaction (payment link) creation with full customer details");
+                // If card payment fails, fall back to transaction (payment link) with full customer details and tokenization
+                console.log("Falling back to transaction (payment link) creation with full customer details and tokenization");
                 try {
                     const transactionResponse = await genieClient.post("/public/v2/transactions", {
                         amount: amount * 100, // Convert to cents for Genie API
                         currency: "LKR",
                         localId: `payment_${newPayment._id}`,
+                        
+                        // Add tokenization details for recurring payments
+                        tokenizationDetails: {
+                            tokenize: true, // Enable card tokenization for recurring payments
+                            paymentType: "UNSCHEDULED", // Fixed value for merchant initiated recurring payments
+                            recurringFrequency: "UNSCHEDULED" // Fixed value for ad-hoc payments only
+                        },
+                        
                         customer: {
                             name: user.name,
                             email: user.email,
