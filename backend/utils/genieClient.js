@@ -5,8 +5,6 @@ dotenv.config();
 
 // Log the configuration for debugging
 console.log("🔧 Genie Client Configuration:");
-console.log("   GENIE_API_BASE_URL:", process.env.GENIE_API_BASE_URL);
-console.log("   GENIE_APP_ID:", process.env.GENIE_APP_ID);
 console.log("   GENIE_SECRET_KEY:", process.env.GENIE_SECRET_KEY ? "Present ✅" : "Missing ❌");
 
 const genieClient = axios.create({
