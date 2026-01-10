@@ -3,7 +3,7 @@ import { User } from "../models/User.js";
 import { GenieSubscription } from "../models/GenieSubscription.js";
 
 // Run every day at midnight (00:00) - Check subscription expiry
-cron.schedule('* * * * *', async () => {
+cron.schedule('0 0 * * *', async () => {
     console.log('Running subscription expiry check...');
     try {
         const now = new Date();
