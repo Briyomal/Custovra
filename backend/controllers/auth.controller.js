@@ -30,25 +30,35 @@ export const signup = async (req, res) => {
 		// 2. Hash the password
 		const hashedPassword = await bcryptjs.hash(password, 10);
 
-		// 3. Create user without stripeCustomerId
+		// 3. Generate verification token
+		const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
+		const twentyFourHours = 24 * 60 * 60 * 1000;
+
+		// 4. Create user
 		user = new User({
 			email,
 			password: hashedPassword,
 			name,
 			company,
 			phone,
-			// Removed stripeCustomerId since we're not using Stripe
+			isVerified: false,
+			verificationToken,
+			verificationTokenExpiresAt: Date.now() + twentyFourHours,
+			verificationRequestCount: 1,
+			verificationRequestTimestamp: Date.now(),
 		});
 
 		await user.save();
 
-		// 4. Generate JWT token and set cookie
+		// 5. Send verification email ✅
+		await sendVerificationEmail(user.email, verificationToken);
+
+		// 6. Generate JWT
 		generateTokenAndSetCookie(res, user._id);
 
-		// 5. Send success response
 		res.status(201).json({
 			success: true,
-			message: "User created successfully",
+			message: "Signup successful. Please verify your email.",
 			user: {
 				...user._doc,
 				password: undefined,
@@ -59,6 +69,7 @@ export const signup = async (req, res) => {
 		res.status(500).json({ success: false, message: "Internal server error" });
 	}
 };
+
 
 export const verifyEmail = async (req, res) => {
 	const {
@@ -147,7 +158,7 @@ export const login = async (req, res) => {
 			}
 
 			// Check if the user has exceeded the verification email limit
-			if (user.verificationRequestCount >= 3) {
+			if (user.verificationRequestCount >= 6) {
 				return res.status(429).json({
 					success: false,
 					message: "Verification email limit reached. Please try again after 24 hours.",
