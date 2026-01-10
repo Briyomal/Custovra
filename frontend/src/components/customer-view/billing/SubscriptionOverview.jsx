@@ -1,17 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Calendar, FileText, AlertCircle, Clock } from "lucide-react";
+//import { Switch } from "@/components/ui/switch";
+import { Calendar, FileText, AlertCircle} from "lucide-react";
 import { formatDate } from "@/utils/billing";
 import { formatCurrency } from "@/utils/billing";
 
-const SubscriptionOverview = ({ subscriptionDetails, getStatusBadge, setActiveTab, toggleAutoRenew }) => {
+const SubscriptionOverview = ({ subscriptionDetails, getStatusBadge, setActiveTab}) => {
   // Check if user has no active subscription
   // const hasNoSubscription = !subscriptionDetails || 
   //   !subscriptionDetails.subscription || 
   //   subscriptionDetails.subscription.status !== 'active';
 
   // Calculate next charge date based on billing period
+  /*
   const getNextChargeDate = (subscription) => {
     if (!subscription || !subscription.subscription_end) return null;
     
@@ -19,7 +20,7 @@ const SubscriptionOverview = ({ subscriptionDetails, getStatusBadge, setActiveTa
     // since that's when the subscription renews
     const nextChargeDate = new Date(subscription.subscription_end);
     return nextChargeDate;
-  };
+  }; */
 
   return (
     <Card>
@@ -80,6 +81,7 @@ const SubscriptionOverview = ({ subscriptionDetails, getStatusBadge, setActiveTa
             </div>
 
             {/* Auto-renew section */}
+                {/*
             <div className="border-t pt-4 mt-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-3">
@@ -92,17 +94,17 @@ const SubscriptionOverview = ({ subscriptionDetails, getStatusBadge, setActiveTa
                     Auto-renew subscription
                   </label>
                 </div>
-                
                 {subscriptionDetails.subscription.auto_renew && (
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="h-4 w-4 text-gray-500" />
                     <span>
-                      Next charge: {formatDate(getNextChargeDate(subscriptionDetails.subscription))}
+                      Next Payment: {formatDate(getNextChargeDate(subscriptionDetails.subscription))}
                     </span>
                   </div>
                 )}
               </div>
-            </div>
+            </div>*/}
+                
           </div>
         ) : (
           <div className="text-center py-8">

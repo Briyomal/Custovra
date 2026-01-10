@@ -163,6 +163,7 @@ function BillingPage() {
     };
 
     // Toggle auto-renew status
+    /*
     const toggleAutoRenew = async () => {
         try {
             const response = await axios.post(
@@ -200,6 +201,7 @@ function BillingPage() {
             });
         }
     };
+    */
 
     // Downgrade form selection functions
     const checkDowngradeImpact = async (planId) => {
@@ -612,7 +614,7 @@ function BillingPage() {
                             formatCurrency={formatCurrency}
                             getStatusBadge={getStatusBadge}
                             setActiveTab={setActiveTab}
-                            toggleAutoRenew={toggleAutoRenew}
+                            //toggleAutoRenew={toggleAutoRenew}
                         />
                     </TabsContent>
 

@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const Schema = mongoose.Schema;
 
 const paymentSchema = new Schema({
-
+/*
   // 🧾 Genie IDs (can change / appear later)
   transaction_id: {
     type: String,
@@ -14,7 +14,7 @@ const paymentSchema = new Schema({
     type: String,
     index: true
   },
-
+*/
   user_id: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -48,6 +48,7 @@ const paymentSchema = new Schema({
 
   form_selection: {
     type: Schema.Types.Mixed,
+    required: false,
   },
 
   status: {
