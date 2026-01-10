@@ -6,7 +6,7 @@ import {
     createGeniePaymentRequest,
     getGeniePaymentHistory,
     handleRedirect,
-    toggleAutoRenew
+    //toggleAutoRenew
 } from "../controllers/genieController.js";
 
 
