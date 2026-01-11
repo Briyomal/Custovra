@@ -31,7 +31,7 @@ const ForgotPasswordPage = () => {
 				className='m-4 md:m-0 max-w-md w-full border bg-white bg-opacity-60 backdrop-filter backdrop-blur-2xl rounded-2xl shadow-xl overflow-hidden
 				dark:bg-[#0D0D0D] dark:bg-opacity-40 dark:backdrop-filter dark:backdrop-blur-xl'
 			>
-				<div className='p-8'>
+				<div className='px-4 py-8 md:p-8'>
 					
 					<a href="/" className="flex items-center justify-center mb-4">
 						<img src={theme === "dark" ? logoWhite : logo} className="h-10 mr-3" alt="Custovra" />

@@ -2,6 +2,7 @@ import bcryptjs from "bcryptjs";
 import crypto from "crypto";
 import { authenticator } from 'otplib';
 import mongoose from "mongoose";
+import rateLimit from "express-rate-limit";
 
 import {
 	generateTokenAndSetCookie
@@ -17,6 +18,16 @@ import {
 } from "../models/User.js";
 import { GenieSubscription } from "../models/GenieSubscription.js";
 
+const clientUrl =
+  process.env.CLIENT_URL || process.env.VITE_CLIENT_URL;
+
+export const authLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	max: 100,
+	standardHeaders: true,
+	legacyHeaders: false,
+});
+
 export const signup = async (req, res) => {
 	try {
 		const { email, password, name, company, phone } = req.body;
@@ -26,6 +37,13 @@ export const signup = async (req, res) => {
 		if (user) {
 			return res.status(400).json({ success: false, message: "User already exists" });
 		}
+		if (password.length < 8) {
+  return res.status(400).json({
+    success: false,
+    message: "Password must be at least 8 characters long",
+  });
+}
+
 
 		// 2. Hash the password
 		const hashedPassword = await bcryptjs.hash(password, 10);
@@ -70,46 +88,56 @@ export const signup = async (req, res) => {
 	}
 };
 
-
 export const verifyEmail = async (req, res) => {
-	const {
-		code
-	} = req.body;
-	try {
-		const user = await User.findOne({
-			verificationToken: code,
-			verificationTokenExpiresAt: {
-				$gt: Date.now()
-			},
-		});
-		if (!user) {
-			return res.status(400).json({
-				success: false,
-				message: "Invalid or expired verification code"
-			});
-		}
+    const {
+        code
+    } = req.body;
+    
+    // Basic validation to prevent very short/obvious codes
+    if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid verification code format"
+        });
+    }
+    
+    try {
+        const user = await User.findOne({
+            verificationToken: code,
+            verificationTokenExpiresAt: {
+                $gt: Date.now()
+            },
+        });
+        
+        if (!user) {
+            // Always return the same message to prevent enumeration
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired verification code"
+            });
+        }
 
-		user.isVerified = true;
-		user.verificationToken = undefined;
-		user.verificationTokenExpiresAt = undefined;
-		await user.save();
+        user.isVerified = true;
+        user.verificationToken = undefined;
+        user.verificationTokenExpiresAt = undefined;
+        await user.save();
 
-		await sendWelcomeEmail(user.email, user.name);
-		res.status(200).json({
-			success: true,
-			message: "Email verified successfully",
-			user: {
-				...user._doc,
-				password: undefined,
-			},
-		});
-	} catch (error) {
-		console.log("error in verifyEmail", error);
-		res.status(500).json({
-			success: false,
-			message: "Server error"
-		});
-	}
+        await sendWelcomeEmail(user.email, user.name);
+        res.status(200).json({
+            success: true,
+            message: "Email verified successfully",
+            user: {
+                ...user._doc,
+                password: undefined,
+            },
+        });
+    } catch (error) {
+        console.log("error in verifyEmail", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
 };
 
 export const login = async (req, res) => {
@@ -269,8 +297,9 @@ export const logout = (req, res) => {
     res.clearCookie("token", {
         httpOnly: true,
         secure: isProduction,
-        sameSite: isProduction ? "none" : "lax",
+        sameSite: isProduction ? "lax" : "lax",
         path: "/", // MUST match cookie creation
+		...(isProduction && { domain: ".custovra.com" }),
     });
 
     res.status(200).json({
@@ -281,86 +310,97 @@ export const logout = (req, res) => {
 
 
 export const forgotPassword = async (req, res) => {
-	const {
-		email
-	} = req.body;
-	try {
-		const user = await User.findOne({
-			email
-		});
-		if (!user) {
-			return res.status(400).json({
-				success: false,
-				message: "User doesn't exists"
-			});
-		}
-		//Generate reset token
-		const resetToken = crypto.randomBytes(20).toString("hex");
-		const resetTokenExpiresAt = Date.now() + 1 * 60 * 60 * 1000; // 1 hour
-		//set the token in the database
-		user.resetPasswordToken = resetToken;
-		user.resetPasswordExpiresAt = resetTokenExpiresAt;
+  const { email } = req.body;
 
-		await user.save();
+  try {
+    const user = await User.findOne({ email });
 
-		//Send email to the user
-		await sendPasswordResetEmail(user.email, `${process.env.CLIENT_URL}/reset-password/${resetToken}`);
-		res.status(200).json({
-			success: true,
-			message: "Password reset link sent to your email",
-		});
-	} catch (error) {
-		console.log("Error in forgotPassword", error);
-		res.status(500).json({
-			success: false,
-			message: error.message
-		});
-	}
+    // Prevent user enumeration
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: "Password reset link sent to your email",
+      });
+    }
+
+    const resetToken = crypto.randomBytes(20).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpiresAt = Date.now() + 60 * 60 * 1000;
+
+    await user.save();
+
+    const clientUrl =
+      process.env.CLIENT_URL || process.env.VITE_CLIENT_URL;
+
+    await sendPasswordResetEmail(
+      user.email,
+      `${clientUrl}/reset-password/${resetToken}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset link sent to your email",
+    });
+  } catch (error) {
+    console.error("Error in forgotPassword:", error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+    });
+  }
 };
 
+
 export const resetPassword = async (req, res) => {
-	try {
-		const {
-			token
-		} = req.params;
-		const {
-			password
-		} = req.body;
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
 
-		const user = await User.findOne({
-			resetPasswordToken: token,
-			resetPasswordExpiresAt: {
-				$gt: Date.now()
-			},
-		});
-		if (!user) {
-			return res.status(400).json({
-				success: false,
-				message: "Invalid or expired reset token"
-			});
-		}
+    // Hash the token from URL before comparing
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
 
-		//update password
-		const hashedPassword = await bcryptjs.hash(password, 10);
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpiresAt: { $gt: Date.now() },
+    });
 
-		user.password = hashedPassword;
-		user.resetPasswordToken = undefined;
-		user.resetPasswordExpiresAt = undefined;
-		await user.save();
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired reset token",
+      });
+    }
 
-		await sendResetSuccessEmail(user.email);
+    // Hash new password
+    const hashedPassword = await bcryptjs.hash(password, 10);
 
-		res.status(200).json({
-			success: true,
-			message: "Password reset successfully",
-		});
-	} catch (error) {
-		console.log("Error in resetPassword", error);
-		res.status(500).json({
-			success: false,
-			message: error.message
-		});
-	}
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpiresAt = undefined;
+
+    await user.save();
+
+    await sendResetSuccessEmail(user.email);
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset successfully",
+    });
+  } catch (error) {
+    console.error("Error in resetPassword:", error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+    });
+  }
 };
 
 export const checkAuth = async (req, res) => {

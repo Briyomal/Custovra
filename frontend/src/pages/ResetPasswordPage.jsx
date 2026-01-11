@@ -52,7 +52,7 @@ const ResetPasswordPage = () => {
 				transition={{ duration: 0.5 }}
 				className='m-4 md:m-0 max-w-md w-full bg-gray-50 bg-opacity-20 backdrop-filter backdrop-blur-xl rounded-2xl shadow-xl overflow-hidden'
 			>
-				<div className='p-8'>
+				<div className='px-4 py-8 md:p-8'>
 					<a href="/" className="flex items-center justify-center mb-4">
 						<img src={theme === "dark" ? logoWhite : logo} className="h-10 mr-3" alt="Custovra" />
 					</a>	

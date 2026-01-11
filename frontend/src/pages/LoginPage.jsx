@@ -69,7 +69,7 @@ const LoginPage = () => {
 			'
 		>
 
-			<div className='p-8'>
+			<div className='px-4 py-8 md:p-8'>
 							
 					<a href="/" className="flex items-center justify-center mb-4">
 						<img src={theme === "dark" ? logoWhite : logo} className="h-10 mr-3" alt="Custovra" />

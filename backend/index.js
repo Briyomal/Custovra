@@ -43,7 +43,6 @@ const allowedOrigins = [
     process.env.CLIENT_URL_NGROK,  // https://xxxxx.ngrok-free.dev
     "https://custovra.com", 
     "https://www.custovra.com",
-    "https://custovra.onrender.com",
 ];
 
 
