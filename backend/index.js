@@ -46,27 +46,22 @@ const allowedOrigins = [
 ];
 
 
-app.use(
-    cors({
-        origin: function (origin, callback) {
-            // Allow server-to-server, webhooks, Postman
-            if (!origin) return callback(null, true);
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // Postman / server
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    console.error("Blocked by CORS:", origin);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 
-            if (allowedOrigins.includes(origin)) {
-                return callback(null, true);
-            }
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+app.set("trust proxy", 1);
 
-            console.error("Blocked by CORS:", origin);
-            return callback(new Error("Not allowed by CORS"));
-        },
-        credentials: true,
-        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"],
-    })
-);
-
-// IMPORTANT: enable preflight
-app.options("*", cors());
 
 // Static files
 app.use("/public", express.static(path.join(__dirname, "public")));

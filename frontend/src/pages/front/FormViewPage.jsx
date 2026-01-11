@@ -158,43 +158,72 @@ const FormViewPage = () => {
         });
     }
 
-    const validateField = (name, value, field) => {
-        if (field.is_required) {
-            // Ensure `value` is processed appropriately for each field type
-            const fieldValue = typeof value === "string" ? value.trim() : value;
+const validateField = (name, value, field) => {
+  // Trim string values
+  const fieldValue = typeof value === "string" ? value.trim() : value;
 
-            if (fieldValue === null || fieldValue === undefined || fieldValue === "") {
-                // Special handling for image fields - check if it's a File object
-                if (field.field_type === "image" && value instanceof File) {
-                    return null; // File is present, so it's valid
-                }
-                return `${field.field_name} is required.`;
-            }
+  // 1️⃣ Required field check
+  if (field.is_required) {
+    if (fieldValue === null || fieldValue === undefined || fieldValue === "") {
+      // Special handling for image fields
+      if (field.field_type === "image" && value instanceof File) {
+        return null; // valid
+      }
+      return `${field.field_name} is required.`;
+    }
+  }
 
-            // Additional validations based on field name and type
-            if (field.field_type === "rating" && (typeof fieldValue !== "number" || fieldValue < 1 || fieldValue > 5)) {
-                return "Please provide a valid rating between 1 and 5.";
-            }
+  // 2️⃣ Validate optional fields if value is provided
+  if (fieldValue !== null && fieldValue !== undefined && fieldValue !== "") {
+    // Rating
+    if (field.field_type === "rating") {
+      if (typeof fieldValue !== "number" || fieldValue < 1 || fieldValue > 5) {
+        return "Please provide a valid rating between 1 and 5.";
+      }
+    }
 
-            if (field.field_name === "name" && fieldValue.length < 3) {
-                return "Name must be at least 3 characters long.";
-            }
+    // Name
+    if (field.field_name === "name") {
+      if (fieldValue.length < 3) {
+        return "Name must be at least 3 characters long.";
+      }
+    }
 
-            if (field.field_type === "email" && !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(fieldValue)) {
-                return "Please enter a valid email address.";
-            }
+    // Email
+    if (field.field_type === "email") {
+      const emailRegex = /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/;
+      if (!emailRegex.test(fieldValue)) {
+        return "Please enter a valid email address.";
+      }
+    }
 
-            if (field.field_name === "phone" && !/^\+?[1-9]\d{9,14}$/.test(fieldValue)) {
-                return "Please enter a valid phone number with at least 10 digits";
-            }
+    // Phone - accept +12345678910 OR 0123456789, max 15 digits
+    if (field.field_type === "tel") {
+      const phoneRegex = /^(\+?[1-9]\d{9,14}|0\d{9,14})$/;
+      if (!phoneRegex.test(fieldValue)) {
+        return "Please enter a valid phone number (e.g., +12345678910 or 0123456789).";
+      }
+    }
 
-            if (field.field_type === "textarea" && fieldValue.length < 10) {
-                return "Comment must be at least 10 characters long.";
-            }
-        }
+    // Textarea / comment
+    if (field.field_type === "textarea") {
+      if (fieldValue.length < 10) {
+        return "Comment must be at least 10 characters long.";
+      }
+    }
 
-        return null;
-    };
+    // Optional: limit max lengths
+    if (field.field_type === "tel" && fieldValue.length > 15) {
+      return "Phone number cannot exceed 15 digits.";
+    }
+    if (field.field_type === "text" && fieldValue.length > 100) {
+      return `${field.field_name} cannot exceed 100 characters.`;
+    }
+  }
+
+  return null;
+};
+
 
 
     const handleChange = async (e, field) => {
@@ -688,27 +717,27 @@ const FormViewPage = () => {
                                 </Card>
                             )
                         ) : (
-                            <Card className="rounded-xl text-center p-0 md:p-4 my-16 mx-4 md:my-6 md:mx-4 backdrop-blur-lg bg-white dark:bg-[#0d0d0dce]" style={{borderBottom: `4px solid ${formDetails?.button_bg_color || '#16bf4c'}`}}>
+                            <Card className="rounded-xl text-center p-0 md:p-4 my-16 mx-4 md:my-6 md:mx-4 backdrop-blur-lg bg-white dark:bg-[#0d0d0dce]/90" style={{borderBottom: `4px solid ${formDetails?.button_bg_color || '#16bf4c'}`}}>
                                 {loading ? (
                                     <FormPreviewSkelton />
                                 ) : (
                                     <>
-                                        <CardHeader>
-                                            <CardTitle className="mb-2">{formDetails?.form_name}</CardTitle>
+                                        <CardHeader className="px-4 md:px-6 md:pt-6 pt-4 pb-2">
+                                            <CardTitle className="mb-2 text-xl md:text-2xl">{formDetails?.form_name}</CardTitle>
                                             {formDetails.logo && (
                                                 <img
                                                 src={formDetails?.logo}
                                                     //src={`${import.meta.env.VITE_SERVER_URL}${formDetails.logo}`}
                                                     alt="Uploaded"
-                                                    className="mt-1 w-28 md:w-44 h-auto rounded-md mx-auto"
+                                                    className="mt-1 w-24 md:w-44 h-auto rounded-md mx-auto"
                                                 />
                                             )}
                                             {formDetails?.form_description && (
                                                 <CardDescription>{formDetails?.form_description}</CardDescription>
                                             )}
                                         </CardHeader>
-                                        <CardContent>
-                                            <form onSubmit={handleSubmit} className="grid gap-6 py-4 text-left">
+                                        <CardContent className="px-4 md:px-6">
+                                            <form onSubmit={handleSubmit} className="grid gap-4 md:gap-6 py-4 text-left">
                                                 {[...(formDetails?.default_fields || []), ...(formDetails?.custom_fields || [])]
                                                     .filter((field) => field?.enabled)
                                                     .sort((a, b) => (a.position ?? 0) - (b.position ?? 0)) // ✅ sort by position
@@ -780,9 +809,9 @@ const FormViewPage = () => {
                                                                     </Select>
                                                                     {/* Employee Rating Field */}
                                                                     {field.hasEmployeeRating && (
-                                                                        <div className="flex flex-col space-y-2">
+                                                                        <div className="flex flex-col space-y-1 md:space-y-2">
                                                                             <Label className="text-sm font-medium">Rate this employee</Label>
-                                                                            <StarRating
+                                                                            <StarRating 
                                                                                 key={`employee-rating-${fieldKey}`}
                                                                                 rating={field.employeeRatingValue || 0}
                                                                                 onChange={(value) =>
@@ -928,14 +957,29 @@ const FormViewPage = () => {
                                                     );
                                                 })}
 
-                                                <div className="mt-4">
-                                                    <Turnstile
-                                                        siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
-                                                        onSuccess={(token) => setCaptchaToken(token)}
-                                                        onExpire={() => setCaptchaToken(null)}
-                                                        onError={() => setCaptchaToken(null)}
-                                                    />
-                                                </div>
+<div className="mt-4 flex justify-center">
+  <div className="inline-block max-w-[275px] md:max-w-max">
+    <div
+      className="origin-top-left"
+     style={{
+      transform: window.innerWidth < 400 ? 'scale(0.8)' : 'scale(1)',
+      transformOrigin: 'top left',
+      width: 'max-content',
+    }}
+    >
+      <Turnstile
+        siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+        onSuccess={(token) => setCaptchaToken(token)}
+        onExpire={() => setCaptchaToken(null)}
+        onError={() => setCaptchaToken(null)}
+      />
+    </div>
+  </div>
+</div>
+
+
+
+
 
                                                 <Button
                                                     type="submit"

@@ -1,17 +1,20 @@
-import StarRatings from 'react-star-ratings';
+import { useMediaQuery } from "react-responsive";
+import StarRatings from "react-star-ratings";
 
 const StarRating = ({ rating, onChange }) => {
-    return (
-        <StarRatings
-            rating={rating}
-            starRatedColor="gold" // Color of selected stars
-            starHoverColor="gold" // Color of stars on hover
-            changeRating={onChange} // Callback for when the rating changes
-            numberOfStars={5} // Total number of stars
-            starDimension="26px" // Size of each star
-            starSpacing="4px" // Spacing between stars
-        />
-    );
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+
+  return (
+    <StarRatings
+      rating={rating}
+      starRatedColor="gold"
+      starHoverColor="gold"
+      changeRating={onChange}
+      numberOfStars={5}
+      starDimension={isMobile ? "18px" : "26px"}
+      starSpacing="4px"
+    />
+  );
 };
 
 export default StarRating;
