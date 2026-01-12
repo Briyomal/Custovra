@@ -8,6 +8,8 @@ import { User } from "../models/User.js";
 import { Form } from "../models/Form.js";
 import { verifyGenieSignature } from "../utils/verifyGenieSignature.js";
 import { verifyGenieWebhookSignature } from "../utils/verifyGenieWebhookSignature.js";
+import { sendPaymentSuccessEmail } from "../email/emails.js";
+
 
 const VITE_CLIENT_URL = process.env.VITE_CLIENT_URL || "http://localhost:5173"; // Fallback URL in case environment variable is not set
 // Get user's Genie payment history
@@ -289,34 +291,6 @@ export const createGeniePaymentRequest = async (req, res) => {
         try {
             // Try to create a card payment request first (faster for returning customers)
             try {
-                const paymentResponse = await genieClient.post("/connect/v1/payments/card", {
-                    amount: amount * 100, // Convert to cents for Genie API
-                    currency: "LKR",
-                    
-                    // Add tokenization details for recurring payments
-                    tokenizationDetails: {
-                        tokenize: true, // Enable card tokenization for recurring payments
-                        paymentType: "UNSCHEDULED", // Fixed value for merchant initiated recurring payments
-                        recurringFrequency: "UNSCHEDULED" // Fixed value for ad-hoc payments only
-                    },
-                    
-                    customer: customerId ? { id: customerId } : undefined,
-                    //cardOnFile: true, // enables recurring setup
-                    redirectUrl: `${redirectBaseUrl}/api/genie/billing-redirect`,
-                    //webhook: `${process.env.VITE_SERVER_URL}/api/genie/webhook`,
-                    webhook: `${process.env.GENIE_WEBHOOK_URL}`,
-                });
-
-                paymentUrl = paymentResponse.data.url;
-                transactionId = paymentResponse.data.id;
-                console.log("Successfully created card payment request with tokenization");
-            } catch (cardPaymentError) {
-                console.error("Error creating card payment request:", cardPaymentError.response?.data || cardPaymentError.message);
-                errorMessage = cardPaymentError.response?.data?.message || cardPaymentError.message;
-
-                // If card payment fails, fall back to transaction (payment link) with full customer details and tokenization
-                console.log("Falling back to transaction (payment link) creation with full customer details and tokenization");
-                try {
                     const transactionResponse = await genieClient.post("/public/v2/transactions", {
                         amount: amount * 100, // Convert to cents for Genie API
                         currency: "LKR",
@@ -346,7 +320,6 @@ export const createGeniePaymentRequest = async (req, res) => {
                     // If both attempts fail, we'll handle it in the outer catch block
                     throw transactionError;
                 }
-            }
 
             // Update payment with transaction details
             if (transactionId) {
@@ -739,6 +712,17 @@ const handlePaymentSuccess = async (paymentData) => {
         payment.user_id,
         payment.form_selection
       );
+    }
+
+    if (user) {
+      await sendPaymentSuccessEmail({
+        email: user.email,
+        userName: user.first_name || user.name,
+        planName: payment.plan_name,
+        billingPeriod: payment.billing_period,
+        amount: `${payment.amount} LKR`,
+        expiryDate: new Date(payment.subscription_end).toDateString(),
+      });
     }
 
     console.log(

@@ -2,28 +2,99 @@ export const VERIFICATION_EMAIL_TEMPLATE = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Verify Your Email</title>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(to right, #16bf4c, #84cc16); padding: 20px; text-align: center; border-radius: 6px">
-    <h1 style="color: white; margin: 0;">Verify Your Email</h1>
+
+<body style="margin:0; padding:0; background-color:#f3f4f6; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+
+  <div style="max-width:600px; margin:40px auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.08);">
+
+    <!-- Header -->
+<div style="background:linear-gradient(135deg, #16bf4c, #84cc16); padding:32px; text-align:center;">
+
+  <div style="
+    display:inline-block;
+    background:#ffffff;
+    padding:10px 14px;
+    border-radius:10px;
+    margin-bottom:16px;">
+    <img
+      src="{logoUrl}"
+      alt="Custovra"
+      width="110"
+      style="display:block;"
+    />
   </div>
-  <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-    <p>Hello,</p>
-    <p>Thank you for signing up! Your verification code is:</p>
-    <div style="text-align: center; margin: 30px 0;">
-      <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #16bf4c;">{verificationCode}</span>
+
+  <h1 style="margin:0; color:#ffffff; font-size:26px; font-weight:600;">
+    Verify Your Email 📧
+  </h1>
+
+  <p style="margin-top:8px; color:#ecfdf5; font-size:15px;">
+    One more step to get started
+  </p>
+
+</div>
+
+    <!-- Content -->
+    <div style="padding:32px; color:#111827;">
+
+      <p style="font-size:16px; margin-top:0;">
+        Hello,
+      </p>
+
+      <p style="font-size:15px; line-height:1.6; color:#374151;">
+        Thanks for signing up with <strong>Custovra</strong>!  
+        Use the verification code below to confirm your email address.
+      </p>
+
+      <!-- Verification Code -->
+      <div style="text-align:center; margin:32px 0;">
+        <div style="
+          display:inline-block;
+          padding:16px 28px;
+          font-size:32px;
+          font-weight:700;
+          letter-spacing:6px;
+          color:#16bf4c;
+          background:#ecfdf5;
+          border:1px dashed #86efac;
+          border-radius:10px;">
+          {verificationCode}
+        </div>
+      </div>
+
+      <p style="font-size:15px; color:#374151;">
+        Enter this code on the verification page to complete your registration.
+      </p>
+
+      <!-- Info Box -->
+      <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:18px; margin:24px 0;">
+        <p style="margin:0; font-size:14px; color:#374151;">
+          ⏰ This code will expire in <strong>15 minutes</strong> for security reasons.
+        </p>
+      </div>
+
+      <p style="font-size:14px; color:#6b7280;">
+        If you didn’t create an account with us, you can safely ignore this email.
+      </p>
+
+      <p style="margin-top:32px; font-size:15px;">
+        Best regards,<br />
+        <strong>Custovra Team</strong>
+      </p>
+
     </div>
-    <p>Enter this code on the verification page to complete your registration.</p>
-    <p>This code will expire in 15 minutes for security reasons.</p>
-    <p>If you didn't create an account with us, please ignore this email.</p>
-    <p>Best regards,<br>Custovra</p>
+
+    <!-- Footer -->
+    <div style="background:#f9fafb; padding:16px; text-align:center; font-size:12px; color:#9ca3af;">
+      This is an automated message. Please do not reply.
+    </div>
+
   </div>
-  <div style="text-align: center; margin-top: 20px; color: #888; font-size: 0.8em;">
-    <p>This is an automated message, please do not reply to this email.</p>
-  </div>
+
 </body>
 </html>
 `;
@@ -32,35 +103,99 @@ export const PASSWORD_RESET_SUCCESS_TEMPLATE = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Password Reset Successful</title>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(to right, #16bf4c, #84cc16); padding: 20px; text-align: center; border-radius: 6px;">
-    <h1 style="color: white; margin: 0;">Password Reset Successful</h1>
+
+<body style="margin:0; padding:0; background-color:#f3f4f6; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+
+  <div style="max-width:600px; margin:40px auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.08);">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg, #16bf4c, #84cc16); padding:32px; text-align:center;">
+      <div style="
+    display:inline-block;
+    background:#ffffff;
+    padding:10px 14px;
+    border-radius:10px;
+    margin-bottom:16px;">
+    <img
+      src="{logoUrl}"
+      alt="Custovra"
+      width="110"
+      style="display:block;"
+    />
   </div>
-  <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-    <p>Hello,</p>
-    <p>We're writing to confirm that your password has been successfully reset.</p>
-    <div style="text-align: center; margin: 30px 0;">
-      <div style="background: linear-gradient(to right, #16bf4c, #84cc16); color: white; width: 50px; height: 50px; line-height: 50px; border-radius: 50%; display: inline-block; font-size: 30px;">
-        ✓
-      </div>
+      <h1 style="margin:0; color:#ffffff; font-size:26px; font-weight:600;">
+        Password Updated ✅
+      </h1>
+      <p style="margin-top:8px; color:#ecfdf5; font-size:15px;">
+        Your account is secure
+      </p>
     </div>
-    <p>If you did not initiate this password reset, please contact our support team immediately.</p>
-    <p>For security reasons, we recommend that you:</p>
-    <ul>
-      <li>Use a strong, unique password</li>
-      <li>Enable two-factor authentication if available</li>
-      <li>Avoid using the same password across multiple sites</li>
-    </ul>
-    <p>Thank you for helping us keep your account secure.</p>
-    <p>Best regards,<br>Custovra</p>
+
+    <!-- Content -->
+    <div style="padding:32px; color:#111827;">
+
+      <p style="font-size:16px; margin-top:0;">
+        Hello,
+      </p>
+
+      <p style="font-size:15px; line-height:1.6; color:#374151;">
+        This email confirms that your <strong>Custovra</strong> account password was successfully reset.
+      </p>
+
+      <!-- Success Icon -->
+      <div style="text-align:center; margin:32px 0;">
+        <div style="
+          width:64px;
+          height:64px;
+          line-height:64px;
+          border-radius:50%;
+          background:#16bf4c;
+          color:#ffffff;
+          font-size:32px;
+          display:inline-block;
+          font-weight:600;">
+          ✓
+        </div>
+      </div>
+
+      <p style="font-size:15px; color:#374151;">
+        If you did not perform this action, please contact our support team immediately.
+      </p>
+
+      <!-- Security Tips -->
+      <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:18px; margin:24px 0;">
+        <p style="margin-top:0; font-size:14px; font-weight:600; color:#111827;">
+          Security tips:
+        </p>
+        <ul style="margin:8px 0 0 18px; padding:0; font-size:14px; color:#374151;">
+          <li>Use a strong, unique password</li>
+          <li>Enable two-factor authentication (2FA)</li>
+          <li>Avoid reusing passwords across sites</li>
+        </ul>
+      </div>
+
+      <p style="font-size:15px; color:#374151;">
+        Thank you for helping us keep your account secure.
+      </p>
+
+      <p style="margin-top:32px; font-size:15px;">
+        Best regards,<br />
+        <strong>Custovra Team</strong>
+      </p>
+
+    </div>
+
+    <!-- Footer -->
+    <div style="background:#f9fafb; padding:16px; text-align:center; font-size:12px; color:#9ca3af;">
+      This is an automated security email. Please do not reply.
+    </div>
+
   </div>
-  <div style="text-align: center; margin-top: 20px; color: #888; font-size: 0.8em;">
-    <p>This is an automated message, please do not reply to this email.</p>
-  </div>
+
 </body>
 </html>
 `;
@@ -69,27 +204,95 @@ export const PASSWORD_RESET_REQUEST_TEMPLATE = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Reset Your Password</title>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(to right, #16bf4c, #84cc16); padding: 20px; text-align: center; border-radius: 6px;">
-    <h1 style="color: white; margin: 0;">Password Reset</h1>
+
+<body style="margin:0; padding:0; background-color:#f3f4f6; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+
+  <div style="max-width:600px; margin:40px auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.08);">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg, #16bf4c, #84cc16); padding:32px; text-align:center;">
+
+      <div style="
+    display:inline-block;
+    background:#ffffff;
+    padding:10px 14px;
+    border-radius:10px;
+    margin-bottom:16px;">
+    <img
+      src="{logoUrl}"
+      alt="Custovra"
+      width="110"
+      style="display:block;"
+    />
   </div>
-  <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-    <p>Hello,</p>
-    <p>We received a request to reset your password. If you didn't make this request, please ignore this email.</p>
-    <p>To reset your password, click the button below:</p>
-    <div style="text-align: center; margin: 30px 0;">
-      <a href="{resetURL}" style="background: linear-gradient(to right, #16bf4c, #84cc16); color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset Password</a>
+
+      <h1 style="margin:0; color:#ffffff; font-size:26px; font-weight:600;">
+        Reset Your Password 🔐
+      </h1>
+      <p style="margin-top:8px; color:#ecfdf5; font-size:15px;">
+        Secure access to your account
+      </p>
     </div>
-    <p>This link will expire in 1 hour for security reasons.</p>
-    <p>Best regards,<br>Custovra</p>
+
+    <!-- Content -->
+    <div style="padding:32px; color:#111827;">
+
+      <p style="font-size:16px; margin-top:0;">
+        Hello,
+      </p>
+
+      <p style="font-size:15px; line-height:1.6; color:#374151;">
+        We received a request to reset the password for your <strong>Custovra</strong> account.
+        If you didn’t request this, you can safely ignore this email.
+      </p>
+
+      <!-- Info Box -->
+      <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:18px; margin:24px 0;">
+        <p style="margin:0; font-size:14px; color:#374151;">
+          ⏰ This reset link will expire in <strong>1 hour</strong> for security reasons.
+        </p>
+      </div>
+
+      <p style="font-size:15px; color:#374151;">
+        Click the button below to reset your password:
+      </p>
+
+      <!-- CTA -->
+      <div style="text-align:center; margin:32px 0;">
+        <a
+          href="{resetURL}"
+          style="display:inline-block; padding:14px 28px; background:#16bf4c; color:#ffffff; text-decoration:none; border-radius:8px; font-weight:600; font-size:15px;"
+        >
+          Reset Password
+        </a>
+      </div>
+
+      <p style="font-size:14px; color:#6b7280;">
+        If the button doesn’t work, copy and paste this link into your browser:
+      </p>
+
+      <p style="font-size:13px; word-break:break-all; color:#16bf4c;">
+        {resetURL}
+      </p>
+
+      <p style="margin-top:32px; font-size:15px;">
+        Regards,<br />
+        <strong>Custovra Team</strong>
+      </p>
+
+    </div>
+
+    <!-- Footer -->
+    <div style="background:#f9fafb; padding:16px; text-align:center; font-size:12px; color:#9ca3af;">
+      This is an automated security email. Please do not reply.
+    </div>
+
   </div>
-  <div style="text-align: center; margin-top: 20px; color: #888; font-size: 0.8em;">
-    <p>This is an automated message, please do not reply to this email.</p>
-  </div>
+
 </body>
 </html>
 `;
@@ -98,79 +301,200 @@ export const WELCOME_EMAIL_TEMPLATE = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Welcome to Custovra</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      color: #fff;
-      margin: 0;
-      padding: 0;
-      background-color: #f4f4f4;
-    }
-    .container {
-      width: 100%;
-      max-width: 600px;
-      margin: 0 auto;
-      background-color: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      background: linear-gradient(to right, #16bf4c, #84cc16);
-      padding: 20px;
-      text-align: center;
-      color: white;
-      border-radius: 8px 8px 0 0;
-    }
-    .header h1 {
-      margin: 0;
-      font-size: 2em;
-    }
-    .content {
-      padding: 20px;
-      text-align: center;
-    }
-    .content p {
-      font-size: 1.1em;
-      line-height: 1.6;
-      color: #555;
-    }
-    .cta-button {
-      background: linear-gradient(to right, #16bf4c, #84cc16);
-      color: white !important;
-      padding: 10px 20px;
-      font-size: 1.2em;
-      text-decoration: none !important;
-      border-radius: 5px;
-      display: inline-block;
-      margin-top: 20px;
-    }
-    .footer {
-      text-align: center;
-      color: #888;
-      font-size: 0.8em;
-      margin-top: 20px;
-    }
-  </style>
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>Welcome to Custovra</h1>
-    </div>
-    <div class="content">
-      <p>Hi {name},</p>
-      <p>Thank you for signing up with us! We're thrilled to have you on board.</p>
-      <p>Click the button below to start exploring the platform:</p>
-      <a href="https://custovra.com/" class="cta-button">Start Exploring</a>
-    </div>
-    <div class="footer">
-      <p>This is an automated message. If you have any questions, feel free to reach out to us.</p>
-    </div>
+
+<body style="margin:0; padding:0; background-color:#f3f4f6; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+
+  <div style="max-width:600px; margin:40px auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.08);">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg, #16bf4c, #84cc16); padding:32px; text-align:center;">
+
+      <div style="
+    display:inline-block;
+    background:#ffffff;
+    padding:10px 14px;
+    border-radius:10px;
+    margin-bottom:16px;">
+    <img
+      src="{logoUrl}"
+      alt="Custovra"
+      width="110"
+      style="display:block;"
+    />
   </div>
+
+      <h1 style="margin:0; color:#ffffff; font-size:26px; font-weight:600;">
+        Welcome to Custovra 👋
+      </h1>
+      <p style="margin-top:8px; color:#ecfdf5; font-size:15px;">
+        We’re excited to have you onboard
+      </p>
+    </div>
+
+    <!-- Content -->
+    <div style="padding:32px; color:#111827;">
+
+      <p style="font-size:16px; margin-top:0;">
+        Hi <strong>{name}</strong>,
+      </p>
+
+      <p style="font-size:15px; line-height:1.6; color:#374151;">
+        Thank you for joining <strong>Custovra</strong>! Your account has been successfully created, and you’re all set to start exploring the platform.
+      </p>
+
+      <!-- Highlight Card -->
+      <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:20px; margin:24px 0;">
+        <p style="margin:0; font-size:14px; color:#374151;">
+          🚀 Create and manage your forms<br />
+          📊 View insights and submissions<br />
+          🔒 Secure and scalable platform
+        </p>
+      </div>
+
+      <p style="font-size:15px; color:#374151;">
+        Click below to get started:
+      </p>
+
+      <!-- CTA -->
+      <div style="text-align:center; margin:32px 0;">
+        <a
+          href="https://custovra.com/"
+          style="display:inline-block; padding:14px 28px; background:#16bf4c; color:#ffffff; text-decoration:none; border-radius:8px; font-weight:600; font-size:15px;"
+        >
+          Start Exploring
+        </a>
+      </div>
+
+      <p style="font-size:14px; color:#6b7280;">
+        If you have any questions, our support team is always here to help.
+      </p>
+
+      <p style="margin-top:32px; font-size:15px;">
+        Cheers,<br />
+        <strong>Custovra Team</strong>
+      </p>
+
+    </div>
+
+    <!-- Footer -->
+    <div style="background:#f9fafb; padding:16px; text-align:center; font-size:12px; color:#9ca3af;">
+      This is an automated message. Please do not reply.
+    </div>
+
+  </div>
+
+</body>
+</html>
+
+`;
+
+export const PAYMENT_SUCCESS_EMAIL_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Successful</title>
+</head>
+
+<body style="margin:0; padding:0; background-color:#f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+
+  <div style="max-width:600px; margin:40px auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.08);">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg, #16bf4c, #84cc16); padding:32px; text-align:center;">
+
+      <div style="
+    display:inline-block;
+    background:#ffffff;
+    padding:10px 14px;
+    border-radius:10px;
+    margin-bottom:16px;">
+    <img
+      src="{logoUrl}"
+      alt="Custovra"
+      width="110"
+      style="display:block;"
+    />
+  </div>
+  
+      <h1 style="margin:0; color:#ffffff; font-size:26px; font-weight:600;">
+        Payment Successful 🎉
+      </h1>
+      <p style="margin-top:8px; color:#ecfdf5; font-size:15px;">
+        Your subscription is now active
+      </p>
+    </div>
+
+    <!-- Content -->
+    <div style="padding:32px; color:#111827;">
+      <p style="font-size:16px; margin-top:0;">
+        Hi <strong>{userName}</strong>,
+      </p>
+
+      <p style="font-size:15px; line-height:1.6; color:#374151;">
+        Thank you for your payment! We've successfully activated your subscription.
+        Below are your plan details:
+      </p>
+
+      <!-- Info Card -->
+      <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:20px; margin:24px 0;">
+
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+          <span style="color:#6b7280; font-size:14px;">Plan</span>
+          <span style="font-weight:600;">{planName}</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+          <span style="color:#6b7280; font-size:14px;">Billing Period</span>
+          <span style="font-weight:600;">{billingPeriod}</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+          <span style="color:#6b7280; font-size:14px;">Amount Paid</span>
+          <span style="font-weight:600;">{amount}</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:#6b7280; font-size:14px;">Valid Until</span>
+          <span style="font-weight:600;">{expiryDate}</span>
+        </div>
+      </div>
+
+      <p style="font-size:15px; color:#374151;">
+        You now have full access to all features included in your plan.
+      </p>
+
+      <!-- CTA -->
+      <div style="text-align:center; margin:32px 0;">
+        <a href="{dashboardUrl}"
+           style="display:inline-block; padding:14px 28px; background:#16bf4c; color:#ffffff; text-decoration:none; border-radius:8px; font-weight:600; font-size:15px;">
+          Go to Dashboard
+        </a>
+      </div>
+
+      <p style="font-size:14px; color:#6b7280;">
+        Need help? Contact our support team anytime.
+      </p>
+
+      <p style="margin-top:32px; font-size:15px;">
+        Cheers,<br />
+        <strong>Custovra Team</strong>
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="background:#f9fafb; padding:16px; text-align:center; font-size:12px; color:#9ca3af;">
+      This is an automated message. Please do not reply.
+    </div>
+
+  </div>
+
 </body>
 </html>
 `;
+
