@@ -1,10 +1,22 @@
-export const formatCurrency = (amount) => {
+/*export const formatCurrency = (amount) => {
   // For LKR, we don't need to divide by 100 as the amount is already in the correct format
   return `Rs ${new Intl.NumberFormat('en-LK', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount)}`;
 };
+*/
+export    const formatCurrency = (amount) => {
+
+        return new Intl.NumberFormat("en-US", {
+
+            style: "currency",
+
+            currency: "USD",
+
+        }).format(amount / 100);
+
+    };
 
 export const formatDate = (date) => {
   return new Date(date).toLocaleDateString('en-US', {

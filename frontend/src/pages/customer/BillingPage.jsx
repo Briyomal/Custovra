@@ -9,7 +9,6 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 
 // Import our new components directly
 import SubscriptionOverview from "@/components/customer-view/billing/SubscriptionOverview";
-import SubscriptionPlans from "@/components/customer-view/billing/SubscriptionPlans";
 import PaymentHistory from "@/components/customer-view/billing/PaymentHistory";
 import DowngradeDialog from "@/components/customer-view/billing/DowngradeDialog";
 import SubscriptionStatusBanner from "@/components/customer-view/billing/SubscriptionStatusBanner";
@@ -19,6 +18,7 @@ import StatusBadge from "@/components/customer-view/billing/StatusBadge";
 import { formatCurrency, formatDate } from "@/utils/billing";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PaymentPlans from "@/components/customer-view/billing/PaymentPlans";
 
 function BillingPage() {
     const [loading, setLoading] = useState(true);
@@ -122,13 +122,48 @@ function BillingPage() {
         try {
             setLoading(true);
             const [subscriptionRes, historyRes, plansRes] = await Promise.allSettled([
-                axios.get(`${import.meta.env.VITE_SERVER_URL}/api/manual-billing/subscription-details`, { withCredentials: true }),
-                axios.get(`${import.meta.env.VITE_SERVER_URL}/api/genie/payment-history`, { withCredentials: true }), // Use Genie payment history
+                axios.get(`${import.meta.env.VITE_SERVER_URL}/api/polar/subscriptions`, { withCredentials: true }),
+                axios.get(`${import.meta.env.VITE_SERVER_URL}/api/polar/payment-history`, { withCredentials: true }), // Use Polar payment history
                 axios.get(`${import.meta.env.VITE_SERVER_URL}/api/manual-billing/available-plans`, { withCredentials: true })
             ]);
 
             if (subscriptionRes.status === 'fulfilled') {
-                setSubscriptionDetails(subscriptionRes.value.data.data);
+                // Use subscription data directly from our database
+                const polarData = subscriptionRes.value.data;
+                
+                // Get the first active subscription
+                const activeSubscription = polarData.subscriptions?.[0] || null;
+                
+                // Transform the data structure to match what SubscriptionOverview expects
+                const transformedData = {
+                    subscription: activeSubscription ? {
+                        id: activeSubscription.id,
+                        plan_name: activeSubscription.plan_name,
+                        amount: activeSubscription.amount,
+                        currency: activeSubscription.currency,
+                        billing_period: activeSubscription.billing_period,
+                        status: activeSubscription.status,
+                        subscription_start: activeSubscription.subscription_start,
+                        subscription_end: activeSubscription.subscription_end,
+                        auto_renew: activeSubscription.auto_renew,
+                        external_subscription_id: activeSubscription.external_subscription_id,
+                        external_provider: activeSubscription.external_provider,
+                        external_plan_id: activeSubscription.external_plan_id,
+                        customer_id: activeSubscription.customer_id
+                    } : null,
+                    // Keep other data as is for backward compatibility
+                    plan: activeSubscription ? {
+                        formLimit: 'Unlimited', // Database doesn't store form limits for Polar subscriptions
+                        submissionLimit: 'Unlimited',
+                        name: activeSubscription.plan_name
+                    } : null,
+                    formCount: 0, // Would need separate API call to get actual form count
+                    // Add additional metadata for Polar subscriptions
+                    isPolarSubscription: true,
+                    customerId: polarData.customerId
+                };
+                
+                setSubscriptionDetails(transformedData);
             }
 
             if (historyRes.status === 'fulfilled') {
@@ -620,7 +655,7 @@ function BillingPage() {
 
                     {/* Plans Tab */}
                     <TabsContent value="plans" className="space-y-6">
-                        <SubscriptionPlans 
+                        <PaymentPlans
                             subscriptionDetails={subscriptionDetails}
                             availablePlans={availablePlans}
                             setPaymentFormData={setPaymentFormData}

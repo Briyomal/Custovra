@@ -23,6 +23,10 @@ import manualBillingRoutes from "./routes/manualBilling.route.js";
 
 import genieRoutes from "./routes/genie.route.js";
 import { handleGeniePaymentWebhook } from "./controllers/genieController.js";
+import { polarWebhook } from "./controllers/polarWebhook.controller.js";
+
+
+import polarRoutes from "./routes/polar.route.js";
 
 import { fileURLToPath } from "url";
 import path from "path";
@@ -68,6 +72,13 @@ app.use("/public", express.static(path.join(__dirname, "public")));
 
 // Webhook routes BEFORE body parser
 app.use("/api/genie/webhook", express.raw({ type: "application/json" }), handleGeniePaymentWebhook);
+// webhook route ONLY
+app.post(
+  "/api/polar/webhook",
+  express.raw({ type: "application/json" }),
+  polarWebhook
+);
+
 
 // Normal JSON parsing
 app.use(express.json());
@@ -89,6 +100,7 @@ app.use("/api/support", supportRoutes);
 app.use("/api/manual-plans", manualPlanRoutes);
 app.use("/api/manual-billing", manualBillingRoutes);
 app.use("/api/genie", genieRoutes);
+app.use("/api/polar", polarRoutes);
 
 // --- START HTTP SERVER ---
 app.listen(PORT, () => {

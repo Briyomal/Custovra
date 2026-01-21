@@ -7,9 +7,17 @@ import herobg from "../../assets/herobg.webp";
 import { HeroVideoDialog } from "@/components/ui/hero-video-dialog"
 import Footer from "./Footer";
 import MagicBento from '@/components/MagicBento'
+import PaymentPlans from "@/components/customer-view/billing/PaymentPlans";
+/*
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import axios from "axios";
+import { useAuthStore } from "@/store/authStore";
+import { useNavigate } from "react-router-dom";
+import toast from 'react-hot-toast';
+*/
+
 
 const rows = [
     {
@@ -104,129 +112,125 @@ const rows = [
     },
 ];
 const HomePage = () => {
+  /*
     const [availablePlans, setAvailablePlans] = useState([]);
     const [loadingPlans, setLoadingPlans] = useState(true);
     const [billingPeriod, setBillingPeriod] = useState("monthly");
+    const { isAuthenticated } = useAuthStore();
+    const navigate = useNavigate();
 
-    // Fetch available subscription plans
-    useEffect(() => {
-        const fetchPlans = async () => {
-            try {
-                const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/manual-billing/available-plans`);
-                if (response.ok) {
-                    const data = await response.json();
-                    setAvailablePlans(data.data || []);
-                }
-            } catch (error) {
-                console.error("Error fetching plans:", error);
-            } finally {
-                setLoadingPlans(false);
-            }
-        };
+useEffect(() => {
+  const fetchProducts = async () => {
+    try {
+      setLoadingPlans(true);
+      const res = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/polar/products`);
+      
+      // Accessing the items based on your new raw response structure
+      const products = res.data?.products || []; 
 
-        fetchPlans();
-    }, []);
+      const normalizedPlans = products.map((product) => ({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        prices: product.prices || [],
+        discounts: product.discounts || [], // Capture the live discountsrecurringInterval: product.recurringInterval, 
+        recurringInterval: product.recurringInterval, 
+        recurringIntervalCount: product.recurringIntervalCount, // Used to distinguish monthly vs 6-month
+        formLimit: product.metadata?.formLimit || 0,
+        submissionLimit: product.metadata?.submissionLimit || 0,
+      }));
 
-    // Format currency (similar to customer billing page)
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-LK', {
-            style: 'currency',
-            currency: 'LKR',
-            minimumFractionDigits: 2
-        }).format(amount);
-    };
+      setAvailablePlans(normalizedPlans);
+    } catch (error) {
+      console.error("Failed to load Polar plans:", error);
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
+  fetchProducts();
+}, []);
 
-    // Get price based on selected billing period
-    const getPriceForPeriod = (plan) => {
-        switch (billingPeriod) {
-            case "monthly":
-                return plan.final_prices?.monthly ?? plan.price_monthly;
-            case "half_yearly":
-                return plan.final_prices?.half_yearly ?? (plan.price_monthly * 6);
-            case "yearly":
-                return plan.final_prices?.yearly ?? plan.price_yearly;
-            default:
-                return plan.price_monthly;
-        }
-    };
+const getPriceForPeriod = (plan) => {
+  const original = plan.prices?.[0]?.priceAmount || 0;
+  const discountObj = plan.discounts?.[0];
+  
+  if (discountObj && discountObj.type === "percentage") {
+    return Math.round(original * (1 - (discountObj.basisPoints / 10000)));
+  }
+  return original;
+};
 
-    // Get original price based on selected billing period (before discount)
-    const getOriginalPriceForPeriod = (plan) => {
-        switch (billingPeriod) {
-            case "monthly":
-                return plan.price_monthly;
-            case "half_yearly":
-                return plan.price_monthly * 6;
-            case "yearly":
-                return plan.price_yearly;
-            default:
-                return plan.price_monthly;
-        }
-    };
+const getDiscountPercentage = (plan) => {
+  const discountObj = plan.discounts?.[0];
+  // Return 0 if no discount exists to avoid layout issues
+  return discountObj ? discountObj.basisPoints / 100 : 0; 
+};
 
-    // Get equivalent monthly rate for longer periods
-    const getEquivalentMonthlyRate = (plan) => {
-        switch (billingPeriod) {
-            case "half_yearly":
-                return (plan.final_prices?.half_yearly ?? (plan.price_monthly * 6)) / 6;
-            case "yearly":
-                return (plan.final_prices?.yearly ?? plan.price_yearly) / 12;
-            default:
-                return null;
-        }
-    };
+const getPeriodLabel = () => {
+  if (billingPeriod === "monthly") return "/month";
+  if (billingPeriod === "half_yearly") return "/6 months";
+  if (billingPeriod === "yearly") return "/year";
+  return "";
+};
+const getOriginalPriceForPeriod = (plan) => {
+  return plan.prices?.[0]?.priceAmount || 0;
+};
 
-    // Get discount percentage for current period
-    const getDiscountForPeriod = (plan) => {
-        if (!plan || !plan.discounts) {
-            return 0;
-        }
+const getSavingsForPeriod = (plan) => {
+  return getOriginalPriceForPeriod(plan) - getPriceForPeriod(plan);
+};
 
-        const discounts = plan.discounts;
-        if (typeof discounts === 'object' && discounts !== null) {
-            return discounts[billingPeriod] || 0;
-        }
+const getEquivalentMonthlyRate = (plan) => {
+  if (plan.recurringIntervalCount === 1) return null;
+  return Math.round(getPriceForPeriod(plan) / plan.recurringIntervalCount);
+};
+  const formatCurrency = (amount) => {
 
-        return 0;
-    };
+    return new Intl.NumberFormat("en-US", {
 
-    // Get period label
-    const getPeriodLabel = () => {
-        switch (billingPeriod) {
-            case "monthly":
-                return "/mo";
-            case "half_yearly":
-                return "/6mo";
-            case "yearly":
-                return "/yr";
-            default:
-                return "/mo";
-        }
-    };
+      style: "currency",
 
-    // Get savings amount for current period
-    const getSavingsForPeriod = (plan) => {
-        const discount = getDiscountForPeriod(plan);
-        if (discount <= 0) return 0;
+      currency: "USD",
 
-        let originalPrice;
-        switch (billingPeriod) {
-            case "monthly":
-                originalPrice = plan.price_monthly;
-                break;
-            case "half_yearly":
-                originalPrice = plan.price_monthly * 6;
-                break;
-            case "yearly":
-                originalPrice = plan.price_yearly;
-                break;
-            default:
-                originalPrice = plan.price_monthly;
-        }
+    }).format(amount / 100);
 
-        const finalPrice = getPriceForPeriod(plan);
-        return originalPrice - finalPrice;
-    };
+  };
+
+const handleSubscribe = async (plan) => {
+  if (!isAuthenticated) {
+    navigate("/login");
+    toast.error("Please login to continue");
+    return;
+  }
+  console.log("Subscribing to plan:", plan);
+
+  // Use the Product ID for Ad-hoc pricing, or Price ID for Catalog pricing
+  // Match this to whatever your controller's "if (!...)" check is looking for
+  const productId = plan.id; 
+  const amount = plan.prices?.[0]?.priceAmount;
+
+  const discountId = plan.discounts?.[0]?.id;
+
+  try {
+    const response = await axios.post(
+      `${import.meta.env.VITE_SERVER_URL}/api/polar/create-checkout`, 
+      { 
+        productId: productId, // Change key name if controller expects priceId
+        amount: amount ,
+        discountId: discountId,
+      },
+      { withCredentials: true } // Required to send cookies for verifyToken to work
+    );
+
+    if (response.data.url) {
+      window.location.href = response.data.url;
+    }
+  } catch (error) {
+    toast.error("Failed to start checkout.");
+    console.error("Checkout Error:", error.response?.data || error);
+  }
+};
+*/
 
     return (
         <>
@@ -448,164 +452,159 @@ const HomePage = () => {
                     </div>
                 </div>
             </section>
+            
 
-            {/* Pricing */}
-            <section id="pricing" className="bg-white dark:bg-black py-24 px-6">
-                <div className="max-w-6xl mx-auto text-center">
-                    <h2 className="text-3xl md:text-4xl font-bold leading-normal inline-block text-transparent bg-clip-text bg-gradient-to-r from-theme-green to-lime-500">Pricing</h2>
-                    <p className="mt-4 text-md md:text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
-                        Custovra offers a range of pricing plans for businesses of all sizes. Our pricing is based on the number of users and the amount of storage you need.
-                    </p>
+<section id="pricing" className="bg-white dark:bg-black py-24 px-6">
+  <PaymentPlans />
+  {/*
+  <div className="max-w-6xl mx-auto text-center">
+    <h2 className="text-3xl md:text-4xl font-bold leading-normal inline-block text-transparent bg-clip-text bg-gradient-to-r from-theme-green to-lime-500">
+      Pricing
+    </h2>
 
-                    {/* Billing Period Toggle */}
-                    <div className="flex items-center justify-center space-x-2 p-4 rounded-lg mt-8">
-                        <button
-                            className={`px-4 py-2 rounded-l-lg ${billingPeriod === "monthly" ? "bg-[#16bf4c] text-themebglight font-medium" : "bg-gray-200 dark:bg-gray-800"}`}
-                            onClick={() => setBillingPeriod("monthly")}
-                        >
-                            Monthly
-                        </button>
-                        <button
-                            className={`${billingPeriod === "half_yearly" ? "bg-[#16bf4c] text-themebglight font-medium" : "bg-gray-200 dark:bg-gray-800"} px-4 py-2`}
-                            onClick={() => setBillingPeriod("half_yearly")}
-                        >
-                            Half-Yearly
-                        </button>
-                        <button
-                            className={`px-4 py-2 rounded-r-lg ${billingPeriod === "yearly" ? "bg-[#16bf4c] text-themebglight font-medium" : "bg-gray-200 dark:bg-gray-800"}`}
-                            onClick={() => setBillingPeriod("yearly")}
-                        >
-                            Yearly
-                        </button>
+    <p className="mt-4 text-md md:text-lg text-themebglight dark:text-white max-w-2xl mx-auto">
+      Flexible pricing plans designed to scale with your business.
+    </p>
+
+    <div className="flex items-center justify-center space-x-2 p-4 rounded-lg mt-8">
+      <button
+        className={`px-4 py-2 rounded-l-lg transition-colors ${
+          billingPeriod === "monthly"
+            ? "bg-[#16bf4c] text-white font-medium"
+            : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+        }`}
+        onClick={() => setBillingPeriod("monthly")}
+      >
+        Monthly
+      </button>
+
+      <button
+        className={`px-4 py-2 rounded-none transition-colors ${
+          billingPeriod === "half_yearly"
+            ? "bg-[#16bf4c] text-white font-medium"
+            : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+        }`}
+        onClick={() => setBillingPeriod("half_yearly")}
+      >
+        Half-Yearly
+      </button>
+      <button
+        className={`px-4 py-2 rounded-r-lg transition-colors ${
+          billingPeriod === "yearly"
+            ? "bg-[#16bf4c] text-white font-medium"
+            : "bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+        }`}
+        onClick={() => setBillingPeriod("yearly")}
+      >
+        Yearly
+      </button>
+    </div>
+
+    {loadingPlans ? (
+      <div className="mt-12">
+        <p className="text-themebglight dark:text-white">Loading plans...</p>
+      </div>
+    ) : availablePlans.length > 0 ? (
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-12">
+        {availablePlans
+          .filter((plan) => {
+            // Filter based on recurring interval from Polar
+            if (billingPeriod === "monthly") return plan.recurringIntervalCount === 1 && plan.recurringInterval === "month";
+            if (billingPeriod === "half_yearly") return plan.recurringIntervalCount === 6 && plan.recurringInterval === "month";
+            if (billingPeriod === "yearly") return plan.recurringIntervalCount === 1 && plan.recurringInterval === "year";
+            return true;
+          })
+          .map((plan) => {
+            const price = getPriceForPeriod(plan);
+            const originalPrice = getOriginalPriceForPeriod(plan);
+            const discountPercent = getDiscountPercentage(plan);
+            const savings = getSavingsForPeriod(plan);
+            const equivalentMonthly = getEquivalentMonthlyRate(plan);
+            const hasDiscount = discountPercent > 0;
+
+            return (
+              <Card key={plan.id} className="flex flex-col items-center relative text-center border-gray-200 dark:border-gray-800">
+                
+                {hasDiscount && (
+                  <div className="absolute -top-5 z-10">
+                    <Badge className="bg-gradient-to-r from-[#16bf4c] to-lime-500 text-themebg px-4 py-2 text-lg font-bold shadow-lg">
+                      {discountPercent}% OFF
+                      {savings > 0 && (
+                        <span className="block text-xs font-normal ml-1">
+                          Save {formatCurrency(savings)}
+                        </span>
+                      )}
+                    </Badge>
+                  </div>
+                )}
+
+                <CardHeader className="pt-12">
+                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                  <CardDescription className="min-h-[40px]">
+                    {plan.description}
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="flex-1">
+                  <div className="space-y-6">
+                    <div className="font-bold">
+                      {hasDiscount ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xl text-gray-500 line-through">
+                            {formatCurrency(originalPrice)}
+                          </span>
+                          <span className="text-4xl text-lime-500">
+                            {formatCurrency(price)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-4xl">{formatCurrency(price)}</span>
+                      )}
+                      <span className="text-lg font-normal text-gray-500 ml-1">
+                        {getPeriodLabel()}
+                      </span>
                     </div>
 
-                    {loadingPlans ? (
-                        <div className="mt-12 text-center">
-                            <p className="text-themebglight dark:text-white">Loading plans...</p>
-                        </div>
-                    ) : availablePlans.length > 0 ? (
-                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-6">
-                            {availablePlans.map((plan) => {
-                                const price = getPriceForPeriod(plan);
-                                const originalPrice = getOriginalPriceForPeriod(plan);
-                                const equivalentMonthly = getEquivalentMonthlyRate(plan);
-                                const discount = getDiscountForPeriod(plan);
-                                const savings = getSavingsForPeriod(plan);
-
-                                // Check if there's a discount to show original price with strikethrough
-                                const hasDiscount = discount > 0 && originalPrice !== price;
-
-                                return (
-                                    <Card key={plan.id} className="flex flex-col relative">
-                                        {/* Discount Badge at the top */}
-                                        {discount > 0 && (
-                                            <div className="absolute -top-5 left-1/2 transform -translate-x-1/2">
-                                                <Badge className="bg-gradient-to-r from-[#16bf4c] to-lime-500 text-themebglight px-4 py-2 text-lg font-bold shadow-lg whitespace-nowrap gap-1">
-                                                    {discount}% OFF
-                                                    {savings > 0 && (
-                                                        <span className="block text-xs font-normal mt-1">
-                                                            Save {formatCurrency(savings)}
-                                                        </span>
-                                                    )}
-                                                </Badge>
-                                            </div>
-                                        )}
-
-                                        <CardHeader className="pt-12">
-                                            <CardTitle>{plan.name}</CardTitle>
-                                            <CardDescription>{plan.description}</CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="flex-1">
-                                            <div className="space-y-4">
-                                                <div className="text-3xl font-bold">
-                                                    {hasDiscount && (
-                                                        <div className="flex flex-col items-baseline gap-2">
-                                                            <span className="text-2xl text-gray-500 line-through">
-                                                                {formatCurrency(originalPrice)}
-                                                            </span>
-                                                            <span className="text-lime-500">
-                                                                {formatCurrency(price)}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    {!hasDiscount && (
-                                                        <span>
-                                                            {formatCurrency(price)}
-                                                        </span>
-                                                    )}
-                                                    <span className="text-lg font-normal text-gray-500">
-                                                        {getPeriodLabel()}
-                                                    </span>
-                                                </div>
-                                                {equivalentMonthly && (
-                                                    <div className="text-sm text-gray-500">
-                                                        Equivalent to {formatCurrency(equivalentMonthly)}/month
-                                                    </div>
-                                                )}
-
-                                                <ul className="space-y-2">
-                                                    <li className="flex items-center">
-                                                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                                        {plan.form_limit} forms
-                                                    </li>
-                                                    <li className="flex items-center">
-                                                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                                        {plan.submission_limit} submissions/month
-                                                    </li>
-                                                    {plan.features && (
-                                                        <>
-                                                            <li className={`flex items-center ${plan.features.image_upload ? '' : 'opacity-50 line-through'}`}>
-                                                                {plan.features.image_upload ? (
-                                                                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                                                ) : (
-                                                                    <X className="h-4 w-4 text-red-500 mr-2" />
-                                                                )}
-                                                                Image Upload
-                                                            </li>
-                                                            <li className={`flex items-center ${plan.features.employee_management ? '' : 'opacity-50 line-through'}`}>
-                                                                {plan.features.employee_management ? (
-                                                                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                                                ) : (
-                                                                    <X className="h-4 w-4 text-red-500 mr-2" />
-                                                                )}
-                                                                Employee Management
-                                                            </li>
-                                                            {plan.features.custom_features && plan.features.custom_features.map((feature, index) => (
-                                                                <li key={index} className="flex items-center">
-                                                                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                                                    {feature}
-                                                                </li>
-                                                            ))}
-                                                        </>
-                                                    )}
-                                                </ul>
-                                            </div>
-                                        </CardContent>
-                                        <div className="p-6 pt-0">
-                                            <Button
-                                                className="w-full rounded-md font-semibold text-black border
-                                                  border-lime-500
-                                                    bg-gradient-to-r from-[#16bf4c] to-lime-500
-                                                    transition-all duration-700 ease-in-out 
-                                                    hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] 
-                                                    focus:outline-none focus:ring-2 focus:ring-lime-400"
-                                                onClick={() => window.location.href = '/billing'}
-                                            >
-                                                Subscribe Now
-                                            </Button>
-                                        </div>
-                                    </Card>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <div className="mt-12 text-center">
-                            <p className="text-themebglight dark:text-white">No subscription plans available at the moment.</p>
-                        </div>
+                    {equivalentMonthly && (
+                      <div className="text-sm py-1 px-3 bg-gray-100 dark:bg-gray-900 rounded-full inline-block text-gray-500">
+                        Equivalent to {formatCurrency(equivalentMonthly)}/month
+                      </div>
                     )}
-                </div>
-            </section>
 
+                    <ul className="space-y-3 text-left">
+                      <li className="flex items-center text-gray-600 dark:text-gray-300">
+                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
+                        {plan.formLimit} {plan.formLimit === "1" ? "Form" : "Forms"}
+                      </li>
+                      <li className="flex items-center text-gray-600 dark:text-gray-300">
+                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
+                        {plan.submissionLimit} Submissions
+                      </li>
+                    </ul>
+                  </div>
+                </CardContent>
+
+                <div className="p-6 pt-0">
+<div className="p-6 pt-0">
+  <Button
+    className="w-full h-12 rounded-md font-bold text-white bg-gradient-to-r from-[#16bf4c] to-lime-500"
+    onClick={() => handleSubscribe(plan)} // Pass the whole plan object here
+  >
+    Subscribe Now
+  </Button>
+</div>
+                </div>
+              </Card>
+            );
+          })}
+      </div>
+    ) : (
+      <div className="mt-12 text-gray-500">
+        No subscription plans available at the moment.
+      </div>
+    )}
+  </div> */}
+</section>
             {/* FAQs */}
             <section id="faq" className="bg-gray-50 dark:bg-[#0D0D0D] py-24 px-6">
                 <div className="max-w-4xl mx-auto text-center">
