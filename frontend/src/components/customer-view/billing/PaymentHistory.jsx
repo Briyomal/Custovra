@@ -70,14 +70,14 @@ const PaymentHistory = ({ paymentHistory = [], formatDate: propFormatDate }) => 
       <CardHeader>
         <div className="flex items-center gap-2">
           <CreditCard className="h-5 w-5" />
-          <CardTitle>Polar Payment History</CardTitle>
+          <CardTitle>Payment History</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
         {displayPaymentHistory.length > 0 ? (
           <div className="space-y-4">
             {displayPaymentHistory.map((payment) => (
-              <div key={payment.id || payment._id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+              <div key={payment.id || payment._id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 dark:bg-themebg">
                 <div>
                   <h4 className="font-medium">{payment.plan_name || payment.plan || 'Polar Subscription'}</h4>
                   <p className="text-sm text-gray-500">

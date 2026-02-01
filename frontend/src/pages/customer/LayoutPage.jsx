@@ -130,13 +130,11 @@ function CustomerLayoutPage({ children }) {
 							{user?.subscription ? (
 								<Badge
 									className={`mr-0 md:mr-3 px-2 md:px-3 py-1 rounded-sm text-white text-sm ${
-										user.subscription.plan_name === 'Gold' || user.subscription.plan_name === 'Diamond'
-											? 'bg-gradient-to-r from-green-700 to-lime-500 border-lime-300 dark:border-green-700'
-											: user.subscription.plan_name === 'Silver' || user.subscription.plan_name === 'Platinum'
-												? 'bg-gradient-to-r from-purple-700 to-fuchsia-500 border-fuchsia-300 dark:border-purple-700'
-												: user.subscription.plan_name === 'Bronze'
-													? 'bg-gradient-to-r from-blue-700 to-cyan-500 border-cyan-300 dark:border-blue-700'
-													: 'bg-gradient-to-r from-stone-700 to-gray-500 border-gray-300 dark:border-stone-700'
+										user.subscription.plan_name?.toLowerCase().includes('gold')
+											? 'bg-gradient-to-r from-yellow-600 to-amber-400 border-amber-300 dark:border-yellow-700'
+											: user.subscription.plan_name?.toLowerCase().includes('silver')
+												? 'bg-gradient-to-r from-slate-500 to-gray-400 border-gray-300 dark:border-slate-600'
+												: 'bg-gradient-to-r from-stone-700 to-gray-500 border-gray-300 dark:border-stone-700'
 									}`}
 								>
 									{user.subscription.plan_name}
@@ -144,13 +142,11 @@ function CustomerLayoutPage({ children }) {
 							) : user?.subscription_plan ? (
 								<Badge
 									className={`mr-0 md:mr-3 px-2 md:px-3 py-1 rounded-sm text-white text-sm ${
-										user.subscription_plan === 'Gold' || user.subscription_plan === 'Diamond'
-											? 'bg-gradient-to-r from-green-700 to-lime-500 border-lime-300 dark:border-green-700'
-											: user.subscription_plan === 'Silver' || user.subscription_plan === 'Platinum'
-												? 'bg-gradient-to-r from-purple-700 to-fuchsia-500 border-fuchsia-300 dark:border-purple-700'
-												: user.subscription_plan === 'Bronze'
-													? 'bg-gradient-to-r from-blue-700 to-cyan-500 border-cyan-300 dark:border-blue-700'
-													: 'bg-gradient-to-r from-stone-700 to-gray-500 border-gray-300 dark:border-stone-700'
+										user.subscription_plan?.toLowerCase().includes('gold')
+											? 'bg-gradient-to-r from-yellow-600 to-amber-400 border-amber-300 dark:border-yellow-700'
+											: user.subscription_plan?.toLowerCase().includes('silver')
+												? 'bg-gradient-to-r from-slate-500 to-gray-400 border-gray-300 dark:border-slate-600'
+												: 'bg-gradient-to-r from-stone-700 to-gray-500 border-gray-300 dark:border-stone-700'
 									}`}
 								>
 									{user.subscription_plan}

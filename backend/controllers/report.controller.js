@@ -4,7 +4,7 @@ import { Response } from '../models/Response.js';
 import { Form } from '../models/Form.js';
 import { Submission } from '../models/Submission.js';
 import { User } from '../models/User.js';
-import { Payment } from '../models/Payment.js';
+import { PolarPayment } from '../models/PolarPayment.js';
 
 // Generate and save a report for a form (only if user owns the form)
 export const generateReport = async (req, res) => {
@@ -165,7 +165,7 @@ export const getAdminStats = async (req, res) => {
         const averageRating = ratingCount > 0 ? (totalRating / ratingCount).toFixed(1) : "0.0";
 
         // Get revenue information
-        const payments = await Payment.find({}, 'amount payment_date');
+        const payments = await PolarPayment.find({}, 'amount createdAt');
         
         // Calculate total revenue
         const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -173,7 +173,7 @@ export const getAdminStats = async (req, res) => {
         // Calculate this month's revenue
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const thisMonthPayments = payments.filter(payment => payment.payment_date >= startOfMonth);
+        const thisMonthPayments = payments.filter(payment => payment.createdAt >= startOfMonth);
         const thisMonthRevenue = thisMonthPayments.reduce((sum, payment) => sum + payment.amount, 0);
         
         // Get new users this month

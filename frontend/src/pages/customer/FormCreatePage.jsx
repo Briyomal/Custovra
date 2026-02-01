@@ -27,49 +27,14 @@ const FormCreatePage = () => {
 	const [fields, setFields] = useState([]);
 	const [selectedImage, setSelectedImage] = useState(null);
 	const [removeLogo, setRemoveLogo] = useState(false);
-	const [planData, setPlanData] = useState(null); // State for plan data
 
 	const { user } = useAuthStore();
 
-	// Fetch plan data if not available in subscription
-	useEffect(() => {
-		const fetchPlanData = async () => {
-			
-			// If subscription exists but plan_id is null, fetch plan data
-			if (user?.subscription && !user?.subscription?.plan_id) {
-				try {
-					const planName = user.subscription.plan_name;
-					console.log("Fetching plan data for plan name:", planName);
-					
-					// Fetch available plans to find the matching plan
-					const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/manual-billing/available-plans`);
-					const plans = response.data.data;
-					
-					const matchingPlan = plans.find(plan => plan.name === planName);
-					console.log("Matching plan found:", matchingPlan);
-					
-					if (matchingPlan) {
-						setPlanData(matchingPlan);
-					}
-				} catch (error) {
-					console.error("Error fetching plan data:", error);
-				}
-			}
-		};
 
-		if (user) {
-			fetchPlanData();
-		}
-	}, [user]);
 
 	// Check if image upload is enabled for the user's plan
-	// Handle multiple possible subscription data structures
-	const isImageUploadEnabled = user?.subscription?.plan_id?.features?.image_upload ?? 
-	                             planData?.features?.image_upload ??
-	                             user?.subscription_plan_id?.features?.image_upload ?? false;
-	const isEmployeeManagementEnabled = user?.subscription?.plan_id?.features?.employee_management ?? 
-	                                     planData?.features?.employee_management ??
-	                                     user?.subscription_plan_id?.features?.employee_management ?? false;
+	const isImageUploadEnabled = user?.subscription?.features?.image_upload || false;
+	const isEmployeeManagementEnabled = user?.subscription?.features?.employee_management || false;
 
 
 	const { updateForm } = useFormStore();
@@ -133,7 +98,7 @@ const FormCreatePage = () => {
 		};
 
 		fetchFormDetails();
-	}, [formId]);
+	}, [formId, isImageUploadEnabled]);
 
 	// Fetch preview details on demand
 	const fetchPreviewDetails = async () => {

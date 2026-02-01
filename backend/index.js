@@ -17,14 +17,7 @@ import reportRoutes from "./routes/report.route.js";
 import profileRoutes from "./routes/profile.route.js";
 import usageRoutes from "./routes/usage.route.js";
 import supportRoutes from "./routes/support.route.js";
-import planDowngradeRoutes from "./routes/planDowngrade.route.js";
-import manualPlanRoutes from "./routes/manualPlan.route.js";
-import manualBillingRoutes from "./routes/manualBilling.route.js";
-
-import genieRoutes from "./routes/genie.route.js";
-import { handleGeniePaymentWebhook } from "./controllers/genieController.js";
 import { polarWebhook } from "./controllers/polarWebhook.controller.js";
-
 
 import polarRoutes from "./routes/polar.route.js";
 
@@ -33,7 +26,6 @@ import path from "path";
 import "./utils/cronJobs.js";
 
 dotenv.config();
-console.log("Using Genie Key:", process.env.GENIE_SECRET_KEY);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -71,7 +63,7 @@ app.set("trust proxy", 1);
 app.use("/public", express.static(path.join(__dirname, "public")));
 
 // Webhook routes BEFORE body parser
-app.use("/api/genie/webhook", express.raw({ type: "application/json" }), handleGeniePaymentWebhook);
+// Webhook routes BEFORE body parser
 // webhook route ONLY
 app.post(
   "/api/polar/webhook",
@@ -95,11 +87,7 @@ app.use("/api/submissions", submissionRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/usage", usageRoutes);
-app.use("/api/plan-downgrade", planDowngradeRoutes);
 app.use("/api/support", supportRoutes);
-app.use("/api/manual-plans", manualPlanRoutes);
-app.use("/api/manual-billing", manualBillingRoutes);
-app.use("/api/genie", genieRoutes);
 app.use("/api/polar", polarRoutes);
 
 // --- START HTTP SERVER ---

@@ -1,8 +1,8 @@
 import { User } from "../models/User.js";
 import { Form } from "../models/Form.js";
 import { Submission } from "../models/Submission.js";
-import { Payment } from "../models/Payment.js";
-import { GenieSubscription } from "../models/GenieSubscription.js";
+import { PolarPayment } from "../models/PolarPayment.js";
+import { Subscription } from "../models/Subscription.js";
 
 export const getAllUsers = async (req, res, next) =>{
    try {
@@ -22,80 +22,54 @@ export const getAllUsers = async (req, res, next) =>{
       // Get submission count for all forms of this user
       const submissionCount = await Submission.countDocuments({ form_id: { $in: formIds } });
       
-      // Get the most recent ACTIVE payment to get the actual plan name
-      const now = new Date();
-      const activePayment = await Payment.findOne({
-        user_id: user._id,
-        subscription_expiry: { $gte: now } // Only get active subscriptions
-      }).sort({ subscription_expiry: -1 }).select('plan subscription_id subscription_expiry');
-
-      // If no active payment, get the most recent payment for fallback
-      const recentPayment = await Payment.findOne({
-        user_id: user._id
-      }).sort({ created_at: -1 }).select('plan subscription_id subscription_expiry');
-
-      // Get the most recent active Genie subscription
-      const activeGenieSubscription = await GenieSubscription.findOne({
+      // Get the most recent active Subscription (Polar/Manual)
+      const activeSubscription = await Subscription.findOne({
         user_id: user._id,
         status: 'active'
       }).sort({ subscription_end: -1 });
 
-      // Get the most recent Genie subscription (active or inactive)
-      const recentGenieSubscription = await GenieSubscription.findOne({
+      // Get the most recent Subscription (active or inactive)
+      const recentSubscription = await Subscription.findOne({
         user_id: user._id
-      }).sort({ subscription_end: -1 });
+      }).sort({ created_at: -1 });
 
-      // Determine plan name with multiple fallbacks - PRIORITY: Manual subscription data first
+      // Determine plan name with multiple fallbacks - PRIORITY: Subscription model first
       let planName = 'Free'; // Default plan
       let subscriptionStatus = userObject.subscription_status || 'inactive';
       
-      // Priority 1: Use plan from active Genie subscription if available
-      if (activeGenieSubscription && activeGenieSubscription.plan_name) {
-        planName = activeGenieSubscription.plan_name;
-        subscriptionStatus = activeGenieSubscription.status;
+      // Priority 1: Use plan from active Subscription if available
+      if (activeSubscription && activeSubscription.plan_name) {
+        planName = activeSubscription.plan_name;
+        subscriptionStatus = activeSubscription.status;
       }
-      // Priority 2: Use plan from recent Genie subscription if available
-      else if (recentGenieSubscription && recentGenieSubscription.plan_name) {
-        planName = recentGenieSubscription.plan_name;
-        subscriptionStatus = recentGenieSubscription.status;
+      // Priority 2: Use plan from recent Subscription if available
+      else if (recentSubscription && recentSubscription.plan_name) {
+        planName = recentSubscription.plan_name;
+        subscriptionStatus = recentSubscription.status;
       }
       // Priority 3: Use user's subscription_plan from User model
       else if (userObject.subscription_plan) {
         planName = userObject.subscription_plan;
       }
-      // Priority 4: Use plan from active payment if available
-      else if (activePayment && activePayment.plan) {
-        // Capitalize first letter for display
-        planName = activePayment.plan.charAt(0).toUpperCase() + activePayment.plan.slice(1);
-      }
-      // Priority 5: Use plan from recent payment if available
-      else if (recentPayment && recentPayment.plan) {
-        // Capitalize first letter for display
-        planName = recentPayment.plan.charAt(0).toUpperCase() + recentPayment.plan.slice(1);
-      } 
-      // Priority 6: If user has active subscription status, assume Basic plan
+      // Priority 4: If user has active subscription status, assume Basic plan
       else if (userObject.subscription_status === 'active') {
         planName = 'Basic';
       }
       
       // Determine subscription ID with priority
       let subscriptionId = userObject.subscription_id || null;
-      if (activeGenieSubscription) {
-        subscriptionId = activeGenieSubscription._id;
-      } else if (recentGenieSubscription) {
-        subscriptionId = recentGenieSubscription._id;
-      } else if (activePayment) {
-        subscriptionId = activePayment.subscription_id;
-      } else if (recentPayment) {
-        subscriptionId = recentPayment.subscription_id;
+      if (activeSubscription) {
+        subscriptionId = activeSubscription._id;
+      } else if (recentSubscription) {
+        subscriptionId = recentSubscription._id;
       }
 
       // Determine subscription expiry with priority
       let subscriptionExpiry = userObject.subscription_expiry || null;
-      if (activeGenieSubscription) {
-        subscriptionExpiry = activeGenieSubscription.subscription_end;
-      } else if (recentGenieSubscription) {
-        subscriptionExpiry = recentGenieSubscription.subscription_end;
+      if (activeSubscription) {
+        subscriptionExpiry = activeSubscription.subscription_end;
+      } else if (recentSubscription) {
+        subscriptionExpiry = recentSubscription.subscription_end;
       }
 
       return {
@@ -166,7 +140,10 @@ export const deleteUser = async (req, res) => {
        await Form.deleteMany({ user_id: req.params.id });
        
        // Delete all payments associated with this user
-       await Payment.deleteMany({ user_id: req.params.id });
+       await PolarPayment.deleteMany({ user_id: req.params.id });
+
+       // Delete all subscriptions associated with this user
+       await Subscription.deleteMany({ user_id: req.params.id });
        
        // Finally, delete the user
        const deletedUser = await User.findByIdAndDelete(req.params.id);

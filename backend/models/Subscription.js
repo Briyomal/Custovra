@@ -33,7 +33,7 @@ const subscriptionSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'inactive', 'cancelled', 'pending', 'expired', 'past_due'],
+        enum: ['active', 'inactive', 'cancelled', 'canceled', 'pending', 'expired', 'past_due'], // Both spellings for Polar compatibility
         default: 'pending',
     },
     subscription_start: {
@@ -61,7 +61,7 @@ const subscriptionSchema = new Schema({
     transaction_id: {
         type: String, // Genie transaction ID
         required: false,
-        unique: true,
+        // Removed unique: true - causes issues with Polar subscriptions that don't have this field
     },
     card_token: {
         type: String, // Token for recurring payments
@@ -98,9 +98,32 @@ const subscriptionSchema = new Schema({
         type: Date,
         required: false,
     },
+    cancel_at_period_end: {
+        type: Boolean,
+        default: false,
+    },
     grace_period_ends_at: {
         type: Date,
         required: false,
+    },
+    // Plan Limits & Features (mirrors ManualPlan)
+    form_limit: {
+        type: Number,
+        default: 0,
+    },
+    submission_limit: {
+        type: Number,
+        default: 0,
+    },
+    features: {
+        image_upload: {
+            type: Boolean,
+            default: false
+        },
+        employee_management: {
+            type: Boolean,
+            default: false
+        }
     },
     created_at: {
         type: Date,
@@ -109,7 +132,37 @@ const subscriptionSchema = new Schema({
     updated_at: {
         type: Date,
         default: Date.now,
-    }
+    },
+    // Metered billing fields
+    purchased_submission_packs: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
+    meter_usage_current_cycle: {
+        forms_overage: {
+            type: Number,
+            default: 0,
+        },
+        submissions_used: {
+            type: Number,
+            default: 0,
+        },
+        last_reset_date: {
+            type: Date,
+            default: null,
+        }
+    },
+    last_meter_report: {
+        forms_reported_at: {
+            type: Date,
+            required: false,
+        },
+        submissions_reported_at: {
+            type: Date,
+            required: false,
+        },
+    },
 });
 
 // Middleware to update `updated_at` before saving

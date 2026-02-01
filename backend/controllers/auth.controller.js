@@ -16,7 +16,7 @@ import {
 import {
 	User
 } from "../models/User.js";
-import { GenieSubscription } from "../models/GenieSubscription.js";
+import { Subscription } from "../models/Subscription.js";
 
 const clientUrl =
   process.env.CLIENT_URL || process.env.VITE_CLIENT_URL;
@@ -225,7 +225,11 @@ export const login = async (req, res) => {
 			user: {
 				...user._doc,
 				password: undefined,
-				payment: null,
+				subscription: await Subscription.findOne({ 
+					user_id: user._id,
+					status: { $in: ['active', 'trialing', 'cancelled'] },
+					subscription_end: { $gt: new Date() }
+				}).sort({ created_at: -1 }) || null,
 			},
 		});
 	} catch (error) {
@@ -279,7 +283,11 @@ export const verify2FALogin = async (req, res) => {
 			user: {
 				...user._doc,
 				password: undefined,
-				payment: null,
+				subscription: await Subscription.findOne({ 
+					user_id: user._id,
+					status: { $in: ['active', 'trialing', 'cancelled'] },
+					subscription_end: { $gt: new Date() }
+				}).sort({ created_at: -1 }) || null,
 			},
 		});
 	} catch (error) {
@@ -413,18 +421,19 @@ export const checkAuth = async (req, res) => {
 			});
 		}
 
-		// Get user's Genie subscription
-		const genieSubscription = await GenieSubscription.findOne({ 
+		// Get user's active/trialing/cancelled Polar subscription
+		const subscription = await Subscription.findOne({ 
 			user_id: req.userId,
-			status: 'active'
-		}).populate('plan_id');
+			status: { $in: ['active', 'trialing', 'cancelled'] },
+			subscription_end: { $gt: new Date() }
+		}).sort({ created_at: -1 });
 
 		res.status(200).json({
 			success: true,
 			user: {
 				...user._doc,
 				password: undefined, // Exclude sensitive information
-				subscription: genieSubscription || null,
+				subscription: subscription || null,
 			},
 		});
 	} catch (error) {

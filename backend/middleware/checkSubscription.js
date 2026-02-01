@@ -1,4 +1,4 @@
-import { GenieSubscription } from "../models/GenieSubscription.js";
+import { Subscription } from "../models/Subscription.js";
 
 const checkSubscription = async (req, res, next) => {
     try {
@@ -32,7 +32,8 @@ const checkSubscription = async (req, res, next) => {
             '/api/manual-billing/available-plans',
             '/api/manual-billing/payment-request',
             '/billing',
-            '/api/usage/stats'
+            '/api/usage/stats',
+            '/api/polar' // Whitelist all polar routes so user can interact with billing
         ];
         
         const currentRoute = req.originalUrl;
@@ -52,26 +53,25 @@ const checkSubscription = async (req, res, next) => {
             return res.status(401).json({ message: "User not authenticated" });
         }
         
-        // Check for active Genie subscription
-        const genieSubscription = await GenieSubscription.findOne({
+        // Check for active Subscription
+        const activeSubscription = await Subscription.findOne({
             user_id: userId,
-            status: 'active',
-            subscription_end: { $gte: new Date() }
+            status: 'active'
         });
         
         // If subscription is active, allow access
-        if (genieSubscription) {
+        if (activeSubscription) {
             return next();
         }
         
         // If no active subscription, check if user has an expired subscription
-        const expiredGenieSubscription = await GenieSubscription.findOne({
+        // This covers status='expired' or manually cancelled
+        const expiredSubscription = await Subscription.findOne({
             user_id: userId,
-            status: 'active',
-            subscription_end: { $lt: new Date() }
+            status: { $in: ['expired', 'cancelled'] }
         });
         
-        if (expiredGenieSubscription) {
+        if (expiredSubscription) {
             return res.status(403).json({
                 message: "Subscription expired. Please renew your subscription to continue.",
                 subscriptionExpired: true

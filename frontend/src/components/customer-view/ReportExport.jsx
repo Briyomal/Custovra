@@ -252,7 +252,7 @@ function ReportExport({
             // Add timeline chart image if available
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(18);
-            pdf.setTextColor(37, 99, 235); // Blue color
+            pdf.setTextColor(22, 191, 65); // Blue color
             pdf.text('Submission Timeline Chart', 20, yPos);
             
             // Add decorative line under chart title
@@ -282,7 +282,7 @@ function ReportExport({
             // Add timeline data section in table format
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(18);
-            pdf.setTextColor(37, 99, 235); // Blue color
+            pdf.setTextColor(22, 191, 65); // Blue color
             if (yPos > pageHeight - 100) {
                 pdf.addPage();
                 yPos = 30;
@@ -357,7 +357,7 @@ function ReportExport({
             // Add rating distribution chart image if available
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(18);
-            pdf.setTextColor(37, 99, 235); // Blue color
+            pdf.setTextColor(22, 191, 65); // Blue color
             if (yPos > pageHeight - 120) {
                 pdf.addPage();
                 yPos = 30;
@@ -462,7 +462,7 @@ function ReportExport({
             // Add rating trend chart image if available
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(18);
-            pdf.setTextColor(37, 99, 235); // Blue color
+            pdf.setTextColor(22, 191, 65); // Blue color
             if (yPos > pageHeight - 150) {
                 pdf.addPage();
                 yPos = 30;
@@ -492,7 +492,7 @@ function ReportExport({
                 // Add color legend for the rating trend lines
                 pdf.setFont('helvetica', 'bold');
                 pdf.setFontSize(14);
-                pdf.setTextColor(37, 99, 235); // Blue color
+                pdf.setTextColor(22, 191, 65); // Blue color
                 pdf.text('Rating Trend Legend', 20, yPos);
                 
                 // Add decorative line under legend title

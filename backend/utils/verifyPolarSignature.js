@@ -7,14 +7,25 @@ import crypto from "crypto";
  */
 export const verifyPolarSignature = (req) => {
   try {
+    // Development mode: Skip signature verification for local testing
+    // IMPORTANT: Only use in development! Remove or set to false in production
+    const isDevelopment = process.env.POLAR_WEBHOOK_DEV_MODE === 'true';
+
+    if (isDevelopment) {
+      console.warn("⚠️  DEVELOPMENT MODE: Skipping webhook signature verification");
+      console.warn("⚠️  This should NEVER be enabled in production!");
+      return true;
+    }
+
     // Extract required webhook headers
     const webhookId = req.headers['webhook-id'];
     const webhookTimestamp = req.headers['webhook-timestamp'];
     const webhookSignature = req.headers['webhook-signature'];
-    
+
     // Check if all required headers are present
     if (!webhookId || !webhookTimestamp || !webhookSignature) {
       console.error("❌ Missing required webhook headers");
+      console.error("💡 Tip: For local testing, set POLAR_WEBHOOK_DEV_MODE=true in .env");
       return false;
     }
     
@@ -33,7 +44,18 @@ export const verifyPolarSignature = (req) => {
     }
     
     // Create the payload string to sign according to Polar's specification
-    const payload = `${webhookId}.${webhookTimestamp}.${req.body.toString()}`;
+    let bodyString;
+    if (typeof req.body === 'string') {
+      bodyString = req.body;
+    } else if (Buffer.isBuffer(req.body)) {
+      bodyString = req.body.toString();
+    } else if (typeof req.body === 'object') {
+      // Convert object to string, but handle empty objects
+      bodyString = Object.keys(req.body).length === 0 ? '' : JSON.stringify(req.body);
+    } else {
+      bodyString = String(req.body);
+    }
+    const payload = `${webhookId}.${webhookTimestamp}.${bodyString}`;
     
     // Generate HMAC signature using SHA256
     const expectedSignature = crypto
@@ -79,7 +101,37 @@ export const parseWebhookPayload = (req) => {
       return null;
     }
     
-    const payloadString = req.body.toString();
+    // Handle different types of body content
+    let payloadString;
+    
+    if (typeof req.body === 'string') {
+      payloadString = req.body;
+    } else if (Buffer.isBuffer(req.body)) {
+      payloadString = req.body.toString();
+    } else if (typeof req.body === 'object') {
+      // If body is already parsed as object (which shouldn't happen with raw parser)
+      // but if it is, check if it's empty
+      if (Object.keys(req.body).length === 0) {
+        console.error("❌ Request body is empty");
+        return null;
+      }
+      // Check if the body is actually an empty object disguised as a string
+      const bodyAsJsonString = JSON.stringify(req.body);
+      if (bodyAsJsonString === '{}') {
+        console.error("❌ Request body is empty");
+        return null;
+      }
+      payloadString = bodyAsJsonString;
+    } else {
+      payloadString = String(req.body);
+    }
+    
+    // Check if payload string is empty
+    if (!payloadString || payloadString.trim() === '') {
+      console.error("❌ Request body is empty or contains no content");
+      return null;
+    }
+    
     const payload = JSON.parse(payloadString);
     
     return payload;

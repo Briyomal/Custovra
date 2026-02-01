@@ -125,7 +125,7 @@ const formSchema = new Schema({
     },
     is_active: {
         type: Boolean,
-        default: true,
+        default: false,  // Forms start as drafts until published
     },
     is_locked: {
         type: Boolean,

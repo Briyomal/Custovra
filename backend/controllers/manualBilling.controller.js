@@ -1,7 +1,7 @@
 import { User } from '../models/User.js';
 import { ManualPlan } from '../models/ManualPlan.js';
-import { GeniePayment } from '../models/GeniePayment.js';
-import { GenieSubscription } from '../models/GenieSubscription.js';
+import { PolarPayment } from '../models/PolarPayment.js'; // Replaced GeniePayment
+import { Subscription } from '../models/Subscription.js'; // Replaced GenieSubscription
 import { Form } from '../models/Form.js';
 import { Submission } from '../models/Submission.js';
 import { getUserPlanLimits } from '../middleware/checkSubscriptionLimits.js';
@@ -29,11 +29,11 @@ export const getSubscriptionDetails = async (req, res) => {
       return res.status(400).json({ error });
     }
 
-    // Get user's Genie subscription
-    const genieSubscription = await GenieSubscription.findOne({ 
+    // Get user's active Subscription (Polar/Manual)
+    const subscription = await Subscription.findOne({ 
       user_id: userId,
       status: 'active'
-    });
+    }).sort({ created_at: -1 });
 
     // Get user's form count
     const formCount = await Form.countDocuments({ user_id: userId, is_active: true });
@@ -62,15 +62,15 @@ export const getSubscriptionDetails = async (req, res) => {
       },
       subscription: {
         status: user.subscription_status || 'inactive',
-        subscription_start: genieSubscription?.subscription_start ? new Date(genieSubscription.subscription_start) : null,
-        subscription_end: genieSubscription?.subscription_end ? new Date(genieSubscription.subscription_end) : null,
-        cancel_at_period_end: false,
-        interval: genieSubscription?.billing_period || 'monthly',
+        subscription_start: subscription?.subscription_start ? new Date(subscription.subscription_start) : null,
+        subscription_end: subscription?.subscription_end ? new Date(subscription.subscription_end) : null,
+        cancel_at_period_end: false, // Polar doesn't always expose this easily via model unless synced, simplify to false for now
+        interval: subscription?.billing_period || 'monthly',
         is_active: user.is_active,
-        plan_name: genieSubscription?.plan_name || planName,
-        amount: genieSubscription?.amount || 0,
-        billing_period: genieSubscription?.billing_period || 'monthly',
-        auto_renew: genieSubscription?.auto_renew || false
+        plan_name: subscription?.plan_name || planName,
+        amount: subscription?.amount || 0,
+        billing_period: subscription?.billing_period || 'monthly',
+        auto_renew: subscription?.auto_renew || false
       },
       formCount: formCount,
       submissionCount: submissionCount
@@ -170,7 +170,7 @@ export const handlePaymentRequest = async (req, res) => {
   }
 };
 
-// Get payment history (Genie payments only)
+// Get payment history (Polar payments)
 export const getPaymentHistory = async (req, res) => {
   try {
     const userId = req.userId;
@@ -181,34 +181,30 @@ export const getPaymentHistory = async (req, res) => {
 
     console.log('Fetching payment history for user:', userId);
 
-    // Get Genie payments for this user
-    let geniePayments = [];
+    // Get Polar payments for this user
+    let polarPayments = [];
     try {
-      geniePayments = await GeniePayment.find({ user_id: userId });
-      console.log('Found Genie payments:', geniePayments.length);
+      polarPayments = await PolarPayment.find({ user_id: userId }).sort({ created_at: -1 });
+      console.log('Found Polar payments:', polarPayments.length);
     } catch (err) {
-      console.warn('Could not retrieve Genie payments:', err.message);
-      geniePayments = [];
+      console.warn('Could not retrieve Polar payments:', err.message);
+      polarPayments = [];
     }
 
     // Format payment history
-    const paymentHistory = geniePayments.map(payment => ({
+    const paymentHistory = polarPayments.map(payment => ({
       id: payment._id,
-      source: 'genie',
-      amount: payment.amount,
-      currency: 'lkr', // Assuming LKR currency
-      status: payment.payment_status,
+      source: 'polar',
+      amount: payment.amount, // Assuming amount is stored correctly (often cents in Polar, but check frontend display)
+      currency: payment.currency || 'usd',
+      status: payment.status,
       date: payment.created_at,
       plan: payment.plan_name,
-      description: `${payment.plan_name} (${payment.billing_period})`,
-      payment_method: payment.payment_method
+      description: `${payment.plan_name} (${payment.billing_period || 'Subscription'})`,
+      payment_method: 'Card' // Polar handles methods, usually card
     }));
 
-    // Sort by date (newest first)
-    const sortedPayments = paymentHistory
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    res.json({ success: true, data: sortedPayments });
+    res.json({ success: true, data: paymentHistory });
   } catch (error) {
     console.error('Error getting payment history:', error);
     res.status(500).json({ error: 'Failed to get payment history.' });

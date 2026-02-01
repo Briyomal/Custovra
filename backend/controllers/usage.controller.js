@@ -1,6 +1,6 @@
 import { getUserUsageStats, getUserPlanLimits } from '../middleware/checkSubscriptionLimits.js';
 import { ManualPlan } from '../models/ManualPlan.js';
-import { Payment } from '../models/Payment.js';
+import { Subscription } from '../models/Subscription.js';
 import { User } from '../models/User.js';
 
 /**
@@ -159,13 +159,9 @@ export const debugUserSubscription = async (req, res) => {
             });
         }
         
-        // Get all payments for this user
-        const allPayments = await Payment.find({ user_id: userId })
-            .sort({ subscription_expiry: -1 });
-        
-        // Get active payments
-        const now = new Date();
-        const activePayments = allPayments.filter(p => p.subscription_expiry > now);
+        // Get all subscriptions for this user
+        const allSubscriptions = await Subscription.find({ user_id: userId })
+            .sort({ created_at: -1 });
         
         // Get current plan limits
         const { error, limits, planName, activePayment } = await getUserPlanLimits(userId);
@@ -181,25 +177,24 @@ export const debugUserSubscription = async (req, res) => {
                     subscription_expiry: user.subscription_expiry,
                     is_active: user.is_active
                 },
-                allPayments: allPayments.map(p => ({
-                    plan: p.plan,
-                    subscription_id: p.subscription_id,
-                    subscription_expiry: p.subscription_expiry,
-                    amount: p.amount,
-                    payment_date: p.payment_date,
-                    isExpired: p.subscription_expiry <= now
-                })),
-                activePayments: activePayments.map(p => ({
-                    plan: p.plan,
-                    subscription_id: p.subscription_id,
-                    subscription_expiry: p.subscription_expiry
+                allSubscriptions: allSubscriptions.map(s => ({
+                    id: s._id,
+                    plan_name: s.plan_name,
+                    status: s.status,
+                    start_date: s.subscription_start,
+                    end_date: s.subscription_end,
+                    billing_period: s.billing_period,
+                    amount: s.amount,
+                    provider: s.external_provider
                 })),
                 detectedPlan: {
                     planName,
                     limits,
-                    activePayment: activePayment ? {
-                        plan: activePayment.plan,
-                        subscription_expiry: activePayment.subscription_expiry
+                    activeSubscription: activePayment ? {
+                        id: activePayment._id,
+                        plan: activePayment.plan_name,
+                        status: activePayment.status,
+                        end_date: activePayment.subscription_end
                     } : null
                 },
                 error

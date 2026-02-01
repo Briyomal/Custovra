@@ -3,7 +3,7 @@ import {
   BadgeCheck,
   Bell,
   ChevronsUpDown,
-  CreditCard,
+  //CreditCard,
   Headset,
   LogOut,
 } from "lucide-react"
@@ -98,10 +98,10 @@ export function NavUser({ user }) {
                   <BadgeCheck />
                   Account
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/billing")}>
+              {/* <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/billing")}>
                 <CreditCard />
                 Billing
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
               <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/support/")}>
                 <Headset />
                 Support

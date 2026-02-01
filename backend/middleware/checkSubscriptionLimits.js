@@ -1,7 +1,9 @@
 import { User } from "../models/User.js";
 import { Form } from "../models/Form.js";
 import { Submission } from "../models/Submission.js";
-import { GenieSubscription } from "../models/GenieSubscription.js";
+import { Subscription } from "../models/Subscription.js";
+import { fetchMeterUsageFromPolar } from "../services/polarMeter.service.js";
+ 
 
 /**
  * Subscription Limits Middleware
@@ -11,51 +13,53 @@ import { GenieSubscription } from "../models/GenieSubscription.js";
 // Helper function to get user's current plan limits
 export const getUserPlanLimits = async (userId) => {
     try {
+        const now = new Date();
         const user = await User.findById(userId);
         if (!user || !user.is_active) {
             return { error: "User not found or inactive", limits: null };
         }
 
-        // Check for Genie subscription
-        const genieSubscription = await GenieSubscription.findOne({
+        // Check for active or cancelled (but not yet expired) Polar Subscription
+        // We sort by creation date desc to get the most recent valid one
+        const activeSubscription = await Subscription.findOne({
             user_id: userId,
-            status: 'active'
-        }).populate('plan_id');
+            status: { $in: ['active', 'trialing', 'cancelled'] },
+            subscription_end: { $gt: now }
+        }).sort({ created_at: -1 });
 
-        if (genieSubscription && genieSubscription.plan_id) {
-            // Use Genie plan limits
-            const limits = {
-                formLimit: genieSubscription.plan_id.form_limit,
-                submissionLimit: genieSubscription.plan_id.submission_limit
+        if (activeSubscription) {
+             const limits = {
+                formLimit: activeSubscription.form_limit || 0,  // Limits come from Polar meter/benefits
+                submissionLimit: activeSubscription.submission_limit || 0,  // Limits come from Polar meter/benefits
+                imageUpload: activeSubscription.features?.image_upload || false,
+                employeeManagement: activeSubscription.features?.employee_management || false
             };
+
+            const planName = activeSubscription.plan_name || 'Active Plan';
             
-            console.log(`User ${userId} has active Genie subscription:`, {
-                planName: genieSubscription.plan_id.name,
-                limits
-            });
-            
-            return { 
-                error: null, 
+            // console.log(`User ${userId} has active subscription: ${planName}`, limits); // Optional debug
+
+            return {
+                error: null,
                 limits,
-                planName: genieSubscription.plan_id.name,
+                planName: planName,
                 user,
-                activePayment: null
+                activePayment: activeSubscription
             };
         }
 
-        // If no manual subscription, user has no active subscription
-        console.log(`User ${userId} has no active subscription, defaulting to basic plan`);
-        
-        // Default to basic plan limits
+        // If no active subscription, no access (must subscribe)
         const limits = {
-            formLimit: 1,
-            submissionLimit: 100
+            formLimit: 0,
+            submissionLimit: 0,
+            imageUpload: false,
+            employeeManagement: false
         };
 
-        return { 
-            error: null, 
+        return {
+            error: null,
             limits,
-            planName: 'basic',
+            planName: 'No Plan',
             user,
             activePayment: null
         };
@@ -63,47 +67,6 @@ export const getUserPlanLimits = async (userId) => {
         console.error("Error getting user plan limits:", error);
         return { error: "Database error: " + error.message, limits: null };
     }
-};
-
-// Helper function to map Stripe subscription to plan name
-const mapSubscriptionToPlan = (subscriptionPlan) => {
-    // This mapping should match your Stripe product IDs and plan names
-    // Convert to lowercase for consistent comparison
-    const planLower = subscriptionPlan?.toLowerCase() || '';
-    
-    const planMapping = {
-        // Stripe Product IDs
-        'prod_rfhrlxbtwahvvp': 'basic',
-        'prod_rfhs1fdl0jh7ko': 'standard', 
-        'prod_rfhsbfqkcmzsik': 'premium',
-        
-        // Plan names (case insensitive)
-        'basic': 'basic',
-        'standard': 'standard',
-        'premium': 'premium',
-        
-        // Alternative naming
-        'basic plan': 'basic',
-        'standard plan': 'standard',
-        'premium plan': 'premium',
-        
-        // Handle subscription IDs that might contain plan info
-        // Add more mappings as needed based on your Stripe setup
-    };
-    
-    // First try exact match
-    if (planMapping[planLower]) {
-        return planMapping[planLower];
-    }
-    
-    // Try partial matching for plan names
-    if (planLower.includes('standard')) return 'standard';
-    if (planLower.includes('premium')) return 'premium';
-    if (planLower.includes('basic')) return 'basic';
-    
-    // Default to basic if no match found
-    console.warn(`Unknown subscription plan: ${subscriptionPlan}, defaulting to basic`);
-    return 'basic';
 };
 
 // Middleware to check form creation limits
@@ -128,25 +91,29 @@ export const checkFormCreationLimit = async (req, res, next) => {
         }
 
         // Count current forms for this user
-        const currentFormCount = await Form.countDocuments({ 
+        const currentFormCount = await Form.countDocuments({
             user_id: userId,
             is_active: true // Only count active forms
         });
 
-        if (currentFormCount >= limits.formLimit) {
-            return res.status(403).json({
-                success: false,
-                error: `Form creation limit exceeded. Your ${planName} plan allows ${limits.formLimit} form(s). You currently have ${currentFormCount} active forms.`,
-                limit: {
-                    current: currentFormCount,
-                    maximum: limits.formLimit,
-                    planName
-                }
-            });
-        }
+        // NEW: Instead of blocking, allow creation but flag overage
+        const includedForms = limits.formLimit;
+        const willExceedLimit = currentFormCount >= includedForms;
 
-        // Add plan info to request for use in controller
-        req.userPlan = { limits, planName };
+        // Add info to request for controller to use
+        // Note: Overage pricing is handled by Polar metered billing, not hardcoded here
+        req.userPlan = {
+            limits,
+            planName,
+            formUsage: {
+                current: currentFormCount,
+                included: includedForms,
+                willBeOverage: willExceedLimit,
+                overageCount: willExceedLimit ? (currentFormCount - includedForms + 1) : 0
+                // overageCost removed - Polar handles metered billing automatically
+            }
+        };
+
         next();
 
     } catch (error) {
@@ -186,50 +153,73 @@ export const checkSubmissionLimit = async (req, res, next) => {
             });
         }
 
-        // Get current month's submission count for the form owner
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999); // End of month
+        // Fetch Polar meter data for the form owner (source of truth for metered billing)
+        const polarMeterData = await fetchMeterUsageFromPolar(formOwnerId);
 
-        // Count submissions to all ACTIVE forms owned by the form owner this month
-        const formOwnerForms = await Form.find({ 
-            user_id: formOwnerId,
-            is_active: true 
-        }).select('_id');
-        
-        const formOwnerFormIds = formOwnerForms.map(f => f._id);
+        let submissionLimit, currentSubmissionCount;
 
-        const currentSubmissionCount = await Submission.countDocuments({
-            form_id: { $in: formOwnerFormIds },
-            createdAt: {
-                $gte: startOfMonth,
-                $lte: endOfMonth
-            }
-        });
+        if (polarMeterData && polarMeterData.submissions) {
+            // Use Polar's data (source of truth for metered billing)
+            // credited_units = included submissions in plan
+            // consumed_units = current usage
+            submissionLimit = polarMeterData.submissions.included;
+            currentSubmissionCount = polarMeterData.submissions.current;
+            console.log(`✅ checkSubmissionLimit using Polar data: ${currentSubmissionCount}/${submissionLimit}`);
+        } else {
+            // Fallback to database counts if Polar API fails
+            console.log('⚠️ checkSubmissionLimit falling back to database counts');
 
-        if (currentSubmissionCount >= limits.submissionLimit) {
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+            const formOwnerForms = await Form.find({
+                user_id: formOwnerId,
+                is_active: true
+            }).select('_id');
+
+            const formOwnerFormIds = formOwnerForms.map(f => f._id);
+
+            currentSubmissionCount = await Submission.countDocuments({
+                form_id: { $in: formOwnerFormIds },
+                createdAt: {
+                    $gte: startOfMonth,
+                    $lte: endOfMonth
+                }
+            });
+
+            submissionLimit = limits.submissionLimit || 1000;
+        }
+
+        const remaining = submissionLimit - currentSubmissionCount;
+
+        if (remaining <= 0) {
+            // BLOCK submission - limit reached
             return res.status(403).json({
                 success: false,
-                error: `Form submission limit exceeded. The form owner's ${planName} plan allows ${limits.submissionLimit} submissions per month. ${currentSubmissionCount} submissions have been used this month.`,
+                error: `Submission limit reached. The form owner has used all ${submissionLimit} available submissions this month.`,
                 limit: {
                     current: currentSubmissionCount,
-                    maximum: limits.submissionLimit,
+                    limit: submissionLimit,
+                    remaining: 0,
                     planName,
-                    resetDate: new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
+                    resetDate: new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString(),
+                    message: 'Your monthly submission limit will reset on your next billing date. Additional submissions are automatically charged at $2 per 1,000 submissions.'
                 }
             });
         }
 
-        // Add plan and usage info to request for the form owner
+        // Add usage info to request
         req.formOwner = {
             userId: formOwnerId,
             plan: { limits, planName },
             submissionUsage: {
                 current: currentSubmissionCount,
-                remaining: limits.submissionLimit - currentSubmissionCount
+                limit: submissionLimit,
+                remaining
             }
         };
-        
+
         next();
 
     } catch (error) {
@@ -244,60 +234,126 @@ export const checkSubmissionLimit = async (req, res, next) => {
 // Utility function to get current usage stats for a user
 export const getUserUsageStats = async (userId) => {
     try {
-        const { error, limits, planName, user } = await getUserPlanLimits(userId);
-        
+        const { error, limits, planName, user, activePayment } = await getUserPlanLimits(userId);
+
         if (error) {
             console.error('Error in getUserPlanLimits:', error);
             return { error, stats: null };
         }
 
-        // Get form count (only active forms)
-        const formCount = await Form.countDocuments({ 
-            user_id: userId,
-            is_active: true 
-        });
+        // Fetch meter usage from Polar API (source of truth for billing)
+        const polarMeterData = await fetchMeterUsageFromPolar(userId);
 
-        // Get current month's submission count for all ACTIVE forms owned by this user
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999); // End of month
+        let formCount, submissionCount, includedSubmissions, submissionsOverage;
 
-        // Get all ACTIVE forms owned by this user
-        const userForms = await Form.find({ 
-            user_id: userId,
-            is_active: true 
-        }).select('_id');
-        
-        const userFormIds = userForms.map(f => f._id);
+        if (polarMeterData) {
+            // Use Polar's meter data (matches what customer sees in Polar portal)
+            console.log('✅ Using Polar meter data for usage stats');
+            formCount = polarMeterData.forms.current;
+            submissionCount = polarMeterData.submissions.current;
+            includedSubmissions = polarMeterData.submissions.included;
+            submissionsOverage = polarMeterData.submissions.overage;
 
-        // Count submissions to all ACTIVE forms owned by this user this month
-        const submissionCount = await Submission.countDocuments({
-            form_id: { $in: userFormIds },
-            createdAt: {
-                $gte: startOfMonth,
-                $lte: endOfMonth
-            }
-        });
-
-        const stats = {
-            planName,
-            limits,
-            usage: {
-                forms: {
-                    current: formCount,
-                    maximum: limits.formLimit,
-                    remaining: Math.max(0, limits.formLimit - formCount)
+            const stats = {
+                planName,
+                limits,
+                usage: {
+                    forms: {
+                        current: polarMeterData.forms.current,
+                        included: polarMeterData.forms.included,
+                        overage: polarMeterData.forms.overage,
+                        maximum: limits.formLimit,
+                        remaining: Math.max(0, polarMeterData.forms.included - polarMeterData.forms.current)
+                    },
+                    submissions: {
+                        current: polarMeterData.submissions.current,
+                        included: polarMeterData.submissions.included,
+                        used: polarMeterData.submissions.current,
+                        overage: polarMeterData.submissions.overage,
+                        maximum: limits.submissionLimit,
+                        remaining: Math.max(0, polarMeterData.submissions.included - polarMeterData.submissions.current),
+                        resetDate: polarMeterData.periodEnd || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString()
+                    }
                 },
-                submissions: {
-                    current: submissionCount,
-                    maximum: limits.submissionLimit,
-                    remaining: Math.max(0, limits.submissionLimit - submissionCount),
-                    resetDate: new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
-                }
-            }
-        };
+                meterData: polarMeterData,
+                source: 'polar_api' // Indicate data source
+            };
 
-        return { error: null, stats };
+            return { error: null, stats };
+
+        } else {
+            // Fallback to database counts if Polar API fails
+            console.log('⚠️ Falling back to database counts for usage stats');
+
+            // Get form count (only active forms)
+            formCount = await Form.countDocuments({
+                user_id: userId,
+                is_active: true
+            });
+
+            // Get current month's submission count for all ACTIVE forms owned by this user
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+            // Get all ACTIVE forms owned by this user
+            const userForms = await Form.find({
+                user_id: userId,
+                is_active: true
+            }).select('_id');
+
+            const userFormIds = userForms.map(f => f._id);
+
+            // Count submissions to all ACTIVE forms owned by this user this month
+            submissionCount = await Submission.countDocuments({
+                form_id: { $in: userFormIds },
+                createdAt: {
+                    $gte: startOfMonth,
+                    $lte: endOfMonth
+                }
+            });
+
+            // Extract meter data from subscription (for Polar metered billing)
+            const meterData = activePayment ? {
+                forms_overage: activePayment.meter_usage_current_cycle?.forms_overage || 0,
+                submissions_used: activePayment.meter_usage_current_cycle?.submissions_used || 0,
+                last_reset_date: activePayment.meter_usage_current_cycle?.last_reset_date || null,
+                purchased_submission_packs: activePayment.purchased_submission_packs || 0
+            } : null;
+
+            // Calculate included submissions (base limit + purchased packs)
+            includedSubmissions = limits.submissionLimit + (meterData?.purchased_submission_packs || 0) * 1000;
+
+            // Calculate overage for submissions (submissions beyond included amount)
+            submissionsOverage = Math.max(0, submissionCount - includedSubmissions);
+
+            const stats = {
+                planName,
+                limits,
+                usage: {
+                    forms: {
+                        current: formCount,
+                        included: limits.formLimit,
+                        overage: meterData ? meterData.forms_overage : Math.max(0, formCount - limits.formLimit),
+                        maximum: limits.formLimit,
+                        remaining: Math.max(0, limits.formLimit - formCount)
+                    },
+                    submissions: {
+                        current: submissionCount,
+                        included: includedSubmissions,
+                        used: meterData ? meterData.submissions_used : submissionCount,
+                        overage: submissionsOverage,
+                        maximum: limits.submissionLimit,
+                        remaining: Math.max(0, includedSubmissions - submissionCount),
+                        resetDate: new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
+                    }
+                },
+                meterData,
+                source: 'database_fallback'
+            };
+
+            return { error: null, stats };
+        }
 
     } catch (error) {
         console.error("Error getting user usage stats:", error);

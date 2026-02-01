@@ -3,9 +3,10 @@ import { Form } from '../models/Form.js';
 import { Submission } from "../models/Submission.js";
 import { ManualPlan } from '../models/ManualPlan.js';
 import { User } from '../models/User.js';
-import { GenieSubscription } from '../models/GenieSubscription.js';
+import { Subscription } from '../models/Subscription.js';
 // Replace Cloudinary with S3 utilities
 import { deleteFileFromS3, getPresignedUrl, uploadFileToS3, generateFormLogoKey } from '../utils/s3.js';
+import { reportFormCreation, fetchMeterUsageFromPolar } from '../services/polarMeter.service.js';
 
 // Get all forms
 export const getAllForms = async (req, res) => {
@@ -352,9 +353,23 @@ export const createForm = async (req, res) => {
         // Save updated form with correct form_link
         await form.save();
 
+        // Report to Polar meters (Polar will handle included benefits automatically)
+        try {
+            await reportFormCreation(user_id, form._id);
+        } catch (meterError) {
+            console.error('Error reporting form creation to meter:', meterError);
+            // Don't fail form creation if meter report fails
+        }
+
         return res.status(201).json({
             message: "Form created successfully.",
             form,
+            usage: req.userPlan?.formUsage,
+            overageWarning: req.userPlan?.formUsage?.willBeOverage ? {
+                message: `This form exceeds your included limit. You will be charged $3/month for this additional form.`,
+                overageCount: req.userPlan.formUsage.overageCount,
+                estimatedCost: req.userPlan.formUsage.overageCost
+            } : null
         });
 
     } catch (error) {
@@ -628,49 +643,84 @@ export const viewForm = async (req, res) => {
         if (!form) {
             return res.status(404).json({ message: 'Form not found' });
         }
-        
+
+        // Check if form is published (is_active)
+        if (!form.is_active) {
+            return res.status(403).json({
+                error: 'This form is not published yet.',
+                is_draft: true
+            });
+        }
+
         // Check if the form owner has exceeded their submission limit
         const formOwnerId = form.user_id;
-        
-        // Check for Genie subscription
-        const genieSubscription = await GenieSubscription.findOne({
-            user_id: formOwnerId,
-            status: 'active'
-        }).populate('plan_id');
-        
-        if (genieSubscription && genieSubscription.plan_id) {
-            // Count current month's submissions for the form owner
-            const now = new Date();
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999); // End of month
 
-            // Count submissions to all ACTIVE forms owned by the form owner this month
-            const formOwnerForms = await Form.find({ 
-                user_id: formOwnerId,
-                is_active: true 
-            }).select('_id');
-            
-            const formOwnerFormIds = formOwnerForms.map(f => f._id);
+        // Fetch Polar meter data for the form owner (source of truth for metered billing)
+        const polarMeterData = await fetchMeterUsageFromPolar(formOwnerId);
 
-            const currentSubmissionCount = await Submission.countDocuments({
-                form_id: { $in: formOwnerFormIds },
-                createdAt: {
-                    $gte: startOfMonth,
-                    $lte: endOfMonth
-                }
-            });
-            
-            // Check if the limit is exceeded
-            if (currentSubmissionCount >= genieSubscription.plan_id.submission_limit) {
+        if (polarMeterData && polarMeterData.submissions) {
+            // Use Polar's credited_units as the limit (source of truth)
+            const submissionLimit = polarMeterData.submissions.included;
+            const currentSubmissionCount = polarMeterData.submissions.current;
+
+            // Only block if there's a hard limit set (included > 0) and it's exceeded
+            // If included is 0, it means metered billing with no hard cap
+            if (submissionLimit > 0 && currentSubmissionCount >= submissionLimit) {
+                const subscription = await Subscription.findOne({
+                    user_id: formOwnerId,
+                    status: 'active'
+                }).sort({ created_at: -1 });
+
                 return res.status(403).json({
-                    error: `Form submission limit exceeded. The form owner's ${genieSubscription.plan_id.name} plan allows ${genieSubscription.plan_id.submission_limit} submissions per month. ${currentSubmissionCount} submissions have been used this month.`,
+                    error: `Form submission limit exceeded. The form owner's ${subscription?.plan_name || 'current'} plan allows ${submissionLimit} submissions per month. ${currentSubmissionCount} submissions have been used this month.`,
                     limit: {
                         current: currentSubmissionCount,
-                        maximum: genieSubscription.plan_id.submission_limit,
-                        planName: genieSubscription.plan_id.name,
-                        resetDate: new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
+                        maximum: submissionLimit,
+                        planName: subscription?.plan_name,
+                        resetDate: polarMeterData.periodEnd || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString()
                     }
                 });
+            }
+
+            console.log(`✅ viewForm: Polar meter check passed - ${currentSubmissionCount}/${submissionLimit} submissions used`);
+        } else {
+            // Fallback to database check if Polar API fails
+            const subscription = await Subscription.findOne({
+                user_id: formOwnerId,
+                status: 'active'
+            }).sort({ created_at: -1 });
+
+            if (subscription && subscription.submission_limit > 0) {
+                const now = new Date();
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+                const formOwnerForms = await Form.find({
+                    user_id: formOwnerId,
+                    is_active: true
+                }).select('_id');
+
+                const formOwnerFormIds = formOwnerForms.map(f => f._id);
+
+                const currentSubmissionCount = await Submission.countDocuments({
+                    form_id: { $in: formOwnerFormIds },
+                    createdAt: {
+                        $gte: startOfMonth,
+                        $lte: endOfMonth
+                    }
+                });
+
+                if (currentSubmissionCount >= subscription.submission_limit) {
+                    return res.status(403).json({
+                        error: `Form submission limit exceeded. The form owner's ${subscription.plan_name} plan allows ${subscription.submission_limit} submissions per month. ${currentSubmissionCount} submissions have been used this month.`,
+                        limit: {
+                            current: currentSubmissionCount,
+                            maximum: subscription.submission_limit,
+                            planName: subscription.plan_name,
+                            resetDate: new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
+                        }
+                    });
+                }
             }
         }
         
@@ -686,7 +736,29 @@ export const viewForm = async (req, res) => {
                 formObject.logo = formObject.logo || null;
             }
         }
-        
+
+        // Generate presigned URLs for employee profile photos
+        const generateEmployeePhotoUrls = async (fields) => {
+            if (!fields || !Array.isArray(fields)) return;
+            for (const field of fields) {
+                if (field.employees && Array.isArray(field.employees)) {
+                    for (const employee of field.employees) {
+                        if (employee.profile_photo?.key) {
+                            try {
+                                employee.profile_photo.url = await getPresignedUrl(employee.profile_photo.key);
+                            } catch (error) {
+                                console.error(`Error generating presigned URL for employee ${employee._id}:`, error);
+                                employee.profile_photo.url = null;
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        await generateEmployeePhotoUrls(formObject.default_fields);
+        await generateEmployeePhotoUrls(formObject.custom_fields);
+
         // Remove sensitive information for public viewing
         // SECURITY: Never expose user_id or internal form_link to public users
         const publicFormData = {

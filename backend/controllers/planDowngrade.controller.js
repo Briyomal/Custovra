@@ -1,7 +1,7 @@
 import { Form } from "../models/Form.js";
 import { User } from "../models/User.js";
 import { ManualPlan } from "../models/ManualPlan.js";
-import { GenieSubscription } from "../models/GenieSubscription.js";
+import { Subscription } from "../models/Subscription.js"; // Replace GenieSubscription
 import { getUserPlanLimits } from "../middleware/checkSubscriptionLimits.js";
 
 /**
@@ -24,29 +24,31 @@ export const checkDowngradeImpact = async (req, res) => {
             });
         }
 
-        // Get user's Genie subscription
-        const genieSubscription = await GenieSubscription.findOne({ 
+        // Get user's active Subscription
+        const subscription = await Subscription.findOne({ 
             user_id: userId, 
             status: 'active' 
-        }).populate('plan_id');
+        }).sort({ created_at: -1 });
 
-        if (!genieSubscription || !genieSubscription.plan_id) {
+        if (!subscription) {
             return res.status(400).json({
                 success: false,
-                error: "Active Genie subscription not found"
+                error: "Active subscription not found"
             });
         }
 
-        // Get current plan limits from Genie subscription
+        // Get current plan limits from Subscription
         const currentLimits = {
-            formLimit: genieSubscription.plan_id.form_limit,
-            submissionLimit: genieSubscription.plan_id.submission_limit
+            formLimit: subscription.form_limit || 10,
+            submissionLimit: subscription.submission_limit || 1000
         };
-        const currentPlanName = genieSubscription.plan_id.name;
+        const currentPlanName = subscription.plan_name;
 
         console.log('User current plan:', currentPlanName, 'limits:', currentLimits);
 
         // If targetPlanId is provided, get target plan limits
+        // NOTE: In Polar world, targetPlanId is likely a Polar Product ID or generic name
+        // But here we are keeping ManualPlan logic for potential manual overrides or hybrid usage
         let targetPlanLimits = currentLimits;
         let targetPlanName = currentPlanName;
         
@@ -214,20 +216,20 @@ export const handleFormSelection = async (req, res) => {
             });
         }
 
-        // Get user's Genie subscription
-        const genieSubscription = await GenieSubscription.findOne({ 
+        // Get user's Subscription
+        const subscription = await Subscription.findOne({ 
             user_id: userId, 
             status: 'active' 
-        }).populate('plan_id');
+        }).sort({ created_at: -1 });
 
-        if (!genieSubscription) {
+        if (!subscription) {
             return res.status(404).json({
                 success: false,
-                error: "Active Genie subscription not found"
+                error: "Active subscription not found"
             });
         }
 
-        console.log('User Genie subscription:', genieSubscription);
+        console.log('User subscription:', subscription);
 
         // Get all user's forms (both active and inactive/draft forms, regardless of lock status)
         const allUserForms = await Form.find({ 
@@ -277,10 +279,10 @@ export const handleFormSelection = async (req, res) => {
         
         console.log('Unlock result:', unlockResult);
 
-        // Update the Genie subscription with selected forms
-        genieSubscription.forms_selected = selectedFormIds;
-        await genieSubscription.save();
-        console.log('Updated Genie subscription with selected forms:', selectedFormIds);
+        // Update the subscription with selected forms
+        subscription.forms_selected = selectedFormIds;
+        await subscription.save();
+        console.log('Updated subscription with selected forms:', selectedFormIds);
 
         // Count forms that should be locked (the excess forms)
         const lockedFormCount = Math.max(0, allUserForms.length - newPlanLimit);
@@ -568,20 +570,20 @@ export const handleFormSelectionForUpgrade = async (req, res) => {
             });
         }
 
-        // Get user's Genie subscription
-        const genieSubscription = await GenieSubscription.findOne({ 
+        // Get user's Subscription
+        const subscription = await Subscription.findOne({ 
             user_id: userId, 
             status: 'active' 
-        }).populate('plan_id');
+        });
 
-        if (!genieSubscription) {
+        if (!subscription) {
             return res.status(404).json({
                 success: false,
-                error: "Active Genie subscription not found"
+                error: "Active subscription not found"
             });
         }
 
-        console.log('User Genie subscription:', genieSubscription);
+        console.log('User subscription:', subscription);
 
         // For upgrades, we want to unlock the selected forms (both previously locked and already unlocked)
         // Unlock the selected forms
@@ -599,15 +601,13 @@ export const handleFormSelectionForUpgrade = async (req, res) => {
         
         console.log('Unlock result:', unlockResult);
         
-        console.log('Unlock result:', unlockResult);
-
-        // Update the Genie subscription with selected forms (add to existing forms_selected or replace if needed)
+        // Update the Subscription with selected forms (add to existing forms_selected or replace if needed)
         // For upgrades, we want to add the newly unlocked forms to the existing selected forms
-        const existingSelectedForms = genieSubscription.forms_selected || [];
+        const existingSelectedForms = subscription.forms_selected || [];
         const updatedSelectedForms = [...new Set([...existingSelectedForms, ...selectedFormIds])];
-        genieSubscription.forms_selected = updatedSelectedForms;
-        await genieSubscription.save();
-        console.log('Updated Genie subscription with selected forms:', updatedSelectedForms);
+        subscription.forms_selected = updatedSelectedForms;
+        await subscription.save();
+        console.log('Updated subscription with selected forms:', updatedSelectedForms);
 
         // Count forms that were unlocked
         const unlockedFormCount = selectedFormIds.length;
@@ -704,20 +704,20 @@ export const autoHandleUpgrade = async (req, res) => {
             );
         }
 
-        // Get user's Genie subscription and update forms_selected
-        const genieSubscription = await GenieSubscription.findOne({ 
+        // Get user's Subscription and update forms_selected
+        const subscription = await Subscription.findOne({ 
             user_id: userId, 
             status: 'active' 
         });
 
-        if (genieSubscription) {
+        if (subscription) {
             // Add unlocked forms to existing selected forms
-            const existingSelectedForms = genieSubscription.forms_selected || [];
+            const existingSelectedForms = subscription.forms_selected || [];
             const unlockedFormIds = formsToUnlock.map(f => f._id.toString());
             const updatedSelectedForms = [...new Set([...existingSelectedForms, ...unlockedFormIds])];
-            genieSubscription.forms_selected = updatedSelectedForms;
-            await genieSubscription.save();
-            console.log('Updated Genie subscription with newly unlocked forms:', updatedSelectedForms);
+            subscription.forms_selected = updatedSelectedForms;
+            await subscription.save();
+            console.log('Updated subscription with newly unlocked forms:', updatedSelectedForms);
         }
 
         return res.status(200).json({

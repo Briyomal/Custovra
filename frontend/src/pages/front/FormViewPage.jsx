@@ -82,7 +82,9 @@ const FormViewPage = () => {
                 if (data?.error) {
                     // Check if the error is due to submission limit being reached
                     if (data.error.toLowerCase().includes('form submission limit exceeded')) {
-                        setError(data.error); // Use the full error message from backend
+                        setError(data.error);
+                    } else if (data.is_draft || data.error.toLowerCase().includes('not published')) {
+                        setError('draft'); // Mark as draft form
                     } else {
                         setError(data.error);
                     }
@@ -553,8 +555,8 @@ const validateField = (name, value, field) => {
 
             if (error) {
                 // Check if the error is due to submission limit being reached
-                if (error.toLowerCase().includes('form submission limit exceeded')) {
-                    toast.error("Monthly submission limit reached. Please upgrade your plan.");
+                if (error.toLowerCase().includes('submission limit')) {
+                    toast.error("Monthly submission limit reached. The form owner will be charged for additional submissions. Please contact the form owner.");
                 } else {
                     // Show the specific error message from the backend
                     toast.error(error);
@@ -574,13 +576,13 @@ const validateField = (name, value, field) => {
             }
         } catch (err) {
             // Check if this is a 403 error with specific limit-related text
-            if (err?.response?.status === 403 && 
-                err?.response?.data?.message?.toLowerCase().includes('form submission limit exceeded')) {
-                toast.error("Monthly submission limit reached. Please upgrade your plan.");
+            if (err?.response?.status === 403 &&
+                err?.response?.data?.error?.toLowerCase().includes('submission limit')) {
+                toast.error("Monthly submission limit reached. The form owner will be charged for additional submissions. Please contact the form owner.");
             } else {
                 console.error("Unexpected Error during submission:", err);
                 // Show the specific error message from the backend if available
-                const errorMessage = err?.response?.data?.message || err.message || "An unexpected error occurred during submission.";
+                const errorMessage = err?.response?.data?.error || err?.response?.data?.message || err.message || "An unexpected error occurred during submission.";
                 toast.error(errorMessage);
             }
             
@@ -624,8 +626,8 @@ const validateField = (name, value, field) => {
         return <LoadingSpinner />;
     }
 
-    // Only show generic error if it's not a submission limit error
-    if (error && !(error.toLowerCase().includes('form submission limit exceeded'))) {
+    // Only show generic error if it's not a submission limit error or draft error
+    if (error && error !== 'draft' && !(error.toLowerCase().includes('form submission limit exceeded'))) {
         return <p>Error: {error}</p>;
     }
 
@@ -647,14 +649,14 @@ const validateField = (name, value, field) => {
                             This form has reached its monthly submission limit. Please contact the form owner to upgrade their plan.
                         </CardDescription>
                     </Card>
-                ) : !formDetails?.is_active ? (
+                ) : error === 'draft' || !formDetails?.is_active ? (
                     <Card className="text-center p-4 backdrop-blur-md">
                         <CardHeader>
                             <Ban size={48} className="mx-auto mb-2 text-red-500" />
                             <CardTitle>Form Unavailable</CardTitle>
                         </CardHeader>
                         <CardDescription className="pb-3">
-                            This form is currently inactive. Please check back later or contact the form owner for more details.
+                            This form is not published yet. Please check back later or contact the form owner for more details.
                         </CardDescription>
                     </Card>
                 ) : (

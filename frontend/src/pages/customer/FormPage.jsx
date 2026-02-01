@@ -12,12 +12,13 @@ import DataTable from "@/components/customer-view/DataTable";
 import axios from "axios";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { columns } from "@/components/customer-view/form-columns";
-import { ArrowRight, BadgeAlert, FilePlus, Loader, SquareDashedMousePointer, SquareEqual, Star, Zap } from "lucide-react";
+import { ArrowRight, BadgeAlert, FilePlus, Info, Loader, SquareDashedMousePointer, SquareEqual, Star, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuthStore } from "@/store/authStore";
 import { parseLimitError, formatLimitMessage } from "@/utils/subscriptionLimits";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 // Plan downgrade protection is now handled in BillingPage with modal-first approach
 
 const FormPage = () => {
@@ -29,33 +30,97 @@ const FormPage = () => {
 	const [isLoading, setIsLoading] = useState(false);
 	const { user } = useAuthStore();
 
+	// Overage warning states
+	const [showOverageWarning, setShowOverageWarning] = useState(false);
+	const [overageInfo, setOverageInfo] = useState(null);
+	const [usageStats, setUsageStats] = useState(null);
+
 	// Plan downgrade protection is now handled in BillingPage
 
 	const navigate = useNavigate();
 
-	const handleSubmit = async () => {
+	// Fetch usage stats to check for overage
+	useEffect(() => {
+		const fetchUsageStats = async () => {
+			try {
+				const response = await axios.get(
+					`${import.meta.env.VITE_SERVER_URL}/api/usage/stats`,
+					{ withCredentials: true }
+				);
+				if (response.data.success) {
+					setUsageStats(response.data.data);
+				}
+			} catch (error) {
+				console.error('Error fetching usage stats:', error);
+			}
+		};
+
+		fetchUsageStats();
+	}, []);
+
+	const handleSubmit = async (skipWarning = false) => {
+		// Check if user is at form limit and show warning
+		if (!skipWarning && usageStats) {
+			const usage = usageStats.usage?.forms;
+			if (usage && usage.current >= usage.maximum) {
+				// Get pricing from Polar API (fallback to $5 if not available)
+				const pricePerForm = usageStats.meterData?.forms?.pricePerUnit || 5;
+
+				setOverageInfo({
+					currentForms: usage.current,
+					includedForms: usage.maximum,
+					additionalCost: pricePerForm // Dynamic pricing from Polar
+				});
+				setShowOverageWarning(true);
+				return; // Don't create form yet, wait for user confirmation
+			}
+		}
+
 		setIsLoading(true);
 		const formData = {
-			user_id: user?._id, // Replace with actual user ID
+			user_id: user?._id,
 			form_name: formName,
 			form_note: formNote,
 			form_type: formType,
-			//fields,
+			is_active: false,  // Start as draft until published from FormCreatePage
 		};
 
 		try {
 			const response = await createForm(formData);
+
+			// Check for overage warning in response
+			if (response.overageWarning) {
+				toast(
+					<div>
+						<strong className="text-yellow-700">⚠️ Form Created - Overage Charge</strong>
+						<p className="text-sm mt-1">{response.overageWarning.message}</p>
+						<p className="text-xs text-gray-600 mt-1">
+							Estimated monthly cost: ${(response.overageWarning.estimatedCost / 100).toFixed(2)}
+						</p>
+					</div>,
+					{
+						duration: 8000,
+						style: {
+							background: '#fef3c7',
+							color: '#92400e',
+							border: '1px solid #f59e0b'
+						}
+					}
+				);
+			} else {
+				toast.success(
+					<div>
+						<strong>Form is almost ready</strong>
+						<p>Let&lsquo;s customise and publish it now.</p>
+					</div>,
+					{
+						icon: "👏",
+						duration: 5000,
+					}
+				);
+			}
+
 			navigate(`/forms/create-form/${response._id}`);
-			toast.success(
-				<div>
-					<strong>Form is almost ready</strong>
-					<p>Let&lsquo;s customise and publish it now.</p>
-				</div>,
-				{
-					icon: "👏",
-					duration: 5000,
-				}
-			);
 		} catch (error) {
 			console.error("Form creation error:", error);
 			
@@ -128,6 +193,60 @@ const FormPage = () => {
 	return (
 		<CustomerLayoutPage>
 			<div className="flex flex-1 flex-col gap-4 md:p-4 pt-0">
+				{/* Form Overage Warning Modal */}
+				<Dialog open={showOverageWarning} onOpenChange={setShowOverageWarning}>
+					<DialogContent className="sm:max-w-[500px]">
+						<DialogHeader>
+							<DialogTitle className="flex items-center gap-2">
+								<BadgeAlert className="h-5 w-5 text-yellow-600" />
+								Additional Form - Overage Charge
+							</DialogTitle>
+							<DialogDescription>
+								You are creating form #{(overageInfo?.currentForms || 0) + 1}.
+								Your plan includes {overageInfo?.includedForms || 1} form(s).
+							</DialogDescription>
+						</DialogHeader>
+
+						<div className="space-y-4 py-4">
+							<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+								<div className="flex items-start">
+									<BadgeAlert className="h-5 w-5 text-yellow-600 mr-3 mt-0.5" />
+									<div>
+										<h4 className="font-semibold text-yellow-900">Overage Billing</h4>
+										<p className="text-sm text-yellow-800 mt-1">
+											Each additional form costs <strong>${overageInfo?.additionalCost || 5}/month</strong>.
+											This charge will be added to your next invoice.
+										</p>
+									</div>
+								</div>
+							</div>
+
+							<div className="text-sm text-gray-600 space-y-1">
+								<p>Current forms: {overageInfo?.currentForms || 0}</p>
+								<p>Included in plan: {overageInfo?.includedForms || 1}</p>
+								<p className="font-semibold mt-2 text-gray-900">
+									Additional monthly cost: ${((overageInfo?.currentForms || 0) + 1 - (overageInfo?.includedForms || 1)) * (overageInfo?.additionalCost || 5)}
+								</p>
+							</div>
+						</div>
+
+						<DialogFooter>
+							<Button variant="outline" onClick={() => setShowOverageWarning(false)}>
+								Cancel
+							</Button>
+							<Button
+								onClick={() => {
+									setShowOverageWarning(false);
+									handleSubmit(true); // Skip warning check on retry
+								}}
+								className="bg-yellow-600 hover:bg-yellow-700"
+							>
+								Create Form & Accept Charges
+							</Button>
+						</DialogFooter>
+					</DialogContent>
+				</Dialog>
+
 				<Dialog>
 					<DialogTrigger asChild>
 						<Button className="w-full sm:w-fit mt-4 mb-4 left-0 rounded-md font-semibold text-black border
@@ -144,6 +263,31 @@ const FormPage = () => {
 							<DialogTitle>Create Form</DialogTitle>
 							<DialogDescription>Create your form here. Click next when you&apos;re done.</DialogDescription>
 						</DialogHeader>
+
+						{/* Billing Notice */}
+						{usageStats && usageStats.usage?.forms && (
+							<Alert className="mt-4 bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800">
+								<Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+								<AlertDescription className="ml-2">
+									<div className="flex flex-col gap-1">
+										<div className="flex items-center justify-between text-sm">
+											<span className="font-medium">
+												Forms: {usageStats.usage.forms.current}
+											</span>
+											{usageStats.meterData?.forms?.pricePerUnit && (
+												<span className="text-xs text-gray-600 dark:text-gray-400">
+													${usageStats.meterData.forms.pricePerUnit}/form
+												</span>
+											)}
+										</div>
+								<p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+									${usageStats.meterData?.forms?.pricePerUnit || 5} will be charged for every form you create.
+								</p>
+							</div>
+								</AlertDescription>
+							</Alert>
+						)}
+
 						<div className="grid gap-4 py-4">
 							<Label htmlFor="form_name">Form Name</Label>
 							<Input type="text" placeholder="Type your form name here" value={formName} onChange={(e) => setFormName(e.target.value)} />

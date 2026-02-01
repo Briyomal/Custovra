@@ -6,6 +6,7 @@ import axios from "axios";
 // Add S3 utilities import
 import { uploadFileToS3, getPresignedUrl } from '../utils/s3.js';
 import rateLimit from "express-rate-limit";
+import { reportSubmissionCreation } from '../services/polarMeter.service.js';
 
 // Create a helper function to generate a unique key for submission files
 const generateSubmissionFileKey = (formId, fieldName, originalname) => {
@@ -409,13 +410,22 @@ export const createSubmission = async (req, res) => {
         });
 
         const savedSubmission = await newSubmission.save();
-        
+
+        // Report to Polar Submissions meter (don't block on failure)
+        try {
+            const formOwnerId = form.user_id;
+            await reportSubmissionCreation(formOwnerId, savedSubmission._id, form._id);
+        } catch (meterError) {
+            console.error('Error reporting submission to meter:', meterError);
+            // Don't fail the submission if meter report fails
+        }
+
         // Include form owner's usage information in response
         const responseData = {
             ...savedSubmission.toObject(),
             usageInfo: req.formOwner?.submissionUsage || null
         };
-        
+
         res.status(201).json(responseData);
     } catch (error) {
         console.error('Error creating submission:', error);
