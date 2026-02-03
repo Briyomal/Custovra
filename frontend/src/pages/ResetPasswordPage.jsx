@@ -50,7 +50,8 @@ const ResetPasswordPage = () => {
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.5 }}
-				className='m-4 md:m-0 max-w-md w-full bg-gray-50 bg-opacity-20 backdrop-filter backdrop-blur-xl rounded-2xl shadow-xl overflow-hidden'
+				className=' m-4 md:m-0 max-w-md w-full border bg-white bg-opacity-60 backdrop-filter backdrop-blur-2xl rounded-2xl shadow-xl overflow-hidden
+				dark:bg-[#0D0D0D] dark:bg-opacity-40 dark:backdrop-filter dark:backdrop-blur-lg'
 			>
 				<div className='px-4 py-8 md:p-8'>
 					<a href="/" className="flex items-center justify-center mb-4">

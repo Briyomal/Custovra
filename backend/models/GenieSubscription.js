@@ -61,6 +61,11 @@ const genieSubscriptionSchema = new Schema({
         type: String, // Token for recurring payments
         required: false,
     },
+    // Expiry reminder tracking
+    expiry_reminder_sent: {
+        type: Boolean,
+        default: false,
+    },
     created_at: {
         type: Date,
         default: Date.now,

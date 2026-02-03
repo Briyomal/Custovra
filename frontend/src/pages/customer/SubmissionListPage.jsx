@@ -91,7 +91,7 @@ const SubmissionListPage = () => {
 				<div className="my-4 P-4">
 					<Button variant="outline" onClick={handleGoBack} className="mb-4">
 						<ArrowLeft className="h-4 w-4 mr-2" />
-						Back to Forms
+						Back to Feedback
 					</Button>
 					{formData && (
 						<div className="flex flex-col">
@@ -107,10 +107,10 @@ const SubmissionListPage = () => {
 					<div className="flex flex-col items-center justify-center mt-20 space-y-4">
 						<h1 className="text-xl md:text-3xl font-semibold text-gray-500 flex items-center">
 							<span role="img" aria-label="clipboard" className="mr-2">📋</span>
-							No Submissions Yet!
+							No Feedback Yet!
 						</h1>
 						<p className="text-lg text-gray-400 max-w-md text-center">
-							It looks like you haven&lsquo;t received any submissions yet. Share your form to get started and begin collecting responses.
+							It looks like you haven&lsquo;t received any feedback yet. Share your form to get started and begin collecting responses.
 						</p>
 					</div>
 				) :

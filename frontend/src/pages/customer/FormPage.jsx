@@ -12,12 +12,13 @@ import DataTable from "@/components/customer-view/DataTable";
 import axios from "axios";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { columns } from "@/components/customer-view/form-columns";
-import { ArrowRight, BadgeAlert, FilePlus, Loader, SquareDashedMousePointer, SquareEqual, Star, Zap } from "lucide-react";
+import { AlertTriangle, ArrowRight, BadgeAlert, FilePlus, Loader, SquareDashedMousePointer, SquareEqual, Star, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuthStore } from "@/store/authStore";
 import { parseLimitError, formatLimitMessage } from "@/utils/subscriptionLimits";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 // Plan downgrade protection is now handled in BillingPage with modal-first approach
 
 const FormPage = () => {
@@ -28,10 +29,39 @@ const FormPage = () => {
 	const { createForm, error } = useFormStore();
 	const [isLoading, setIsLoading] = useState(false);
 	const { user } = useAuthStore();
+	const [isDialogOpen, setIsDialogOpen] = useState(false);
+	const [limitExceeded, setLimitExceeded] = useState(false);
+	const [usageInfo, setUsageInfo] = useState(null);
+	const [checkingLimit, setCheckingLimit] = useState(false);
 
 	// Plan downgrade protection is now handled in BillingPage
 
 	const navigate = useNavigate();
+
+	// Check form limit when dialog opens
+	const handleDialogOpen = async (open) => {
+		setIsDialogOpen(open);
+		if (open) {
+			setCheckingLimit(true);
+			try {
+				const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/usage/check/create_form`);
+				if (response.data.success) {
+					const { canPerform, usage, planName } = response.data.data;
+					setLimitExceeded(!canPerform);
+					setUsageInfo({ usage, planName });
+				}
+			} catch (error) {
+				console.error("Error checking form limit:", error);
+			} finally {
+				setCheckingLimit(false);
+			}
+		} else {
+			// Reset form fields when dialog closes
+			setFormName("");
+			setFormNote("");
+			setFormType("Review");
+		}
+	};
 
 	const handleSubmit = async () => {
 		setIsLoading(true);
@@ -128,13 +158,13 @@ const FormPage = () => {
 	return (
 		<CustomerLayoutPage>
 			<div className="flex flex-1 flex-col gap-4 md:p-4 pt-0">
-				<Dialog>
+				<Dialog open={isDialogOpen} onOpenChange={handleDialogOpen}>
 					<DialogTrigger asChild>
 						<Button className="w-full sm:w-fit mt-4 mb-4 left-0 rounded-md font-semibold text-black border
                                                           border-lime-500
                                                             bg-gradient-to-r from-[#16bf4c] to-lime-500
-                                                            transition-all duration-200 ease-in-out 
-                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
+                                                            transition-all duration-200 ease-in-out
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16]
                                                             focus:outline-none focus:ring-2 focus:ring-lime-400">
 							<FilePlus /> Create Form
 						</Button>
@@ -144,30 +174,55 @@ const FormPage = () => {
 							<DialogTitle>Create Form</DialogTitle>
 							<DialogDescription>Create your form here. Click next when you&apos;re done.</DialogDescription>
 						</DialogHeader>
-						<div className="grid gap-4 py-4">
-							<Label htmlFor="form_name">Form Name</Label>
-							<Input type="text" placeholder="Type your form name here" value={formName} onChange={(e) => setFormName(e.target.value)} />
-							<Label htmlFor="form_description">Note</Label>
-							<Textarea placeholder="Personel note to identify the form" value={formNote} onChange={(e) => setFormNote(e.target.value)} />
-							<Label htmlFor="form_type">Type</Label>
-							<Select value={formType} onValueChange={(value) => setFormType(value)}>
-								<SelectTrigger>
-									<SelectValue placeholder="Select an option" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="Review">Review</SelectItem>
-									<SelectItem value="Complaint">Complaint</SelectItem>
-								</SelectContent>
-							</Select>
-							<div className="flex flex-col">{error && <p className="text-red-500">Error: {error}</p>}</div>
-						</div>
+						{checkingLimit ? (
+							<div className="flex items-center justify-center py-8">
+								<Loader className="animate-spin" size={24} />
+								<span className="ml-2">Checking limits...</span>
+							</div>
+						) : limitExceeded ? (
+							<div className="py-4">
+								<Alert variant="destructive" className="border-amber-500 bg-amber-50 dark:bg-amber-950">
+									<AlertTriangle className="h-4 w-4 text-amber-600" />
+									<AlertTitle className="text-amber-800 dark:text-amber-200">Form Limit Reached</AlertTitle>
+									<AlertDescription className="text-amber-700 dark:text-amber-300">
+										Your <span className="font-semibold">{usageInfo?.planName}</span> plan allows{" "}
+										<span className="font-semibold">{usageInfo?.usage?.forms?.maximum}</span> form(s).
+										You currently have <span className="font-semibold">{usageInfo?.usage?.forms?.current}</span> form(s).
+										<p className="mt-2">Please upgrade your plan or delete an existing form to create a new one.</p>
+									</AlertDescription>
+								</Alert>
+							</div>
+						) : (
+							<div className="grid gap-4 py-4">
+								<Label htmlFor="form_name">Form Name</Label>
+								<Input type="text" placeholder="Type your form name here" value={formName} onChange={(e) => setFormName(e.target.value)} />
+								<Label htmlFor="form_description">Note</Label>
+								<Textarea placeholder="Personel note to identify the form" value={formNote} onChange={(e) => setFormNote(e.target.value)} />
+								<Label htmlFor="form_type">Type</Label>
+								<Select value={formType} onValueChange={(value) => setFormType(value)}>
+									<SelectTrigger>
+										<SelectValue placeholder="Select an option" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="Review">Review</SelectItem>
+										<SelectItem value="Complaint">Complaint</SelectItem>
+									</SelectContent>
+								</Select>
+								<div className="flex flex-col">{error && <p className="text-red-500">Error: {error}</p>}</div>
+							</div>
+						)}
 						<DialogFooter>
-							<Button className="rounded-md font-semibold text-black border
+							<Button
+								className="rounded-md font-semibold text-black border
                                                           border-lime-500
                                                             bg-gradient-to-r from-[#16bf4c] to-lime-500
-                                                            transition-all duration-200 ease-in-out 
-                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16] 
-                                                            focus:outline-none focus:ring-2 focus:ring-lime-400 flex items-center justify-center" onClick={handleSubmit} disabled={isLoading}>
+                                                            transition-all duration-200 ease-in-out
+                                                            hover:shadow-[0_0_15px_rgba(22,191,76,0.4)] hover:from-lime-400 hover:to-[#1cbf16]
+                                                            focus:outline-none focus:ring-2 focus:ring-lime-400 flex items-center justify-center
+											disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
+								onClick={handleSubmit}
+								disabled={isLoading || limitExceeded || checkingLimit}
+							>
 								{isLoading ? (
 									<div className="flex items-center space-x-2">
 										<Loader className="animate-spin" size={28} />

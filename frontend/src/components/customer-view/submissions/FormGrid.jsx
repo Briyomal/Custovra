@@ -95,7 +95,7 @@ const FormsGrid = ({ forms = [], getSubmissionCountForForm, submissions = [] }) 
                         <Separator className="my-2" />
                         <CardContent className="space-y-3 md:space-y-5 px-4 md:px-4">
                             <div className="flex flex-row justify-between items-center">
-                                <p className="text-sm">Submissions</p>
+                                <p className="text-sm">Feedback</p>
                                 <h3 className="text-gray-400 font-semibold text-2xl md:text-3xl">
                                     {submissionCount}
                                 </h3>
@@ -127,7 +127,7 @@ const FormsGrid = ({ forms = [], getSubmissionCountForForm, submissions = [] }) 
                                 onClick={() => handleViewSubmissions(form._id)}
                             >
                                 <Eye className="h-4 w-4" />
-                                View Submissions
+                                View Feedback
                             </Button>
                         </CardFooter>
                     </Card>

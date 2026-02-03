@@ -111,30 +111,94 @@ function EmployeePage() {
     }));
   };
 
-  const handlePhotoChange = (e) => {
+  // Compress image using Canvas API
+  const compressImage = (file, maxWidth = 800, maxHeight = 800, quality = 0.8) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+
+          // Calculate new dimensions while maintaining aspect ratio
+          if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width = Math.round(width * ratio);
+            height = Math.round(height * ratio);
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Convert to blob with compression
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                // Create a new file from the blob
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                reject(new Error('Failed to compress image'));
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = event.target.result;
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handlePhotoChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file size (1MB)
-      if (file.size > 1 * 1024 * 1024) {
-        toast.error('Profile photo must be less than 1MB');
-        return;
-      }
-
-      // Validate file type - Updated to include WebP
+      // Validate file type
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
       if (!allowedTypes.includes(file.type)) {
-        toast.error('Only JPEG, PNG, and WebP files are allowed');
+        toast.error('Invalid file format. Only JPEG, PNG, and WebP images are allowed.');
         return;
       }
 
-      setProfilePhoto(file);
+      try {
+        // Compress the image
+        const compressedFile = await compressImage(file);
 
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+        // Check compressed size (should be under 1MB after compression)
+        if (compressedFile.size > 1 * 1024 * 1024) {
+          toast.error('Image is too large even after compression. Please use a smaller image.');
+          return;
+        }
+
+        setProfilePhoto(compressedFile);
+
+        // Create preview from compressed file
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPhotoPreview(reader.result);
+        };
+        reader.readAsDataURL(compressedFile);
+
+        // Show compression info
+        const originalSize = (file.size / 1024).toFixed(1);
+        const compressedSize = (compressedFile.size / 1024).toFixed(1);
+        if (file.size > compressedFile.size) {
+          toast.success(`Image compressed: ${originalSize}KB → ${compressedSize}KB`);
+        }
+      } catch (error) {
+        console.error('Error compressing image:', error);
+        toast.error('Failed to process image. Please try another file.');
+      }
     }
   };
 
@@ -556,10 +620,6 @@ function EmployeePage() {
                   <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-500 text-lg mb-2">No employees found</p>
                   <p className="text-gray-400 text-sm mb-4">Add your first employee to get started</p>
-                  <Button onClick={openCreateDialog} className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Add Employee
-                  </Button>
                 </div>
               ) : (
                 <div className="rounded-md border flex">

@@ -61,7 +61,7 @@ const SubmissionPage = () => {
             <div className="grid auto-rows-min gap-4 grid-cols-1 md:grid-cols-3 xl:grid-cols-5 ">
                 <Card className="border-b-4 border-b-green-600 mt-4">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-md font-regular">Total Submissions</CardTitle>
+                        <CardTitle className="text-md font-regular">Total Feedback</CardTitle>
                         <MessageSquareText className="text-green-600" />
                     </CardHeader>
                     <CardContent>

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:polar.sh)",
+      "WebFetch(domain:docs.polar.sh)",
+      "WebFetch(domain:github.com)",
+      "Bash(node scripts/fix-subscription-id.js:*)",
+      "Bash(node:*)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(dir \"f:\\\\Programming\\\\Custovra\\\\*.md\")"
+    ]
+  }
+}

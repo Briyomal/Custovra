@@ -1,4 +1,4 @@
-import { PASSWORD_RESET_REQUEST_TEMPLATE, VERIFICATION_EMAIL_TEMPLATE, PASSWORD_RESET_SUCCESS_TEMPLATE, WELCOME_EMAIL_TEMPLATE, PAYMENT_SUCCESS_EMAIL_TEMPLATE } from "./emailTemplate.js";
+import { PASSWORD_RESET_REQUEST_TEMPLATE, VERIFICATION_EMAIL_TEMPLATE, PASSWORD_RESET_SUCCESS_TEMPLATE, WELCOME_EMAIL_TEMPLATE, PAYMENT_SUCCESS_EMAIL_TEMPLATE, SUBSCRIPTION_EXPIRY_REMINDER_TEMPLATE } from "./emailTemplate.js";
 import { transporter, sender } from "./smtp.config.js";
 
 export const sendVerificationEmail = async (email, verificationToken) => {
@@ -96,5 +96,37 @@ export const sendPaymentSuccessEmail = async ({
     console.log("Payment success email sent:", response.messageId);
   } catch (error) {
     console.error("Error sending payment success email:", error);
+  }
+};
+
+export const sendSubscriptionExpiryReminderEmail = async ({
+  email,
+  userName,
+  planName,
+  billingPeriod,
+  expiryDate,
+  daysRemaining,
+}) => {
+  try {
+    const html = SUBSCRIPTION_EXPIRY_REMINDER_TEMPLATE
+      .replace("{logoUrl}", "https://custovra.com/Logo.png")
+      .replace("{userName}", userName || "Customer")
+      .replace("{planName}", planName)
+      .replace("{billingPeriod}", billingPeriod)
+      .replace("{expiryDate}", expiryDate)
+      .replace("{daysRemaining}", daysRemaining.toString());
+
+    const response = await transporter.sendMail({
+      from: sender,
+      to: email,
+      subject: `Your Custovra subscription expires in ${daysRemaining} day(s)`,
+      html,
+    });
+
+    console.log(`Subscription expiry reminder email sent to ${email}:`, response.messageId);
+    return true;
+  } catch (error) {
+    console.error("Error sending subscription expiry reminder email:", error);
+    return false;
   }
 };

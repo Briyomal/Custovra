@@ -127,16 +127,15 @@ export const checkFormCreationLimit = async (req, res, next) => {
             });
         }
 
-        // Count current forms for this user
-        const currentFormCount = await Form.countDocuments({ 
-            user_id: userId,
-            is_active: true // Only count active forms
+        // Count current forms for this user (all forms, including drafts)
+        const currentFormCount = await Form.countDocuments({
+            user_id: userId
         });
 
         if (currentFormCount >= limits.formLimit) {
             return res.status(403).json({
                 success: false,
-                error: `Form creation limit exceeded. Your ${planName} plan allows ${limits.formLimit} form(s). You currently have ${currentFormCount} active forms.`,
+                error: `Form creation limit exceeded. Your ${planName} plan allows ${limits.formLimit} form(s). You currently have ${currentFormCount} form(s).`,
                 limit: {
                     current: currentFormCount,
                     maximum: limits.formLimit,
@@ -191,10 +190,9 @@ export const checkSubmissionLimit = async (req, res, next) => {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999); // End of month
 
-        // Count submissions to all ACTIVE forms owned by the form owner this month
-        const formOwnerForms = await Form.find({ 
-            user_id: formOwnerId,
-            is_active: true 
+        // Count submissions to all forms owned by the form owner this month
+        const formOwnerForms = await Form.find({
+            user_id: formOwnerId
         }).select('_id');
         
         const formOwnerFormIds = formOwnerForms.map(f => f._id);
@@ -251,10 +249,9 @@ export const getUserUsageStats = async (userId) => {
             return { error, stats: null };
         }
 
-        // Get form count (only active forms)
-        const formCount = await Form.countDocuments({ 
-            user_id: userId,
-            is_active: true 
+        // Get form count (all forms, including drafts)
+        const formCount = await Form.countDocuments({
+            user_id: userId
         });
 
         // Get current month's submission count for all ACTIVE forms owned by this user
@@ -262,15 +259,14 @@ export const getUserUsageStats = async (userId) => {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999); // End of month
 
-        // Get all ACTIVE forms owned by this user
-        const userForms = await Form.find({ 
-            user_id: userId,
-            is_active: true 
+        // Get all forms owned by this user
+        const userForms = await Form.find({
+            user_id: userId
         }).select('_id');
         
         const userFormIds = userForms.map(f => f._id);
 
-        // Count submissions to all ACTIVE forms owned by this user this month
+        // Count submissions to all forms owned by this user this month
         const submissionCount = await Submission.countDocuments({
             form_id: { $in: userFormIds },
             createdAt: {

@@ -4,3 +4,5 @@ node_modules/
 backend/uploads/*
 backend/node_modules/
 backend/.env
+.claude/*
+.gemini/*

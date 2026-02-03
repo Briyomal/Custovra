@@ -558,7 +558,7 @@ const SubscriptionPlansManagement = () => {
                     <span className="font-medium">{plan.form_limit}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Submissions:</span>
+                    <span>Feedback:</span>
                     <span className="font-medium">{plan.submission_limit}/month</span>
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import { MoreHorizontal, ArrowUpDown, Star, StarHalf, Trash2, Eye } from "lucide-react";
+import { MoreHorizontal, ArrowUpDown, Star, StarHalf, Trash2, Eye, ImageOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogContent, AlertDialogFooter, AlertDialogHeader } from "@/components/ui/alert-dialog";
@@ -8,6 +8,45 @@ import useSubmissionStore from "@/store/submissionStore";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox"
+
+// Image cell component with proper error handling
+const ImageCell = ({ value }) => {
+	const [imageError, setImageError] = useState(false);
+	const [imageLoaded, setImageLoaded] = useState(false);
+
+	if (imageError) {
+		return (
+			<div className="flex items-center space-x-2">
+				<div className="w-16 h-16 flex flex-col items-center justify-center bg-red-50 dark:bg-red-950 rounded border border-red-200 dark:border-red-800">
+					<ImageOff className="w-5 h-5 text-red-400" />
+					<span className="text-[10px] text-red-400 mt-1">Not found</span>
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div className="flex items-center space-x-2">
+			{!imageLoaded && (
+				<div className="w-16 h-16 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded border animate-pulse">
+					<span className="text-xs text-gray-400">Loading...</span>
+				</div>
+			)}
+			<img
+				src={value}
+				alt="Submission"
+				className={`w-16 h-16 object-cover rounded border ${imageLoaded ? '' : 'hidden'}`}
+				onLoad={() => setImageLoaded(true)}
+				onError={() => setImageError(true)}
+			/>
+			{imageLoaded && (
+				<a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-sm">
+					View Full Size
+				</a>
+			)}
+		</div>
+	);
+};
 
 // Generate dynamic columns based on submission data and form field definitions
 export const generateDynamicColumns = (submissions, formData = null) => {
@@ -150,7 +189,7 @@ const createColumnForField = (fieldName) => {
 				);
 			},
 		};
-	} else if (fieldName.endsWith('.jpg') || fieldName.endsWith('.jpeg') || fieldName.endsWith('.png') || 
+	} else if (fieldName.endsWith('.jpg') || fieldName.endsWith('.jpeg') || fieldName.endsWith('.png') ||
 	           fieldName.includes('image') || fieldName.includes('photo') || fieldName.includes('Image') || fieldName.includes('Photo')) {
 		// Handle image fields
 		return {
@@ -167,27 +206,11 @@ const createColumnForField = (fieldName) => {
 				const value = row.original.submissions?.[fieldName];
 				// Check if the value looks like a URL (presigned URL)
 				if (value && (value.startsWith('http://') || value.startsWith('https://'))) {
-					return (
-						<div className="flex items-center space-x-2">
-							<img 
-								src={value} 
-								alt="Submission" 
-								className="w-16 h-16 object-cover rounded border"
-								onError={(e) => {
-									// If image fails to load, show a fallback
-									e.target.onerror = null;
-									e.target.parentElement.innerHTML = '<span className="text-blue-500 hover:underline">View Image</span>';
-								}}
-							/>
-							<a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-sm">
-								View Full Size
-							</a>
-						</div>
-					);
+					return <ImageCell value={value} />;
 				}
-				// If it's an S3 key, show a placeholder
+				// If it's an S3 key, show a placeholder (backend should have converted this to URL)
 				else if (value && (value.startsWith('form_submissions/') || value.includes('form_submissions'))) {
-					return <span className="text-blue-500">[Image File]</span>;
+					return <span className="text-amber-500">[Image loading failed - S3 key]</span>;
 				}
 				return <span>{value || 'N/A'}</span>;
 			},

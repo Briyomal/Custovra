@@ -141,7 +141,7 @@ function ReportExport({
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(24);
             pdf.setTextColor(34, 197, 94); // Blue color
-            pdf.text('Submissions Report', pageWidth / 2, 22, { align: 'center' });
+            pdf.text('Feedback Report', pageWidth / 2, 22, { align: 'center' });
             
             // Add subtitle
             pdf.setFont('helvetica', 'normal');

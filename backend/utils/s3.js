@@ -120,8 +120,9 @@ const getFileMimeType = (fileName) => {
     '.jpeg': 'image/jpeg',
     '.png': 'image/png',
     '.gif': 'image/gif',
+    '.webp': 'image/webp',
   };
-  
+
   return mimeTypes[ext] || 'application/octet-stream';
 };
 

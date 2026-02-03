@@ -125,7 +125,7 @@ const formSchema = new Schema({
     },
     is_active: {
         type: Boolean,
-        default: true,
+        default: false,
     },
     is_locked: {
         type: Boolean,

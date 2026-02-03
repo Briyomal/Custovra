@@ -35,8 +35,8 @@ export const getSubscriptionDetails = async (req, res) => {
       status: 'active'
     });
 
-    // Get user's form count
-    const formCount = await Form.countDocuments({ user_id: userId, is_active: true });
+    // Get user's form count (all forms, including drafts)
+    const formCount = await Form.countDocuments({ user_id: userId });
     
     // Get user's submission count for current month
     const now = new Date();

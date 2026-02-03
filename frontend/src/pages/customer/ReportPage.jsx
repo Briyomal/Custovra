@@ -589,8 +589,8 @@ function ReportPage() {
             <div className="pt-4 md:gap-4 md:p-4">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-8">
                 <div className="flex flex-col gap-1">
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Submissions Report</h2>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Analyze your form submissions and ratings</p>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Feedback Report</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Analyze your feedback and ratings</p>
                 </div>
                 <ReportExport 
                     isExporting={isExporting}
@@ -636,22 +636,22 @@ function ReportPage() {
                     </div>
 
                     <div className="flex flex-col gap-2 sm:flex-1">
-                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Form Selection</Label>
+                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Form (Outlet) Selection</Label>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" className="justify-between w-full h-11 text-left">
                                     <div className="flex items-center min-w-0">
                                         <span className="truncate">
-                                            {selectedForm === "all" ? "All Forms" : forms.find(f => f._id === selectedForm)?.form_name || "Select Form"}
+                                            {selectedForm === "all" ? "All Forms (Outlets)" : forms.find(f => f._id === selectedForm)?.form_name || "Select Form"}
                                         </span>
                                     </div>
                                     <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0 ml-2" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="bottom" align="start" className="w-64">
-                                <DropdownMenuLabel>Select a Form</DropdownMenuLabel>
+                                <DropdownMenuLabel>Select a Form (Outlet)</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => setSelectedForm("all")}>All Forms</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setSelectedForm("all")}>All Forms (Outlets)</DropdownMenuItem>
                                 {forms.map(form => (
                                     <DropdownMenuItem key={form._id} onClick={() => setSelectedForm(form._id)}>
                                         <span className="truncate">{form.form_name}</span>
@@ -807,7 +807,7 @@ function ReportPage() {
                     </div>
                 ) : chartData.length === 0 && ratingData.ratingData.every(r => r.value === 0) ? (
                     <div className="text-center py-12">
-                        <p className="text-gray-500 text-lg">No submissions data available for the selected criteria.</p>
+                        <p className="text-gray-500 text-lg">No feedback data available for the selected criteria.</p>
                         <p className="text-gray-400 text-sm mt-2">Try adjusting your date range or form selection.</p>
                     </div>
                 ) : (
@@ -817,7 +817,7 @@ function ReportPage() {
                             <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-emerald-900/50 dark:to-green-800 border-green-200 dark:border-green-700">
                                 <CardContent className="p-4 md:p-6">
                                     <div className="text-center">
-                                        <p className="text-sm text-green-700 dark:text-green-300 font-medium mb-2">Total Submissions</p>
+                                        <p className="text-sm text-green-700 dark:text-green-300 font-medium mb-2">Total Feedback</p>
                                         <div className="flex items-center justify-center gap-2">
                                             <FileText className="h-6 w-6 text-green-600 dark:text-green-400" />
                                             <p className="text-3xl font-bold text-green-600 dark:text-green-400">{filteredSubmissions.length}</p>
@@ -962,7 +962,7 @@ function ReportPage() {
                             <Card className="xl:col-span-2 shadow-sm">
                                 <CardHeader className="border-b bg-gray-50 dark:bg-[#1d1d1d]">
                                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                                        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">Submissions Timeline</CardTitle>
+                                        <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">Feedback Timeline</CardTitle>
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm text-gray-600 dark:text-gray-400">Total:</span>
                                             <span className="text-lg font-bold text-[#16bf4c] dark:text-[#16bf4c]">{filteredSubmissions.length}</span>
@@ -1151,7 +1151,7 @@ function ReportPage() {
                                                                         {index === Object.keys(item.payload).filter(key => 
                                                                             key.includes('avg') && item.payload[key] > 0).length - 1 && (
                                                                             <div className="text-foreground mt-1.5 flex basis-full items-center border-t pt-1.5 text-xs font-medium">
-                                                                                Submissions
+                                                                                Feedback
                                                                                 <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
                                                                                     {item.payload.submissionCount}
                                                                                 </div>

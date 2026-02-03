@@ -392,6 +392,118 @@ export const WELCOME_EMAIL_TEMPLATE = `
 
 `;
 
+export const SUBSCRIPTION_EXPIRY_REMINDER_TEMPLATE = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subscription Expiring Soon</title>
+</head>
+
+<body style="margin:0; padding:0; background-color:#f3f4f6; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+
+  <div style="max-width:600px; margin:40px auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.08);">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg, #f59e0b, #eab308); padding:32px; text-align:center;">
+
+      <div style="
+        display:inline-block;
+        background:#ffffff;
+        padding:10px 14px;
+        border-radius:10px;
+        margin-bottom:16px;">
+        <img
+          src="{logoUrl}"
+          alt="Custovra"
+          width="110"
+          style="display:block;"
+        />
+      </div>
+
+      <h1 style="margin:0; color:#ffffff; font-size:26px; font-weight:600;">
+        Subscription Expiring Soon ⏰
+      </h1>
+      <p style="margin-top:8px; color:#fef3c7; font-size:15px;">
+        Don't lose access to your forms
+      </p>
+    </div>
+
+    <!-- Content -->
+    <div style="padding:32px; color:#111827;">
+
+      <p style="font-size:16px; margin-top:0;">
+        Hi <strong>{userName}</strong>,
+      </p>
+
+      <p style="font-size:15px; line-height:1.6; color:#374151;">
+        This is a friendly reminder that your <strong>Custovra</strong> subscription is expiring soon.
+      </p>
+
+      <!-- Expiry Info Card -->
+      <div style="background:#fef3c7; border:1px solid #fcd34d; border-radius:10px; padding:20px; margin:24px 0; text-align:center;">
+        <p style="margin:0 0 8px 0; font-size:14px; color:#92400e;">Your subscription expires in</p>
+        <p style="margin:0; font-size:32px; font-weight:700; color:#b45309;">{daysRemaining} day(s)</p>
+        <p style="margin:8px 0 0 0; font-size:14px; color:#92400e;">on <strong>{expiryDate}</strong></p>
+      </div>
+
+      <!-- Plan Details -->
+      <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:20px; margin:24px 0;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+          <span style="color:#6b7280; font-size:14px;">Current Plan</span>
+          <span style="font-weight:600;">{planName}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:#6b7280; font-size:14px;">Billing Period</span>
+          <span style="font-weight:600;">{billingPeriod}</span>
+        </div>
+      </div>
+
+      <p style="font-size:15px; color:#374151;">
+        To continue enjoying uninterrupted access to all your forms and submissions, please renew your subscription before it expires.
+      </p>
+
+      <!-- CTA -->
+      <div style="text-align:center; margin:32px 0;">
+        <a
+          href="https://custovra.com/billing"
+          style="display:inline-block; padding:14px 28px; background:#16bf4c; color:#ffffff; text-decoration:none; border-radius:8px; font-weight:600; font-size:15px;"
+        >
+          Renew Subscription
+        </a>
+      </div>
+
+      <!-- Warning -->
+      <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:18px; margin:24px 0;">
+        <p style="margin:0; font-size:14px; color:#991b1b;">
+          ⚠️ <strong>What happens if you don't renew?</strong><br />
+          Your forms will become inactive and you won't be able to receive new submissions until you renew.
+        </p>
+      </div>
+
+      <p style="font-size:14px; color:#6b7280;">
+        If you have any questions or need assistance, feel free to contact our support team.
+      </p>
+
+      <p style="margin-top:32px; font-size:15px;">
+        Best regards,<br />
+        <strong>Custovra Team</strong>
+      </p>
+
+    </div>
+
+    <!-- Footer -->
+    <div style="background:#f9fafb; padding:16px; text-align:center; font-size:12px; color:#9ca3af;">
+      This is an automated reminder. Please do not reply.
+    </div>
+
+  </div>
+
+</body>
+</html>
+`;
+
 export const PAYMENT_SUCCESS_EMAIL_TEMPLATE = `
 <!DOCTYPE html>
 <html lang="en">

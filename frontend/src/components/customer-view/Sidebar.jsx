@@ -18,8 +18,8 @@ import { useTheme } from "@/components/theme-provider";
 // Menu items.
 const items = [
   { title: 'Dashboard', url: '/dashboard/', icon: Home, },
-  { title: 'Forms', url: '/forms/', icon: ListPlus, },
-  { title: 'Submissions', url: '/submissions/', icon: MessageSquareText, },
+  { title: 'Forms (Outlets)', url: '/forms/', icon: ListPlus, },
+  { title: 'Feedback / Reviews', url: '/submissions/', icon: MessageSquareText, },
   { title: 'Employees', url: '/employees/', icon: Users, },
   { title: 'Reports', url: '/reports/', icon: ChartNoAxesCombined, },
   { title: 'Billing', url: '/billing/', icon: CreditCard, },
@@ -34,7 +34,7 @@ export function CustomerSidebar() {
 
   // Find the Submissions item and add the badge if there are unread submissions
   const itemsWithBadge = items.map(item => {
-    if (item.title === 'Submissions' && unreadCount > 0) {
+    if (item.title === 'Feedback / Reviews' && unreadCount > 0) {
       return {
         ...item,
         badge: (

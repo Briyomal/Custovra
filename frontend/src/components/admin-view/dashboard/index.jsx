@@ -89,9 +89,9 @@ const AdminDashboard = () => {
           className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800"
         />
         <StatsCard
-          title="Total Submissions"
+          title="Total Feedback"
           value={stats?.totalSubmissions || 0}
-          description="All form submissions"
+          description="All feedback"
           icon={MessageSquare}
           className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900 dark:to-orange-800"
         />
@@ -151,7 +151,7 @@ const AdminDashboard = () => {
               </div>
               <div className="flex flex-col items-center justify-center p-4">
                 <MessageSquare className="h-8 w-8 text-green-500" />
-                <p className="mt-2 text-sm font-medium">Total Submissions</p>
+                <p className="mt-2 text-sm font-medium">Total Feedback</p>
                 <p className="text-2xl font-bold">{stats?.totalSubmissions || 0}</p>
               </div>
               <div className="flex flex-col items-center justify-center p-4">

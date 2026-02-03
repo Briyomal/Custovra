@@ -237,12 +237,12 @@ const CustomerDashboardPage = () => {
   }, [submissions]);
 
   const cardItems = [
-    { label: "Total Forms", count: totalFormsCount, icon: <SquareEqual className="text-green-600" />, border: "border-b-green-600" },
+    { label: "Total Forms (Outlets)", count: totalFormsCount, icon: <SquareEqual className="text-green-600" />, border: "border-b-green-600" },
     { label: "Published", count: totalPublishedCount, icon: <Zap className="text-purple-500" />, border: "border-b-purple-600" },
     { label: "Draft", count: totalDraftedCount, icon: <SquareDashedMousePointer className="text-gray-500" />, border: "border-b-gray-600" },
-    { label: "Avg Submissions/Day", count: avgSubmissionsPerDay, icon: <TrendingUp className="text-blue-500" />, border: "border-b-blue-500" },
+    { label: "Avg Feedback/Day", count: avgSubmissionsPerDay, icon: <TrendingUp className="text-blue-500" />, border: "border-b-blue-500" },
     { label: "General Rating", count: generalRating, icon: <Star className="text-orange-500" />, border: "border-b-orange-500" },
-    { label: "Total Submissions", count: totalSubmissionsCount, icon: <MessageSquareText className="text-lime-600" />, border: "border-b-lime-400" },
+    { label: "Total Feedback", count: totalSubmissionsCount, icon: <MessageSquareText className="text-lime-600" />, border: "border-b-lime-400" },
   ];
 
   const chartConfig = {
@@ -291,7 +291,7 @@ const CustomerDashboardPage = () => {
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-medium flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-[#16bf4c]" />
-                Submissions Over Time
+                Feedback Over Time
               </CardTitle>
             </CardHeader>
             <CardContent className="pb-4">
@@ -342,7 +342,7 @@ const CustomerDashboardPage = () => {
               ) : (
                 <div className="h-80 flex flex-col items-center justify-center text-gray-500">
                   <BarChartIcon className="h-12 w-12 mb-2" />
-                  <p>No submission data available</p>
+                  <p>No feedback data available</p>
                 </div>
               )}
             </CardContent>
@@ -424,7 +424,7 @@ const CustomerDashboardPage = () => {
                                     {index === Object.keys(item.payload).filter(key =>
                                       key.includes('avg') && item.payload[key] > 0).length - 1 && (
                                         <div className="text-foreground mt-1.5 flex basis-full items-center border-t pt-1.5 text-xs font-medium">
-                                          Submissions
+                                          Feedback
                                           <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
                                             {item.payload.submissionCount}
                                           </div>
